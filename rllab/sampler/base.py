@@ -1,10 +1,11 @@
 
 
 import numpy as np
+
+import rllab.misc.logger as logger
+from rllab.algos import util
 from rllab.misc import special
 from rllab.misc import tensor_utils
-from rllab.algos import util
-import rllab.misc.logger as logger
 
 
 class Sampler(object):
@@ -54,7 +55,7 @@ class BaseSampler(Sampler):
         if log:
             logger.log("fitting baseline...")
         if hasattr(self.algo.baseline, 'fit_with_samples'):
-            self.algo.baseline.fit_with_samples(paths, samples_data)
+            self.algo.baseline.fit_with_samples(paths, samples_data) ##TODO: is this going to cause an error?
         else:
             self.algo.baseline.fit(paths, log=log)
         if log:
@@ -75,6 +76,12 @@ class BaseSampler(Sampler):
                 deltas, self.algo.discount * self.algo.gae_lambda)
             baselines.append(path_baselines[:-1])
             returns.append(path["returns"])
+            if "expert_actions" in path["env_infos"].keys():
+                path["expert_actions"] = path["env_infos"]["expert_actions"]
+              #  print("expert actions!")
+            else:
+                path["expert_actions"] = []
+              #  print("no expert actions")
 
         ev = special.explained_variance_1d(
             np.concatenate(baselines),
@@ -89,6 +96,7 @@ class BaseSampler(Sampler):
             advantages = tensor_utils.concat_tensor_list([path["advantages"] for path in paths])
             env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
+            expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
 
             if self.algo.center_adv:
                 advantages = util.center_advantages(advantages)
@@ -112,6 +120,7 @@ class BaseSampler(Sampler):
                 env_infos=env_infos,
                 agent_infos=agent_infos,
                 paths=paths,
+                expert_actions=expert_actions,
             )
         else:
             max_path_length = max([len(path["advantages"]) for path in paths])
@@ -174,13 +183,13 @@ class BaseSampler(Sampler):
             #logger.record_tabular('Iteration', itr)
             #logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
-            logger.record_tabular(prefix+'AverageReturn', np.mean(undiscounted_returns))
-            logger.record_tabular(prefix+'ExplainedVariance', ev)
-            logger.record_tabular(prefix+'NumTrajs', len(paths))
-            logger.record_tabular(prefix+'Entropy', ent)
-            logger.record_tabular(prefix+'Perplexity', np.exp(ent))
-            logger.record_tabular(prefix+'StdReturn', np.std(undiscounted_returns))
-            logger.record_tabular(prefix+'MaxReturn', np.max(undiscounted_returns))
-            logger.record_tabular(prefix+'MinReturn', np.min(undiscounted_returns))
+            logger.record_tabular(prefix + 'AverageReturn' + str(itr), np.mean(undiscounted_returns))
+            logger.record_tabular(prefix + 'ExplainedVariance', ev)
+            logger.record_tabular(prefix + 'NumTrajs', len(paths))
+            logger.record_tabular(prefix + 'Entropy', ent)
+            logger.record_tabular(prefix + 'Perplexity', np.exp(ent))
+            logger.record_tabular(prefix + 'StdReturn', np.std(undiscounted_returns))
+            logger.record_tabular(prefix + 'MaxReturn', np.max(undiscounted_returns))
+            logger.record_tabular(prefix + 'MinReturn', np.min(undiscounted_returns))
 
         return samples_data

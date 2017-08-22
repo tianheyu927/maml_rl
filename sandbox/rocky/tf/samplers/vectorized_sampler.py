@@ -1,14 +1,13 @@
+import itertools
 import pickle
 
-import tensorflow as tf
-from rllab.sampler.base import BaseSampler
-from sandbox.rocky.tf.envs.parallel_vec_env_executor import ParallelVecEnvExecutor
-from sandbox.rocky.tf.envs.vec_env_executor import VecEnvExecutor
-from rllab.misc import tensor_utils
 import numpy as np
-from rllab.sampler.stateful_pool import ProgBarCounter
+
 import rllab.misc.logger as logger
-import itertools
+from rllab.misc import tensor_utils
+from rllab.sampler.base import BaseSampler
+from rllab.sampler.stateful_pool import ProgBarCounter
+from sandbox.rocky.tf.envs.vec_env_executor import VecEnvExecutor
 
 
 class VectorizedSampler(BaseSampler):
@@ -118,9 +117,9 @@ class VectorizedSampler(BaseSampler):
 
         pbar.stop()
 
-        logger.record_tabular(log_prefix+"PolicyExecTime", policy_time)
-        logger.record_tabular(log_prefix+"EnvExecTime", env_time)
-        logger.record_tabular(log_prefix+"ProcessExecTime", process_time)
+        logger.record_tabular(log_prefix + "PolicyExecTime", policy_time)
+        logger.record_tabular(log_prefix + "EnvExecTime", env_time)
+        logger.record_tabular(log_prefix + "ProcessExecTime", process_time)
 
         if not return_dict:
             flatten_list = lambda l: [item for sublist in l for item in sublist]

@@ -1,14 +1,17 @@
 
 
 
+import tensorflow as tf
+
+import numpy as np
+
+import rllab.misc.logger as logger
 from rllab.misc import ext
 from rllab.misc.overrides import overrides
-import rllab.misc.logger as logger
 from sandbox.rocky.tf.algos.batch_maml_polopt import BatchMAMLPolopt
-from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
-from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 from sandbox.rocky.tf.misc import tensor_utils
-import tensorflow as tf
+from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
+from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
 
 
 class MAMLNPO(BatchMAMLPolopt):
@@ -77,7 +80,7 @@ class MAMLNPO(BatchMAMLPolopt):
 
         all_surr_objs, input_list = [], []
         new_params = None
-        for j in range(self.num_grad_updates):
+        for j in range(self.num_grad_updates): #note that we cycle through all grad updates except the last one
             obs_vars, action_vars, adv_vars = self.make_vars(str(j))
             surr_objs = []
 
@@ -102,6 +105,7 @@ class MAMLNPO(BatchMAMLPolopt):
                 surr_objs.append(- tf.reduce_mean(logli * adv_vars[i]))
 
             input_list += obs_vars + action_vars + adv_vars + state_info_vars_list
+          #  print("debug11", len(input_list))
             if j == 0:
                 # For computing the fast update for sampling
                 self.policy.set_init_surr_obj(input_list, surr_objs)
@@ -111,18 +115,21 @@ class MAMLNPO(BatchMAMLPolopt):
 
         obs_vars, action_vars, adv_vars = self.make_vars('test')
         surr_objs = []
-        for i in range(self.meta_batch_size):
+        for i in range(self.meta_batch_size):  # here we cycle through the last grad update
             dist_info_vars, _ = self.policy.updated_dist_info_sym(i, all_surr_objs[-1][i], obs_vars[i], params_dict=new_params[i])
 
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars)
                 kls.append(kl)
+
+            # here we define the loss used for meta-gradient
             lr = dist.likelihood_ratio_sym(action_vars[i], old_dist_info_vars[i], dist_info_vars)
             surr_objs.append(- tf.reduce_mean(lr*adv_vars[i]))
 
         if self.use_maml:
             surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over meta_batch_size (the diff tasks)
             input_list += obs_vars + action_vars + adv_vars + old_dist_info_vars_list
+           # print("debug12", len(input_list))
         else:
             surr_obj = tf.reduce_mean(tf.stack(all_surr_objs[0], 0)) # if not meta, just use the first surr_obj
             input_list = init_input_list
@@ -166,14 +173,13 @@ class MAMLNPO(BatchMAMLPolopt):
                 action_list.append(inputs[1])
                 adv_list.append(inputs[2])
             input_list += obs_list + action_list + adv_list  # [ [obs_0], [act_0], [adv_0], [obs_1], ... ]
-
             if step == 0:  ##CF not used?
                 init_inputs = input_list
 
         if self.use_maml:
             dist_info_list = []
             for i in range(self.meta_batch_size):
-                agent_infos = all_samples_data[self.kl_constrain_step][i]['agent_infos']
+                agent_infos = all_samples_data[self.kl_constrain_step][i]['agent_infos'] ##kl_constrain_step default is -1, meaning post all alpha grad updates
                 dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
             input_list += tuple(dist_info_list)
             logger.log("Computing KL before")
@@ -181,8 +187,11 @@ class MAMLNPO(BatchMAMLPolopt):
 
         logger.log("Computing loss before")
         loss_before = self.optimizer.loss(input_list)
-        logger.log("Optimizing")
-        self.optimizer.optimize(input_list)
+        if itr % 2 == 0:
+            logger.log("Optimizing")
+            self.optimizer.optimize(input_list)
+        else:
+            logger.log("Not Optimizing")
         logger.log("Computing loss after")
         loss_after = self.optimizer.loss(input_list)
         if self.use_maml:

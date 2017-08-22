@@ -1,13 +1,14 @@
 
 
-from rllab.misc import logger
+import tensorflow as tf
+
+from rllab.core.serializable import Serializable
 from rllab.misc import ext
+from rllab.misc import logger
 from rllab.misc.overrides import overrides
 from sandbox.rocky.tf.algos.batch_polopt import BatchPolopt
-from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 from sandbox.rocky.tf.misc import tensor_utils
-from rllab.core.serializable import Serializable
-import tensorflow as tf
+from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 
 
 class VPG(BatchPolopt, Serializable):

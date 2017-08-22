@@ -2,7 +2,6 @@ import matplotlib
 matplotlib.use('Pdf')
 
 import matplotlib.pyplot as plt
-import numpy as np
 import os.path as osp
 import rllab.misc.logger as logger
 import rllab.plotter as plotter
@@ -13,7 +12,6 @@ from rllab.algos.base import RLAlgorithm
 from sandbox.rocky.tf.policies.base import Policy
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 from sandbox.rocky.tf.samplers.vectorized_sampler import VectorizedSampler
-from sandbox.rocky.tf.spaces import Discrete
 from rllab.sampler.stateful_pool import singleton_pool
 
 class BatchMAMLPolopt(RLAlgorithm):
@@ -32,9 +30,10 @@ class BatchMAMLPolopt(RLAlgorithm):
             start_itr=0,
             # Note that the number of trajectories for grad upate = batch_size
             # Defaults are 10 trajectories of length 500 for gradient update
+            ## If default is 10 traj-s, why batch_size=100?
             batch_size=100,
             max_path_length=500,
-            meta_batch_size = 100,
+            meta_batch_size=100,
             num_grad_updates=1,
             discount=0.99,
             gae_lambda=1,
@@ -50,6 +49,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             force_batch_sampler=False,
             use_maml=True,
             load_policy=None,
+            pre_std_modifier=1.0,
+            post_std_modifier_train=1.0,
+            post_std_modifier_test=0.001,
             **kwargs
     ):
         """
@@ -97,12 +99,19 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.fixed_horizon = fixed_horizon
         self.meta_batch_size = meta_batch_size # number of tasks
         self.num_grad_updates = num_grad_updates # number of gradient steps during training
+        self.pre_std_modifier = pre_std_modifier
+        self.post_std_modifier_train = post_std_modifier_train
+        self.post_std_modifier_test = post_std_modifier_test
+
+
 
         if sampler_cls is None:
             if singleton_pool.n_parallel > 1:
                 sampler_cls = BatchSampler
+                print("Using Batch Sampler")
             else:
                 sampler_cls = VectorizedSampler
+                print("Using Vectorized Sampler")
         if sampler_args is None:
             sampler_args = dict()
         sampler_args['n_envs'] = self.meta_batch_size
@@ -160,7 +169,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                     learner_env_goals = env.sample_goals(self.meta_batch_size)
 
                     self.policy.switch_to_init_dist()  # Switch to pre-update policy
-
+                    self.policy.std_modifier = self.pre_std_modifier
                     all_samples_data, all_paths = [], []
                     for step in range(self.num_grad_updates+1):
                         #if step > 0:
@@ -172,7 +181,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         logger.log("Processing samples...")
                         samples_data = {}
                         for key in paths.keys():  # the keys are the tasks
-                            # don't log because this will spam the consol with every task.
+                            # don't log because this will spam the console with every task.
                             samples_data[key] = self.process_samples(itr, paths[key], log=False)
                         all_samples_data.append(samples_data)
                         # for logging purposes only
@@ -181,6 +190,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                         self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
                         if step < self.num_grad_updates:
                             logger.log("Computing policy updates...")
+                            if itr %2 == 0:
+                                self.policy.std_modifier = self.post_std_modifier_train
+                            else:
+                                self.policy.std_modifier = self.post_std_modifier_test
                             self.policy.compute_updated_dists(samples_data)
 
 
@@ -200,7 +213,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                     # The rest is some example plotting code.
                     # Plotting code is useful for visualizing trajectories across a few different tasks.
-                    if False and itr % 2 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
+                    if True and (itr-1) % 10 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
@@ -226,10 +239,11 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.plot(post_points[:,0], post_points[:,1], '-.b', linewidth=1)
 
                             plt.plot(0,0, 'k.', markersize=5)
-                            plt.xlim([-0.8, 0.8])
-                            plt.ylim([-0.8, 0.8])
+                            plt.xlim([-0.9, 0.9])  # TODO: revert these to -0.8 to 0.8
+                            plt.ylim([-0.9, 0.9])
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
-                            plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path'+str(ind)+'.png'))
+                            plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
+                            print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                     elif False and itr % 2 == 0:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
@@ -248,7 +262,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.ylim([-1.0, 1.0])
 
                             plt.legend(['preupdate path', 'postupdate path'], loc=2)
-                            plt.savefig(osp.join(logger.get_snapshot_dir(), 'swim1d_prepost_itr'+str(itr)+'_id'+str(ind)+'.pdf'))
+                            plt.savefig(osp.join(logger.get_snapshot_dir(), 'swim1d_prepost_itr' + str(itr) + '_id' + str(ind) + '.pdf'))
         self.shutdown_worker()
 
     def log_diagnostics(self, paths, prefix):
