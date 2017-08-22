@@ -11,7 +11,7 @@ from sandbox.rocky.tf.envs.base import TfEnv
 
 import tensorflow as tf
 
-#test
+#test1
 learning_rates = [1e-2]
 
 fast_learning_rates = [0.5]
