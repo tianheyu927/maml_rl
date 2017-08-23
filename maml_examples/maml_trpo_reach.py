@@ -10,6 +10,7 @@ from sandbox.rocky.tf.policies.maml_minimal_gauss_mlp_policy import MAMLGaussian
 from sandbox.rocky.tf.envs.base import TfEnv
 
 from rllab.envs.gym_env import GymEnv
+from maml_examples.reacher_env import ReacherEnv
 
 import tensorflow as tf
 import time
@@ -42,8 +43,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             stub(globals())
 
                             seed = 1
-                            env = TfEnv(normalize(GymEnv("Reacher-v1", force_reset=True, record_video=False)))
-                            #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
+                            #env = TfEnv(normalize(GymEnv("Reacher-v1", force_reset=False, record_video=False)))  #TODO: force_reset was True
+                            env = ReacherEnv()
+                            xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
 
 
 
@@ -82,7 +84,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='vpg_maml_push100',
+                                exp_prefix='vpg_maml_reach100',
                                 exp_name='trpomaml'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
