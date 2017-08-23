@@ -1,17 +1,16 @@
 import numpy as np
-
-from sandbox.rocky.tf.core.layers_powered import LayersPowered
-import sandbox.rocky.tf.core.layers as L
-from sandbox.rocky.tf.core.network import MLP
-from sandbox.rocky.tf.spaces.box import Box
-
-from rllab.core.serializable import Serializable
-from sandbox.rocky.tf.policies.base import StochasticPolicy
-from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian
-from rllab.misc.overrides import overrides
-from rllab.misc import logger
-from sandbox.rocky.tf.misc import tensor_utils
 import tensorflow as tf
+
+import sandbox.rocky.tf.core.layers as L
+from rllab.core.serializable import Serializable
+from rllab.misc import logger
+from rllab.misc.overrides import overrides
+from sandbox.rocky.tf.core.layers_powered import LayersPowered
+from sandbox.rocky.tf.core.network import MLP
+from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian
+from sandbox.rocky.tf.misc import tensor_utils
+from sandbox.rocky.tf.policies.base import StochasticPolicy
+from sandbox.rocky.tf.spaces.box import Box
 
 
 class GaussianMLPPolicy(StochasticPolicy, LayersPowered, Serializable):

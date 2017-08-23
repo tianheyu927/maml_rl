@@ -104,7 +104,6 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.post_std_modifier_test = post_std_modifier_test
 
 
-
         if sampler_cls is None:
             if singleton_pool.n_parallel > 1:
                 sampler_cls = BatchSampler
@@ -164,9 +163,11 @@ class BatchMAMLPolopt(RLAlgorithm):
                     logger.log("Sampling set of tasks/goals for this meta-batch...")
 
                     env = self.env
-                    while 'sample_goals' not in dir(env):
-                        env = env.wrapped_env
-                    learner_env_goals = env.sample_goals(self.meta_batch_size)
+                    #while 'sample_goals' not in dir(env):
+                    #    env = env.wrapped_env
+                    #learner_env_goals = env.sample_goals(self.meta_batch_size)
+                    learner_env_goals = None  # trying to make this work, TODO fix
+
 
                     self.policy.switch_to_init_dist()  # Switch to pre-update policy
                     self.policy.std_modifier = self.pre_std_modifier
@@ -176,7 +177,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         #    import pdb; pdb.set_trace() # test param_vals functions.
                         logger.log('** Step ' + str(step) + ' **')
                         logger.log("Obtaining samples...")
-                        paths = self.obtain_samples(itr, reset_args=learner_env_goals, log_prefix=str(step))
+                        paths = self.obtain_samples(itr,  log_prefix=str(step))  # there was a reset_args here, TODO revert
                         all_paths.append(paths)
                         logger.log("Processing samples...")
                         samples_data = {}
@@ -213,7 +214,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                     # The rest is some example plotting code.
                     # Plotting code is useful for visualizing trajectories across a few different tasks.
-                    if True and (itr-1) % 10 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
+                    if False and (itr-1) % 10 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()

@@ -1,24 +1,21 @@
-import numpy as np
+import time
 from collections import OrderedDict
 
-from rllab.misc import ext
-import sandbox.rocky.tf.core.layers as L
-from sandbox.rocky.tf.spaces.box import Box
-
-from rllab.core.serializable import Serializable
-from sandbox.rocky.tf.policies.base import StochasticPolicy
-from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian # This is just a util class. No params.
-from rllab.misc.overrides import overrides
-from rllab.misc import logger
-from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
-from sandbox.rocky.tf.misc import tensor_utils
-
-import itertools
-import time
-
+import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.layers.python import layers as tf_layers
-from sandbox.rocky.tf.core.utils import make_input, _create_param, add_param, make_dense_layer, forward_dense_layer, make_param_layer, forward_param_layer
+
+from rllab.core.serializable import Serializable
+from rllab.misc import ext
+from rllab.misc import logger
+from rllab.misc.overrides import overrides
+from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
+from sandbox.rocky.tf.core.utils import make_input, make_dense_layer, forward_dense_layer, make_param_layer, \
+    forward_param_layer
+from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian  # This is just a util class. No params.
+from sandbox.rocky.tf.misc import tensor_utils
+from sandbox.rocky.tf.policies.base import StochasticPolicy
+from sandbox.rocky.tf.spaces.box import Box
 
 load_params = True
 
@@ -36,6 +33,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             std_share_network=False,
             std_hidden_sizes=(32, 32),
             min_std=1e-6,
+            max_std=1000.0,
+            std_modifier=1.0,
             std_hidden_nonlinearity=tf.nn.tanh,
             hidden_nonlinearity=tf.nn.tanh,
             output_nonlinearity=tf.identity,
@@ -124,12 +123,18 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
             if std_parametrization == 'exp':
                 min_std_param = np.log(min_std)
+                max_std_param = np.log(max_std)
             elif std_parametrization == 'softplus':
                 min_std_param = np.log(np.exp(min_std) - 1)
+                max_std_param = np.log(np.exp(max_std) - 1)
             else:
                 raise NotImplementedError
 
-            self.min_std_param = min_std_param
+            self.min_std_param = min_std_param  # TODO: change these to min_std_param_raw
+            self.max_std_param = max_std_param
+            self.std_modifier = std_modifier
+            #print("initializing max_std debug4", self.min_std_param, self.max_std_param)
+
 
             self._dist = DiagonalGaussian(self.action_dim)
 
@@ -159,7 +164,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         self.input_list_for_grad = input_list
         self.surr_objs = surr_objs_tensor
 
-
     def compute_updated_dists(self, samples):
         """ Compute fast gradients once per iteration and pull them out of tensorflow for sampling with the post-update policy.
         """
@@ -174,7 +178,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         obs_list, action_list, adv_list = [], [], []
         for i in range(num_tasks):
             inputs = ext.extract(samples[i],
-                    'observations', 'actions', 'advantages')
+                                 'observations', 'actions', 'advantages')
             obs_list.append(inputs[0])
             action_list.append(inputs[1])
             adv_list.append(inputs[2])
@@ -256,20 +260,24 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         # obs_var - observation tensor
         # mean_var - tensor for policy mean
         # std_param_var - tensor for policy std before output
-        return_params=True
+        return_params = True
         if all_params is None:
-            return_params=False
+            return_params = False
             all_params = self.all_params
 
         mean_var, std_param_var = self._forward(obs_var, all_params, is_training)
         if self.min_std_param is not None:
             std_param_var = tf.maximum(std_param_var, self.min_std_param)
+        if self.max_std_param is not None:
+            std_param_var = tf.minimum(std_param_var, self.max_std_param)
         if self.std_parametrization == 'exp':
-            log_std_var = std_param_var
+            log_std_var = std_param_var + np.log(self.std_modifier)  # TODO:these 2 are not consistent
         elif self.std_parametrization == 'softplus':
-            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var)))
+            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + np.log(self.std_modifier)
         else:
             raise NotImplementedError
+
+        #print("debug3", log_std_var, self.max_std_param)
         if return_params:
             return dict(mean=mean_var, log_std=log_std_var), all_params
         else:
@@ -286,6 +294,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         if old_params_dict == None:
             old_params_dict = self.all_params
         param_keys = self.all_params.keys()
+        # print("debug1", self.all_params['std_param'])
         update_param_keys = param_keys
         no_update_param_keys = []
 

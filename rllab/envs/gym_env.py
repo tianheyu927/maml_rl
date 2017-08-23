@@ -98,6 +98,7 @@ class GymEnv(Env, Serializable):
     def action_space(self):
         return self._action_space
 
+
     @property
     def horizon(self):
         return self._horizon
@@ -131,3 +132,9 @@ class GymEnv(Env, Serializable):
 
     ***************************
                 """ % self._log_dir)
+
+# def sample_tasks(env, num_tasks, meta_itr):
+#         envs_list={}
+#         for _ in range(num_tasks):
+#             envs_list[num_tasks*meta_itr + _] = env().reset()
+
