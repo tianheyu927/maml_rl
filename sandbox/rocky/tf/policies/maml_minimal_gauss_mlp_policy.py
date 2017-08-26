@@ -66,7 +66,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         :return:
         """
         Serializable.quick_init(self, locals())
-        assert isinstance(env_spec.action_space, Box)
+        #assert isinstance(env_spec.action_space, Box)
 
         obs_dim = env_spec.observation_space.flat_dim
         self.action_dim = env_spec.action_space.flat_dim
@@ -271,7 +271,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         if self.max_std_param is not None:
             std_param_var = tf.minimum(std_param_var, self.max_std_param)
         if self.std_parametrization == 'exp':
-            log_std_var = std_param_var + np.log(self.std_modifier)  # TODO:these 2 are not consistent
+            log_std_var = std_param_var + np.log(self.std_modifier)
         elif self.std_parametrization == 'softplus':
             log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + np.log(self.std_modifier)
         else:
@@ -317,7 +317,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         flat_obs = self.observation_space.flatten(observation)
         f_dist = self._cur_f_dist
         mean, log_std = [x[0] for x in f_dist([flat_obs])]
-        rnd = np.random.normal(size=mean.shape)
+        rnd = np.random.normal(size=np.shape(mean))
         action = rnd * np.exp(log_std) + mean
         return action, dict(mean=mean, log_std=log_std)
 
@@ -334,7 +334,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             means = np.array([res[0] for res in result])[:,0,:]
             log_stds = np.array([res[1] for res in result])[:,0,:]
 
-        rnd = np.random.normal(size=means.shape)
+        rnd = np.random.normal(size=np.shape(means))
         actions = rnd * np.exp(log_stds) + means
         return actions, dict(mean=means, log_std=log_stds)
 

@@ -13,11 +13,11 @@ def smooth_abs(x, param):
 
 class PusherEnv(MujocoEnv, Serializable):
 
-    FILE = None #'pusher.xml'
+    FILE = None #'pusher.xml' #'/home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher1.xml'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, xml_file, *args, **kwargs):
         self.frame_skip = 5
-        self.__class__.FILE = kwargs['xml_file']
+        self.__class__.FILE = xml_file
         if 'distractors' in kwargs:
             self.include_distractors = kwargs['distractors']
         else:

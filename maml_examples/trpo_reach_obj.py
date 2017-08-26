@@ -7,6 +7,8 @@ from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.misc.instrument import stub, run_experiment_lite
 from rllab.envs.mujoco.pusher_env import PusherEnv
+from maml_examples.reacher_env import ReacherEnv
+
 import pickle
 
 #from rllab.envs.gym_env import GymEnv
@@ -21,7 +23,7 @@ import random
 local = True
 
 DOCKER_CODE_DIR = "/root/code/rllab/"
-LOCAL_CODE_DIR = '/home/rosen/rllab_copy/'
+LOCAL_CODE_DIR = '/home/rosen/maml_rl/'
 if local:
     DOCKER_CODE_DIR = LOCAL_CODE_DIR
     mode = 'local'
@@ -41,41 +43,33 @@ variants = VG().variants()
 
 def run_task(v):
 
-    if local:
-        #xml_filepath = DOCKER_CODE_DIR + 'vendor/local_mujoco_models/pusher' + str(v['seed']) + '.xml'
-        xml_filepath = DOCKER_CODE_DIR + 'vendor/local_mujoco_models/ensure_woodtable_distractor_pusher' + str(v['seed']) + '.xml'
-    else:
-        xml_filepath = DOCKER_CODE_DIR + 'vendor/mujoco_models/ensure_woodtable_distractor_pusher' + str(v['seed']) + '.xml'
-    exp_log_info = {'xml': xml_filepath}
 
-    gym_env = PusherEnv(xml_file=xml_filepath) #**{'xml_file': xml_filepath}) #, 'distractors': True})
-    #gym_env = GymEnv('Pusher-v0', force_reset=True, record_video=False)
-    # TODO - this is hacky...
-    #mujoco_env.MujocoEnv.__init__(gym_env.env.env.env, xml_filepath, 5)
-    env = TfEnv(normalize(gym_env))
+    env = TfEnv(normalize(ReacherEnv()))
 
     policy = GaussianMLPPolicy(
        name="policy",
        env_spec=env.spec,
+       hidden_nonlinearity=tf.nn.relu,
        hidden_sizes=(128, 128)
     )
+
+
 
     baseline = LinearFeatureBaseline(env_spec=env.spec)
 
     algo = TRPO(
         env=env,
         policy=policy,
-        #load_policy='/home/rosen/rllab_copy/data/local/rllab-fixed-push-experts/pretraining_policy3/itr_300.pkl',
+        #load_policy='/home/rosen/maml_rl/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
         #load_policy='vendor/pretraining_policy3/itr_300.pkl',
         baseline=baseline,
-        batch_size=100*500,
+        batch_size=25*100, #100*500,
         max_path_length=100,
-        n_itr=301,
+        n_itr=301, #301,
         discount=0.99,
         step_size=0.01,
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5))
-        exp_log_info=exp_log_info,
     )
     algo.train()
 
@@ -85,11 +79,11 @@ for v in variants:
         #algo.train(),
         run_task,
         # Number of parallel workers for sampling
-        n_parallel=8,
+        n_parallel=10, #10,
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
-        exp_prefix='rllab_fixed_push_experts',
+        exp_prefix='rllab_fixed_reach_experts',
         python_command='python3',
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used
@@ -97,9 +91,10 @@ for v in variants:
         variant=v,
         # mode="ec2",
         # mode="local_docker",
-        mode=mode, #'local',
+        mode='local',
         confirm_remote=False,
         sync_s3_pkl=True,
         # plot=True,
     )
-    #dumpfile=open("/home/rosen/maml_rl/data/saved_experts/reach")
+    dumpfile=open("/home/rosen/maml_rl/data/saved_experts/test.pkl","wb")
+    pickle.dump()

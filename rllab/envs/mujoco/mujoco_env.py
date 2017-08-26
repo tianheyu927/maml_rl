@@ -7,6 +7,8 @@ from rllab.misc.overrides import overrides
 from rllab.mujoco_py import MjModel, MjViewer
 from rllab.misc import autoargs
 from rllab.misc import logger
+from gym.utils import seeding
+
 import theano
 import tempfile
 import os
@@ -86,6 +88,12 @@ class MujocoEnv(Env):
         self.reset()
         super(MujocoEnv, self).__init__()
 
+        self._seed()
+
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
     @property
     @overrides
     def action_space(self):
@@ -105,12 +113,19 @@ class MujocoEnv(Env):
     def action_bounds(self):
         return self.action_space.bounds
 
-    def reset_mujoco(self, init_state=None):
+    def reset_mujoco(self, init_state=None, **kwargs):
         if init_state is None:
-            self.model.data.qpos = self.init_qpos + \
+            if 'reset_args' in kwargs:
+                state_and_goal = kwargs['reset_args']
+                self.model.data.qpos = state_and_goal + \
                                    np.random.normal(size=self.init_qpos.shape) * 0.01
-            self.model.data.qvel = self.init_qvel + \
-                                   np.random.normal(size=self.init_qvel.shape) * 0.1
+            else:
+               self.model.data.qpos = self.init_qpos + \
+                                       np.random.normal(size=self.init_qpos.shape) * 0.01
+
+
+            self.model.data.qvel = self.init_qvel #+ \
+            # np.random.normal(size=self.init_qvel.shape) * 0.1
             self.model.data.qacc = self.init_qacc
             self.model.data.ctrl = self.init_ctrl
         else:
@@ -123,7 +138,7 @@ class MujocoEnv(Env):
                 start += datum_dim
 
     @overrides
-    def reset(self, init_state=None, **kwargs):
+    def reset(self, init_state=None):
         self.reset_mujoco(init_state)
         self.model.forward()
         self.current_com = self.model.data.com_subtree[0]
@@ -195,6 +210,12 @@ class MujocoEnv(Env):
             self.viewer.start()
             self.viewer.set_model(self.model)
         return self.viewer
+
+    def do_simulation(self, ctrl, n_frames):
+        self.model.data.ctrl = ctrl
+        for _ in range(n_frames):
+            self.model.step()
+
 
     def render(self):
         viewer = self.get_viewer()

@@ -22,9 +22,9 @@ max_path_length = 100  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
 pre_std_modifier_list = [1.0]
-post_std_modifier_train_list = [1.0]
+post_std_modifier_train_list = [0.001]
 post_std_modifier_test_list = [0.001]
-l2loss_std_mult_list = [10.0]
+l2loss_std_mult_list = [1.0]
 env_options = ["box"]
 
 use_maml = True
@@ -80,7 +80,7 @@ for env_option in env_options:
                                     snapshot_mode="last",
                                     python_command='python3',
                                     seed=1,
-                                    exp_prefix='vpg_maml_point100',
+                                    exp_prefix='maml_il_point100',
                                     exp_name='L2ILmaml'
                                              +str(int(use_maml))
                                             # +'_fbs'+str(fast_batch_size)
