@@ -151,6 +151,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             temp_traj_list = expert_trajs[itr][goalnum]['expert_traj_list']
             paths[goalnum] = [] # paths[goalnum] will be a list of trajectories
             for
+                #test
 
     def process_samples(self, itr, paths, prefix='', log=True):
         return self.sampler.process_samples(itr, paths, prefix=prefix, log=log)
