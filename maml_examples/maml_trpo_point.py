@@ -75,7 +75,7 @@ for env_option in env_options:
                                     snapshot_mode="last",
                                     python_command='python3',
                                     seed=1,
-                                    exp_prefix='vpg_maml_point100',
+                                    exp_prefix='maml_trpo_point100',
                                     exp_name='trpomaml'
                                              + str(int(use_maml))
                                              #     +'_fbs'+str(fast_batch_size)

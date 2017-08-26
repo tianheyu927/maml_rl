@@ -20,14 +20,14 @@ class PointEnvRandGoalExpert(Env):
         return Box(low=-0.1, high=0.1, shape=(2,))
 
     def sample_goals(self, num_goals):
-        return np.random.uniform(-0.5, 0.5, size=(num_goals, 2, ))  # TODO:revert back to this
+        return np.random.uniform(-0.5, 0.5, size=(num_goals, 2, ))
         #return np.array([[-0.5, 0.5]] * num_goals)
 
     def reset(self, reset_args=None):
         goal = reset_args
         if goal is not None:
             self._goal = goal
-        elif self._goal is None:  # TODO: should we make this "elif goal is None"
+        elif self._goal is None:
             # Only set a new goal if this env hasn't had one defined before.
             self._goal = np.random.uniform(-0.5, 0.5, size=(2,))
             #goals = [np.array([-0.5,0]), np.array([0.5,0])]

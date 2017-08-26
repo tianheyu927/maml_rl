@@ -1,18 +1,17 @@
 from contextlib import contextmanager
-import itertools
+
 import numpy as np
+import tensorflow as tf
+
 import sandbox.rocky.tf.core.layers as L
 from rllab.core.serializable import Serializable
-from sandbox.rocky.tf.distributions.categorical import Categorical
-from sandbox.rocky.tf.policies.base import StochasticPolicy
 from rllab.misc import ext
-from sandbox.rocky.tf.misc import tensor_utils
 from rllab.misc.overrides import overrides
+from sandbox.rocky.tf.core.utils import make_input, make_dense_layer, forward_dense_layer
+from sandbox.rocky.tf.distributions.categorical import Categorical
+from sandbox.rocky.tf.misc import tensor_utils
+from sandbox.rocky.tf.policies.base import StochasticPolicy
 from sandbox.rocky.tf.spaces.discrete import Discrete
-from rllab.misc import logger
-from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
-import tensorflow as tf
-from sandbox.rocky.tf.core.utils import make_input, _create_param, add_param, make_dense_layer, forward_dense_layer, make_param_layer, forward_param_layer
 
 tf_layers = None
 load_params = True
@@ -171,7 +170,7 @@ class MAMLCategoricalMLPPolicy(StochasticPolicy, Serializable):
             self.assign_params(self.all_params, init_param_values)
 
         outputs = []
-        inputs = tf.split(0, num_tasks, self._l_obs)
+        inputs = tf.split(self._l_obs, num_tasks, 0) # RK I changed this
         for i in range(num_tasks):
             # TODO - use a placeholder to feed in the params, so that we don't have to recompile every time.
             task_inp = inputs[i]

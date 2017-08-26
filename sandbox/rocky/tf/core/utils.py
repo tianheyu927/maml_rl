@@ -46,7 +46,7 @@ def make_dense_layer(input_shape, num_units, name='fc', W=L.XavierUniformInitial
 
 def forward_dense_layer(input, W, b, nonlinearity=tf.identity, batch_norm=False, scope='', reuse=True, is_training=False):
     # compute output tensor
-    if input.get_shape().ndims > 2:
+    if input.shape.ndims > 2:
         # if the input has more than two dimensions, flatten it into a
         # batch of feature vectors.
         input = tf.reshape(input, tf.stack([tf.shape(input)[0], -1]))

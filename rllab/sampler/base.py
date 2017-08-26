@@ -94,7 +94,8 @@ class BaseSampler(Sampler):
             rewards = tensor_utils.concat_tensor_list([path["rewards"] for path in paths])
             returns = tensor_utils.concat_tensor_list([path["returns"] for path in paths])
             advantages = tensor_utils.concat_tensor_list([path["advantages"] for path in paths])
-            env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
+            env_infos = tensor_utils.concat_tensor_dict_list([path["env_i"
+                                                                   "nfos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
             expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
 
@@ -183,7 +184,7 @@ class BaseSampler(Sampler):
             #logger.record_tabular('Iteration', itr)
             #logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
-            logger.record_tabular(prefix + 'AverageReturn' + str(itr), np.mean(undiscounted_returns))
+            logger.record_tabular(prefix + 'AverageReturn', np.mean(undiscounted_returns))
             logger.record_tabular(prefix + 'ExplainedVariance', ev)
             logger.record_tabular(prefix + 'NumTrajs', len(paths))
             logger.record_tabular(prefix + 'Entropy', ent)

@@ -1,16 +1,13 @@
+import tensorflow as tf
+
 import sandbox.rocky.tf.core.layers as L
 from rllab.core.serializable import Serializable
-from sandbox.rocky.tf.distributions.categorical import Categorical
-from sandbox.rocky.tf.policies.base import StochasticPolicy
-from rllab.misc import ext
-from sandbox.rocky.tf.misc import tensor_utils
 from rllab.misc.overrides import overrides
+from sandbox.rocky.tf.core.utils import make_input, make_dense_layer, forward_dense_layer
+from sandbox.rocky.tf.distributions.categorical import Categorical
+from sandbox.rocky.tf.misc import tensor_utils
+from sandbox.rocky.tf.policies.base import StochasticPolicy
 from sandbox.rocky.tf.spaces.discrete import Discrete
-from rllab.misc import logger
-from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
-import itertools
-import tensorflow as tf
-from sandbox.rocky.tf.core.utils import make_input, _create_param, add_param, make_dense_layer, forward_dense_layer, make_param_layer, forward_param_layer
 
 tf_layers = None
 load_params = True

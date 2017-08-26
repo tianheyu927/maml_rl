@@ -1,5 +1,8 @@
 import numpy as np
 import os.path as osp
+from cached_property import cached_property
+
+import rllab
 
 from rllab import spaces
 from rllab.envs.base import Env
@@ -7,8 +10,6 @@ from rllab.misc.overrides import overrides
 from rllab.mujoco_py import MjModel, MjViewer
 from rllab.misc import autoargs
 from rllab.misc import logger
-from gym.utils import seeding
-
 import theano
 import tempfile
 import os
@@ -40,7 +41,7 @@ class MujocoEnv(Env):
     @autoargs.arg('action_noise', type=float,
                   help='Noise added to the controls, which will be '
                        'proportional to the action bounds')
-    def __init__(self, action_noise=0.0, file_path=None, template_args=None):
+    def __init__(self, action_noise=0.0, file_path=None, template_args=None, **kwargs):
         # compile template
         if file_path is None:
             if self.__class__.FILE is None:
@@ -60,7 +61,14 @@ class MujocoEnv(Env):
             self.model = MjModel(file_path)
             os.close(tmp_f)
         else:
-            self.model = MjModel(file_path)
+            try:
+                self.model = MjModel(file_path)
+            except rllab.mujoco_py.mjcore.MjError:
+                rllab_path = rllab.__file__
+                prefix = rllab_path[:rllab_path.index('rllab')] + 'rllab/vendor/local_mujoco_models/'
+                suffix = file_path[file_path.index('pusher'):]
+                #suffix = 'pusher98.xml'
+                self.model = MjModel(prefix+suffix)
         self.data = self.model.data
         self.viewer = None
         self.init_qpos = self.model.data.qpos
@@ -88,13 +96,7 @@ class MujocoEnv(Env):
         self.reset()
         super(MujocoEnv, self).__init__()
 
-        self._seed()
-
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
-    @property
+    @cached_property
     @overrides
     def action_space(self):
         bounds = self.model.actuator_ctrlrange
@@ -102,7 +104,7 @@ class MujocoEnv(Env):
         ub = bounds[:, 1]
         return spaces.Box(lb, ub)
 
-    @property
+    @cached_property
     @overrides
     def observation_space(self):
         shp = self.get_current_obs().shape
@@ -113,19 +115,12 @@ class MujocoEnv(Env):
     def action_bounds(self):
         return self.action_space.bounds
 
-    def reset_mujoco(self, init_state=None, **kwargs):
+    def reset_mujoco(self, init_state=None):
         if init_state is None:
-            if 'reset_args' in kwargs:
-                state_and_goal = kwargs['reset_args']
-                self.model.data.qpos = state_and_goal + \
+            self.model.data.qpos = self.init_qpos + \
                                    np.random.normal(size=self.init_qpos.shape) * 0.01
-            else:
-               self.model.data.qpos = self.init_qpos + \
-                                       np.random.normal(size=self.init_qpos.shape) * 0.01
-
-
-            self.model.data.qvel = self.init_qvel #+ \
-            # np.random.normal(size=self.init_qvel.shape) * 0.1
+            self.model.data.qvel = self.init_qvel + \
+                                   np.random.normal(size=self.init_qvel.shape) * 0.1
             self.model.data.qacc = self.init_qacc
             self.model.data.ctrl = self.init_ctrl
         else:
@@ -211,15 +206,18 @@ class MujocoEnv(Env):
             self.viewer.set_model(self.model)
         return self.viewer
 
-    def do_simulation(self, ctrl, n_frames):
-        self.model.data.ctrl = ctrl
-        for _ in range(n_frames):
-            self.model.step()
-
-
-    def render(self):
-        viewer = self.get_viewer()
-        viewer.loop_once()
+    def render(self, close=False, mode='human'):
+        if mode == 'human':
+            viewer = self.get_viewer()
+            viewer.loop_once()
+        elif mode == 'rgb_array':
+            viewer = self.get_viewer()
+            viewer.loop_once()
+            # self.get_viewer(config=config).render()
+            data, width, height = self.get_viewer().get_image()
+            return np.fromstring(data, dtype='uint8').reshape(height, width, 3)[::-1,:,:]
+        if close:
+            self.stop_viewer()
 
     def start_viewer(self):
         viewer = self.get_viewer()
