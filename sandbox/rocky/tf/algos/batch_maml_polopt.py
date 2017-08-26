@@ -150,8 +150,30 @@ class BatchMAMLPolopt(RLAlgorithm):
         for goalnum in expert_trajs[itr].keys():
             temp_traj_list = expert_trajs[itr][goalnum]['expert_traj_list']
             paths[goalnum] = [] # paths[goalnum] will be a list of trajectories
-            for
-                #test
+            for traj in temp_traj_list.keys():
+                filled_out_traj = self.sample_agent_infos(traj,self.policy)
+                paths[goalnum].append(filled_out_traj)
+        return paths # TODO: add usage of meta batch size and batch size as a way of sampling desired number
+
+    def sample_agent_infos(self, traj, policy):
+        out_traj = traj.copy()
+        for observation in traj['observations']:
+            log_std, mean = policy.get_agent_info(observation)
+            out_traj['agent_info']['log_std'] = log_std
+            out_traj['agent_info']['mean'] = mean
+        return out_traj
+
+    def process_expert_samples(self, itr, paths, prefix='', log=True):
+        # here we need to:
+        # fit the baseline
+        # calculate advantages
+        # returns
+        # i *think we need all of this crap so we calculate the kl difference
+        # for some reason i'm hung up on the kl difference
+        # why do i need special treatment? each trajectory, even along the expert policy, is viable
+        # unless it's so far away from the mean that it leads to numeric instability
+        # but yeah, let's treat it as a normal path
+        return self.process_samples(itr, paths, prefix=prefix, log=log)
 
     def process_samples(self, itr, paths, prefix='', log=True):
         return self.sampler.process_samples(itr, paths, prefix=prefix, log=log)
@@ -235,6 +257,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 print("debug8", np.shape(paths[0][0]['actions']))
 
                         all_paths.append(paths) # all paths is not used for anything except visualization
+                        # so paths aren't really used anywhere except for samples_data
+
                         logger.log("Processing samples...")
                         samples_data = {}
                         for key in paths.keys():  # the keys are the tasks
@@ -267,10 +291,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                             print("debug7", np.shape(all_samples_data[step][0]['advantages']))
                             print("debug7", np.shape(all_samples_data[step][0]['rewards']))
                             print("debug7", np.shape(all_samples_data[step][0]['expert_actions']))
-                            print("debug7", np.shape(all_samples_data[step][0]['paths']))
+                            print("debug7", np.shape(all_samples_data[step][0]['paths'])) # what is this for??
                             print("debug7", np.shape(all_samples_data[step][0]['actions']))
-                            print("debug7", np.shape(all_samples_data[step][0]['env_infos']['expert_actions']))
-                            print("debug7", np.shape(all_samples_data[step][0]['env_infos']['goal']))
+                            print("debug7", np.shape(all_samples_data[step][0]['env_infos']['expert_actions'])) # used to make expert_actions
+                            print("debug7", np.shape(all_samples_data[step][0]['env_infos']['goal'])) # not used
 
 
 
