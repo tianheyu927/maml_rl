@@ -32,7 +32,7 @@ def generateExpertTrajectories(
     env = env.with_goal_as_obs
     policy.train(algo=algo, n_itr=training_n_itr, goals = env.sample_goals(training_n_itr))
 
-
+k
     output = {}
     env=env.without_goal_as_obs
     batch_size = fast_batch_size * max_path_length * meta_batch_size
