@@ -27,7 +27,7 @@ def generateExpertTrajectories(
     # thought: isn't it easier to just pass the goal as an observation, both during training
     # and during sampling
     # and then to just scrub the resulting paths from the goal?
-
+    #test
     algo = MAMLTRPO()
     env = env.with_goal_as_obs
     policy.train(algo=algo, n_itr=training_n_itr, goals = env.sample_goals(training_n_itr))
