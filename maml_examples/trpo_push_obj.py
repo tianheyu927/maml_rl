@@ -102,4 +102,3 @@ for v in variants:
         sync_s3_pkl=True,
         # plot=True,
     )
-    #dumpfile=open("/home/rosen/maml_rl/data/saved_experts/reach")

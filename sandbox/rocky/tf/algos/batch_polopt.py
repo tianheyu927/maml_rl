@@ -178,9 +178,10 @@ class BatchPolopt(RLAlgorithm):
                         if self.pause_for_plot:
                             input("Plotting evaluation run: Press Enter to "
                                   "continue...")
-                if self.save_expert_trajectories is not None:
-                    Path(self.save_expert_trajectories).touch()
-                    joblib.dump(paths_to_save,self.save_expert_trajectories)
+            if self.save_expert_trajectories is not None:
+                logger.log("Pickling trajectories...")
+                Path(self.save_expert_trajectories).touch()
+                joblib.dump(paths_to_save,self.save_expert_trajectories)
         self.shutdown_worker()
 
     def log_diagnostics(self, paths):
@@ -210,11 +211,11 @@ class BatchPolopt(RLAlgorithm):
             plotter.update_plot(self.policy, self.max_path_length)
 
     def clip_goal_from_obs(self, paths):
-        return paths
+    #    return paths
     #
     #     # unwrapping...
-    #     env = self.env
-    #     while 'clip_goal_from_obs' not in dir(env):
-    #         env = env.wrapped_env
-    #     return env.clip_goal_from_obs(paths)  # We want to implement this for each Oracle-type environment,
+        env = self.env
+        while 'clip_goal_from_obs' not in dir(env):
+            env = env.wrapped_env
+        return env.clip_goal_from_obs(paths)  # We want to implement this for each Oracle-type environment,
     # since the goal's observations are env-specific

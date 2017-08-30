@@ -1,7 +1,26 @@
+# TO DELETE THIS FILE:
+
+# We should be using batch_polopt and normal non-maml experiments to generate the trajectories
+# And then use batch_maml_polopt with the added options around goals_to_load, expert_trajs to load
+# the expert policy's trajectories.
+
+
 # Intended to work with batch_maml_polopt. Use elsewhere at your own risk
 
 
+from sandbox.rocky.tf.algos.maml_trpo import MAMLTRPO
+from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
+from rllab.baselines.gaussian_mlp_baseline import GaussianMLPBaseline
+from rllab.baselines.zero_baseline import ZeroBaseline
+from maml_examples.point_env_randgoal_expert import PointEnvRandGoalExpert
+from maml_examples.point_env_randgoal_oracle import PointEnvRandGoalOracle
+from rllab.envs.normalized_env import normalize
+from rllab.misc.instrument import stub, run_experiment_lite
+from sandbox.rocky.tf.policies.maml_minimal_gauss_mlp_policy import MAMLGaussianMLPPolicy
+from sandbox.rocky.tf.envs.base import TfEnv
+
 import tensorflow as tf
+import time
 
 
 fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
@@ -11,7 +30,7 @@ meta_step_size = 0.01
 l2loss_std_mult_list = [1.0]
 env_options = ["box"]
 
-policy = MAMLGaussianOraclePolicy # oracle because it sees the goal? Need to rewrite its functions
+policy = MAMLGaussianMLPPolicy # oracle because it sees the goal? Need to rewrite its functions
 
 def generateExpertTrajectories(
     policy,

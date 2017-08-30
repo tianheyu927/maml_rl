@@ -29,11 +29,12 @@ algo = TRPO(
     baseline=baseline,
     batch_size=100*100,
     max_path_length=100,
-    n_itr=300,
+    start_itr=-200,
+    n_itr=101,
     discount=0.99,
     step_size=0.01,
     #plot=True,
-    save_expert_trajectories="/home/rosen/maml_rl/saved_expert_traj/test_point2.pkl"
+    save_expert_trajectories="/home/rosen/maml_rl/saved_expert_traj/test_point5fast.pkl"
 
 )
 
@@ -46,7 +47,7 @@ run_experiment_lite(
     # Specifies the seed for the experiment. If this is not provided, a random seed
     # will be used
     seed=1,
-    exp_prefix='trpo_point100_expert',
+    exp_prefix='trpo_point100_oracle',
     exp_name='oracleenv2',
     #plot=True,
 )
