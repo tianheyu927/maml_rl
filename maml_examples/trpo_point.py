@@ -12,9 +12,8 @@ stub(globals())
 
 import tensorflow as tf
 
-env = normalize(PointEnvRandGoalOracle())
+env = TfEnv(normalize(PointEnvRandGoalOracle()))
 
-env = TfEnv(env)
 policy = GaussianMLPPolicy(
     name='policy',
     env_spec=env.spec,
@@ -28,12 +27,14 @@ algo = TRPO(
     env=env,
     policy=policy,
     baseline=baseline,
-    batch_size=1000,
+    batch_size=100*100,
     max_path_length=100,
-    n_itr=100,
+    n_itr=300,
     discount=0.99,
     step_size=0.01,
     #plot=True,
+    save_expert_trajectories="/home/rosen/maml_rl/saved_expert_traj/test_point2.pkl"
+
 )
 
 run_experiment_lite(
@@ -45,7 +46,7 @@ run_experiment_lite(
     # Specifies the seed for the experiment. If this is not provided, a random seed
     # will be used
     seed=1,
-    exp_prefix='trpo_maml_point100',
+    exp_prefix='trpo_point100_expert',
     exp_name='oracleenv2',
     #plot=True,
 )

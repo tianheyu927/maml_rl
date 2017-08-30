@@ -8,6 +8,7 @@ import rllab.plotter as plotter
 import tensorflow as tf
 import time
 import numpy as np
+import joblib
 
 from rllab.algos.base import RLAlgorithm
 from sandbox.rocky.tf.policies.base import Policy
@@ -53,9 +54,11 @@ class BatchMAMLPolopt(RLAlgorithm):
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
             post_std_modifier_test=0.001,
-            off_policy_meta_learning = False,
-            goals_to_use = None,
-            expert_trajs = None,
+            meta_train_on_expert_traj = False,
+            goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
+            expert_trajs=None,
+            pickle_goals=False,
+            goals_save_to='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
             **kwargs
     ):
         """
@@ -106,16 +109,65 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
         self.post_std_modifier_test = post_std_modifier_test
-        self.off_policy_meta_learning = off_policy_meta_learning
+        self.meta_train_on_expert_traj = meta_train_on_expert_traj
+        if self.meta_train_on_expert_traj:
+            assert expert_trajs is not None, "cannot meta train on expert trajectories if none are loaded"
         self.expert_trajs = expert_trajs
-        if goals_to_use is None and expert_trajs is not None:
-            goals_to_use = {}
-            for itr in expert_trajs.keys():
-                # a bit tricky since expert_traj organizes tasks in dict while goals uses a list
-                goals_to_use[itr] = []
-                for goalnum in expert_trajs[itr].keys():
-                    goals_to_use[itr].append(expert_trajs[itr][goalnum]['goal_or_state'])
-        self.goals_to_use = goals_to_use
+
+        # Next, we will set up the goals and potentially trajectories that we plan to use.
+        # If we use trajectorie
+        if expert_trajs is not None:
+            assert goals_to_load is None, "expert_trajs already comes with its own goals, please disable goals_to_load"
+            # extracting the goals_to_load
+            self.goals_to_use = {}
+            # TODO
+            # for itr in expert_trajs.keys():
+            #     # a bit tricky since expert_traj organizes tasks in dict while goals uses a list
+            #     goals_to_load[itr] = []
+            #     for goalnum in expert_trajs[itr].keys():
+            #         goals_to_load[itr].append(expert_trajs[itr][goalnum]['goal_or_state'])
+
+        elif goals_to_load is not None:
+            env = self.env
+            while 'sample_goals' not in dir(env):
+                env = env.wrapped_env
+            _, reset_dimensions = env.sample_goals(1).shape  # TODO, we should avoid all that by adding a method, env.spec.reset_space or something
+
+            logger.log("Loading goals from %s ..." % goals_to_load)
+            temp_goals = joblib.load(goals_to_load)
+            assert set(range(self.start_itr, self.n_itr)).issubset(
+                set(temp_goals.keys())), "Not all meta-iteration numbers have saved goals in %s" % goals_to_load
+
+            self.goals_to_use_dict = {}
+            for itr in range(self.start_itr, self.n_itr):
+                temp_goals_slice = temp_goals[itr]
+                num_goals, dimensions = temp_goals_slice.shape  # number of goals per iteration from loaded file | number of entries per goal
+                assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s were needed" % (
+                itr, num_goals, self.meta_batch_size)
+                assert dimensions == reset_dimensions, "loaded dimensions are %s, do not match with environment's %s" % (
+                dimensions, reset_dimensions)
+                temp_goals_slice = temp_goals_slice[:self.meta_batch_size]  # chopping the end off
+                self.goals_to_use_dict[itr] = temp_goals_slice
+
+        else:
+            self.goals_to_use_dict = {}
+            for itr in range(self.start_itr, self.n_itr):
+                with logger.prefix('itr #%d | ' % itr):
+                    logger.log("Sampling set of tasks/goals for this meta-batch...")
+
+                    env = self.env
+                    while 'sample_goals' not in dir(env):
+                        env = env.wrapped_env
+                    goals_for_metaitr = env.sample_goals(self.meta_batch_size)
+                    self.goals_to_use_dict[itr] = goals_for_metaitr
+            if pickle_goals:
+                logger.log("Saving goals to %s..." % goals_save_to)
+                from pathlib import Path
+                Path(goals_save_to).touch()
+                joblib.dump(self.goals_to_use_dict, goals_save_to, compress=5)
+
+
+
 
         if sampler_cls is None:
             if singleton_pool.n_parallel > 1:
@@ -164,15 +216,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         return out_traj
 
     def process_expert_samples(self, itr, paths, prefix='', log=True):
-        # here we need to:
-        # fit the baseline
-        # calculate advantages
-        # returns
-        # i *think we need all of this crap so we calculate the kl difference
-        # for some reason i'm hung up on the kl difference
-        # why do i need special treatment? each trajectory, even along the expert policy, is viable
-        # unless it's so far away from the mean that it leads to numeric instability
-        # but yeah, let's treat it as a normal path
+        # Separated in case we want to implement in a different way in the future
         return self.process_samples(itr, paths, prefix=prefix, log=log)
 
     def process_samples(self, itr, paths, prefix='', log=True):
@@ -185,7 +229,6 @@ class BatchMAMLPolopt(RLAlgorithm):
         with tf.Session() as sess:
             # Code for loading a previous policy. Somewhat hacky because needs to be in sess.
             if self.load_policy is not None:
-                import joblib
                 self.policy = joblib.load(self.load_policy)['policy']
             self.init_opt()
             # initialize uninitialized vars  (only initialize vars that were not loaded)
@@ -201,27 +244,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.start_worker()
             start_time = time.time()
 
-            # generating goals ahead of time, the idea being to pickle them eventually
-            if self.goals_to_use is not None:
-                # goals_to_use is a dictionary where each key (itr) corresponds to a set of goals
-                # to be used during a meta-training step
-                # see the 'else' statement below for the structure we want to follow
-                itr_list = self.goals_to_use.keys()
-                assert itr_list == range(self.start_itr, self.n_itr), "algo meta iterations do not start or end at same place as goals_to_use"
-                assert len(self.goals_to_use[itr_list[0]]) >= self.meta_batch_size, "number of goals provided per meta iteration not enough"
-                learner_env_goals_dict = self.goals_to_use
 
-            else:
-                learner_env_goals_dict = {}
-                for itr in range(self.start_itr, self.n_itr):
-                    with logger.prefix('itr #%d | ' % itr):
-                        logger.log("Sampling set of tasks/goals for this meta-batch...")
-
-                        env = self.env
-                        while 'sample_goals' not in dir(env):
-                            env = env.wrapped_env
-                        learner_env_goals = env.sample_goals(self.meta_batch_size)
-                        learner_env_goals_dict[itr] = learner_env_goals
 
             for itr in range(self.start_itr, self.n_itr):
                 itr_start_time = time.time()
@@ -234,41 +257,36 @@ class BatchMAMLPolopt(RLAlgorithm):
                         #    import pdb; pdb.set_trace() # test param_vals functions.
                         logger.log('** Step ' + str(step) + ' **')
                         logger.log("Obtaining samples...")
-                        if self.off_policy_meta_learning and step == self.num_grad_updates and itr % 2 == 0: # only train on even itr, sample as regular on odd to see performance
-                            # this extracts the paths we want to be working with: observations, rewards, expert actions
-                            # and adds
-                            paths = self.obtain_expert_samples(itr, self.expert_trajs, self.meta_batch_size, self.batch_size)
+                        if False: # self.meta_train_on_expert_traj and step == self.num_grad_updates and itr % 2 == 0: # only train on even itr, sample as regular on odd to see performance
+                             # this extracts the paths we want to be working with: observations, rewards, expert actions
+                             # and adds
+                             paths = self.obtain_expert_samples(itr, self.expert_trajs, self.meta_batch_size, self.batch_size)
                         else:
                             # this obtains a dictionary paths, one dict entry for each env/goal
                             # I believe observations, rewards, actions, env_infos
-                            paths = self.obtain_samples(itr, reset_args=learner_env_goals_dict[itr],  log_prefix=str(step))  # there was a reset_args here, TODO revert
+                            paths = self.obtain_samples(itr, reset_args=self.goals_to_use_dict[itr],  log_prefix=str(step))  # there was a reset_args here, TODO revert
 
                             # for my education:
-                            if step == 0 and itr ==0:
-                                print("debug8", paths.keys())
-                                print("debug8", np.shape(paths[0]))
-                                print("debug8", paths[0][0].keys()) #task, trajnum, infotype
-                                print("debug8", np.shape(paths[0][0]['observations']))
-                                print("debug8", np.shape(paths[0][0]['env_infos']['goal']))
-                                print("debug8", np.shape(paths[0][0]['env_infos']['expert_actions']))
-                                print("debug8", np.shape(paths[0][0]['agent_infos']['log_std']))
-                                print("debug8", np.shape(paths[0][0]['agent_infos']['mean']))
-                                print("debug8", np.shape(paths[0][0]['rewards']))
-                                print("debug8", np.shape(paths[0][0]['actions']))
+                        if step == 0 and itr ==0:
+                            print("debug8", paths.keys())
+                            print("debug8", np.shape(paths[0]))
+                            print("debug8", paths[0][0].keys()) #task, trajnum, infotype
+                            print("debug8", np.shape(paths[0][0]['observations']))
+                        #    print("debug8", np.shape(paths[0][0]['env_infos']['goal']))
+                        #    print("debug8", np.shape(paths[0][0]['env_infos']['expert_actions']))
+                            print("debug8", np.shape(paths[0][0]['agent_infos']['log_std']))
+                            print("debug8", np.shape(paths[0][0]['agent_infos']['mean']))
+                            print("debug8", np.shape(paths[0][0]['rewards']))
+                            print("debug8", np.shape(paths[0][0]['actions']))
 
                         all_paths.append(paths) # all paths is not used for anything except visualization
                         # so paths aren't really used anywhere except for samples_data
 
                         logger.log("Processing samples...")
                         samples_data = {}
-                        for key in paths.keys():  # the keys are the tasks
+                        for goal in paths.keys():  # the keys are the tasks
                             # don't log because this will spam the console with every task.
-                            if self.off_policy_meta_learning and step == self.num_grad_updates and itr % 2 == 0:
-                                samples_data[key] = self.process_expert_samples(itr, paths[key], log=False)
-                            else:
-                                # this takes info from the paths and adds returns, advantages, expert_actions,
-                                #
-                                samples_data[key] = self.process_samples(itr, paths[key], log=False)
+                            samples_data[goal] = self.process_samples(itr, paths[goal], log=False)
                         all_samples_data.append(samples_data)
                         # for logging purposes only
                         self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True)
@@ -290,11 +308,11 @@ class BatchMAMLPolopt(RLAlgorithm):
                             print("debug7", np.shape(all_samples_data[step][0]['agent_infos']['mean']))
                             print("debug7", np.shape(all_samples_data[step][0]['advantages']))
                             print("debug7", np.shape(all_samples_data[step][0]['rewards']))
-                            print("debug7", np.shape(all_samples_data[step][0]['expert_actions']))
+                          #  print("debug7", np.shape(all_samples_data[step][0]['expert_actions']))
                             print("debug7", np.shape(all_samples_data[step][0]['paths'])) # what is this for??
                             print("debug7", np.shape(all_samples_data[step][0]['actions']))
-                            print("debug7", np.shape(all_samples_data[step][0]['env_infos']['expert_actions'])) # used to make expert_actions
-                            print("debug7", np.shape(all_samples_data[step][0]['env_infos']['goal'])) # not used
+                         #   print("debug7", np.shape(all_samples_data[step][0]['env_infos']['expert_actions'])) # used to make expert_actions
+                         #   print("debug7", np.shape(all_samples_data[step][0]['env_infos']['goal'])) # not used
 
 
 
@@ -319,7 +337,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
-                            plt.plot(learner_env_goals_dict[itr][ind][0], learner_env_goals_dict[itr][ind][1], 'k*', markersize=10)
+                            plt.plot(goals_to_use_dict[itr][ind][0], goals_to_use_dict[itr][ind][1], 'k*', markersize=10)
                             plt.hold(True)
 
                             preupdate_paths = all_paths[0]
@@ -350,7 +368,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
-                            goal_vel = learner_env_goals_dict[itr][ind]
+                            goal_vel = goals_to_use_dict[itr][ind]
                             plt.title('Swimmer paths, goal vel='+str(goal_vel))
                             plt.hold(True)
 

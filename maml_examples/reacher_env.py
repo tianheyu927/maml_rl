@@ -12,7 +12,7 @@ from rllab.envs.env_spec import EnvSpec
 
 class ReacherEnv(MujocoEnv, Serializable):
     def __init__(self, *args, **kwargs):
-        self.goal=None
+        self.goal = None
         #utils.EzPickle.__init__(self)
         MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml') #,frame_skip=2)
         Serializable.__init__(self, *args, **kwargs)
@@ -26,13 +26,13 @@ class ReacherEnv(MujocoEnv, Serializable):
     def step(self, action):
         self.frame_skip = 5
         vec = self.get_body_com("fingertip") - self.get_body_com("target")
-        vel = self.get_body_comvel("fingertip")
-        vel1 = self.get_body_comvel("body1")
+ #       vel = self.get_body_comvel("fingertip")
+ #       vel1 = self.get_body_comvel("body1")
         reward_dist = - np.linalg.norm(vec)
-        reward_vel = - np.square(vel).sum()
-        reward_vel1 = - np.square(vel1).sum()
+  #      reward_vel = - np.square(vel).sum()
+  #      reward_vel1 = - np.square(vel1).sum()
         reward_ctrl = - np.square(action).sum()
-        reward = reward_dist + reward_ctrl + reward_vel + reward_vel1
+        reward = reward_dist + reward_ctrl # + reward_vel + reward_vel1
 
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()

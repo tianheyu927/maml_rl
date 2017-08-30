@@ -49,7 +49,6 @@ def run_task(v):
     policy = GaussianMLPPolicy(
        name="policy",
        env_spec=env.spec,
-       hidden_nonlinearity=tf.nn.relu,
        hidden_sizes=(128, 128)
     )
 
@@ -69,7 +68,8 @@ def run_task(v):
         discount=0.99,
         step_size=0.01,
         force_batch_sampler=True,
-        # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5))
+        # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
+        save_expert_trajectories="/home/rosen/maml_rl/saved_expert_traj/test_reach1.pkl"
     )
     algo.train()
 
@@ -96,5 +96,4 @@ for v in variants:
         sync_s3_pkl=True,
         # plot=True,
     )
-    dumpfile=open("/home/rosen/maml_rl/data/saved_experts/test.pkl","wb")
-    pickle.dump()
+

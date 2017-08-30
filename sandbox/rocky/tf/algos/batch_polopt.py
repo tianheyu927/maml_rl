@@ -8,6 +8,8 @@ from rllab.algos.base import RLAlgorithm
 from sandbox.rocky.tf.policies.base import Policy
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 
+import joblib
+from pathlib import Path
 
 class BatchPolopt(RLAlgorithm):
     """
@@ -39,6 +41,7 @@ class BatchPolopt(RLAlgorithm):
             force_batch_sampler=False,
             load_policy=None,
             reset_arg=None,
+            save_expert_trajectories=None,
             **kwargs
     ):
         """
@@ -89,6 +92,7 @@ class BatchPolopt(RLAlgorithm):
             sampler_args = dict()
         self.sampler = sampler_cls(self, **sampler_args)
         self.reset_arg = reset_arg
+        self.save_expert_trajectories = save_expert_trajectories
 
     def start_worker(self):
         self.sampler.start_worker()
@@ -107,7 +111,6 @@ class BatchPolopt(RLAlgorithm):
     def train(self):
         with tf.Session() as sess:
             if self.load_policy is not None:
-                import joblib
                 self.policy = joblib.load(self.load_policy)['policy']
             self.init_opt()
             # initialize uninitialized vars (I know, it's ugly)
@@ -121,12 +124,17 @@ class BatchPolopt(RLAlgorithm):
             #sess.run(tf.initialize_all_variables())
             self.start_worker()
             start_time = time.time()
+            paths_to_save = {}
             for itr in range(self.start_itr, self.n_itr):
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
 
                     logger.log("Obtaining samples...")
                     paths = self.obtain_samples(itr)
+                    if self.save_expert_trajectories is not None:
+                        logger.log("Saving trajectories...")
+                        paths_no_goal = self.clip_goal_from_obs(paths)
+                        paths_to_save[itr] =paths_no_goal
                     logger.log("Processing samples...")
                     samples_data = self.process_samples(itr, paths)
                     logger.log("Logging diagnostics...")
@@ -170,6 +178,9 @@ class BatchPolopt(RLAlgorithm):
                         if self.pause_for_plot:
                             input("Plotting evaluation run: Press Enter to "
                                   "continue...")
+                if self.save_expert_trajectories is not None:
+                    Path(self.save_expert_trajectories).touch()
+                    joblib.dump(paths_to_save,self.save_expert_trajectories)
         self.shutdown_worker()
 
     def log_diagnostics(self, paths):
@@ -197,3 +208,13 @@ class BatchPolopt(RLAlgorithm):
     def update_plot(self):
         if self.plot:
             plotter.update_plot(self.policy, self.max_path_length)
+
+    def clip_goal_from_obs(self, paths):
+        return paths
+    #
+    #     # unwrapping...
+    #     env = self.env
+    #     while 'clip_goal_from_obs' not in dir(env):
+    #         env = env.wrapped_env
+    #     return env.clip_goal_from_obs(paths)  # We want to implement this for each Oracle-type environment,
+    # since the goal's observations are env-specific

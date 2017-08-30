@@ -2,7 +2,7 @@ from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.base import Step
 import numpy as np
-
+import copy
 
 class PointEnvRandGoalOracle(Env):
     def __init__(self, goal=None):
@@ -47,3 +47,12 @@ class PointEnvRandGoalOracle(Env):
 
     def render(self):
         print('current state:', self._state)
+
+    def clip_goal_from_obs(self, paths):
+        paths_copy = copy.deepcopy(paths)
+        for path in paths_copy:
+            clipped_obs = [obs[:-2] for obs in path['observations']]
+            path['observations'] = clipped_obs
+        return paths_copy
+
+
