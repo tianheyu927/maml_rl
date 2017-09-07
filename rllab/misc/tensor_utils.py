@@ -62,6 +62,8 @@ def stack_tensor_dict_list(tensor_dict_list):
     :param tensor_dict_list: a list of dictionaries of {tensors or dictionary of tensors}.
     :return: a dictionary of {stacked tensors or dictionary of stacked tensors}
     """
+    if type(tensor_dict_list[0]) is not dict:
+        print("debug13", tensor_dict_list)
     keys = list(tensor_dict_list[0].keys())
     ret = dict()
     for k in keys:
@@ -79,6 +81,8 @@ def concat_tensor_list(tensor_list):
 
 
 def concat_tensor_dict_list(tensor_dict_list):
+    if type(tensor_dict_list[0]) is not dict:
+        print("debug15", tensor_dict_list[0], tensor_dict_list)
     keys = list(tensor_dict_list[0].keys())
     ret = dict()
     for k in keys:

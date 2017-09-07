@@ -11,6 +11,7 @@ from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 from pathlib import Path
 
+
 class BatchPolopt(RLAlgorithm):
     """
     Base class for batch sampling-based policy optimization methods.
@@ -41,7 +42,9 @@ class BatchPolopt(RLAlgorithm):
             force_batch_sampler=False,
             load_policy=None,
             reset_arg=None,
-            save_expert_trajectories=None,
+            save_expert_traj_dir=None,
+            itrs_to_pickle=[],
+            goals_to_load=None,
             **kwargs
     ):
         """
@@ -67,7 +70,7 @@ class BatchPolopt(RLAlgorithm):
         """
         self.env = env
         self.policy = policy
-        self.load_policy=load_policy
+        self.load_policy = load_policy
         self.baseline = baseline
         self.scope = scope
         self.n_itr = n_itr
@@ -92,7 +95,28 @@ class BatchPolopt(RLAlgorithm):
             sampler_args = dict()
         self.sampler = sampler_cls(self, **sampler_args)
         self.reset_arg = reset_arg
-        self.save_expert_trajectories = save_expert_trajectories
+        self.save_expert_traj_dir = save_expert_traj_dir
+        self.itrs_to_pickle = itrs_to_pickle
+        if self.itrs_to_pickle is not []:
+            assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
+            assert set(self.itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
+                "Not going to go through all itrs that need to be pickled"
+            Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=True)
+            self.goals_to_save={}
+        elif save_expert_traj_dir is not None and self.itrs_to_pickle is []:
+            self.itrs_to_pickle = range(self.start_itr, self.n_itr)
+        if goals_to_load is not None:
+            self.goals_to_use = joblib.load(goals_to_load)
+        else:
+            self.goals_to_use = {}
+            # note, in batch_polopt, goals_to use can be a subset of all iterations/goals used,
+            # while in batch_maml_polopt, once we use goals_to_load, we enforce that all iterations
+            # and meta batch sizes are covered by those goals.
+            # The intuition is that for every task used by batch_maml_polopt, we want to have an expert policy
+            # that has covered said situation; at the same time, we want an expert policy to pre-train
+            # before performing on the set of tasks that we'll use for MAML
+
+
 
     def start_worker(self):
         self.sampler.start_worker()
@@ -102,8 +126,10 @@ class BatchPolopt(RLAlgorithm):
     def shutdown_worker(self):
         self.sampler.shutdown_worker()
 
-    def obtain_samples(self, itr):
-        return self.sampler.obtain_samples(itr, reset_args=self.reset_arg)
+    def obtain_samples(self, itr, reset_args=None):
+        if reset_args is None:
+            reset_args = self.reset_arg
+        return self.sampler.obtain_samples(itr, reset_args=reset_args)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
@@ -126,15 +152,34 @@ class BatchPolopt(RLAlgorithm):
             start_time = time.time()
             paths_to_save = {}
             for itr in range(self.start_itr, self.n_itr):
+                if itr in self.goals_to_use.keys():
+                    tasks = self.goals_to_use[itr]
+                else:
+                    tasks = [None]
+                if itr in self.itrs_to_pickle:
+                    paths_to_save[itr] = {}
+                  #  paths_to_save[itr]['tasks'] = {}
+                    self.goals_to_save[itr] = tasks
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
 
                     logger.log("Obtaining samples...")
-                    paths = self.obtain_samples(itr)
-                    if self.save_expert_trajectories is not None:
-                        logger.log("Saving trajectories...")
-                        paths_no_goal = self.clip_goal_from_obs(paths)
-                        paths_to_save[itr] =paths_no_goal
+                    paths = []
+                    for tasknum, task in enumerate(tasks):
+                        paths_for_task = self.obtain_samples(itr, [task])
+                        paths = paths + paths_for_task
+                        if itr in self.itrs_to_pickle:
+                            logger.log("Saving trajectories...")
+                            paths_no_goal = self.clip_goal_from_obs(paths_for_task)
+                            [path.pop('agent_infos') for path in paths_no_goal]
+                            paths_to_save[itr][tasknum] = paths_no_goal
+                            #paths_to_save[itr]['tasks'][tasknum] = task
+                    if itr in self.itrs_to_pickle:
+                        logger.log("Pickling trajectories...")
+                        Path(self.save_expert_traj_dir+str(itr)+".pkl").touch()
+                        joblib.dump(paths_to_save[itr], self.save_expert_traj_dir+str(itr)+".pkl")
+
+
                     logger.log("Processing samples...")
                     samples_data = self.process_samples(itr, paths)
                     logger.log("Logging diagnostics...")
@@ -178,10 +223,11 @@ class BatchPolopt(RLAlgorithm):
                         if self.pause_for_plot:
                             input("Plotting evaluation run: Press Enter to "
                                   "continue...")
-            if self.save_expert_trajectories is not None:
-                logger.log("Pickling trajectories...")
-                Path(self.save_expert_trajectories).touch()
-                joblib.dump(paths_to_save,self.save_expert_trajectories)
+            if self.save_expert_traj_dir is not None:
+                logger.log("Pickling goals...")
+                Path(self.save_expert_traj_dir+"goals.pkl").touch()
+                joblib.dump(self.goals_to_save, self.save_expert_traj_dir+"goals.pkl")
+
         self.shutdown_worker()
 
     def log_diagnostics(self, paths):

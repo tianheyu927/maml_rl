@@ -63,7 +63,7 @@ for env_option in env_options:
                                     max_path_length=max_path_length,
                                     meta_batch_size=meta_batch_size, ## number of tasks sampled for beta grad update
                                     num_grad_updates=num_grad_updates, ## number of alpha grad updates per beta update
-                                    n_itr=100, #100
+                                    n_itr=30, #100
                                     use_maml=use_maml,
                                     step_size=meta_step_size,
                                     plot=False,
@@ -72,6 +72,11 @@ for env_option in env_options:
                                     l2loss_std_mult = l2loss_std_mult,
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
+
+
+                                    #  goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
+                                    expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/9_6_test4/",
+                                    goals_save_to=None,  # '/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
                                 )
 
                                 run_experiment_lite(

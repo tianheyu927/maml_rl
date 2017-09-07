@@ -60,13 +60,17 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 max_path_length=max_path_length,
                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                n_itr=100, #100
+                                n_itr=30, #100
                                 use_maml=use_maml,
                                 step_size=meta_step_size,
                                 plot=False,
                                 pre_std_modifier=pre_std_modifier,
                                 post_std_modifier_train=post_std_modifier_train,
-                                post_std_modifier_test=post_std_modifier_test
+                                post_std_modifier_test=post_std_modifier_test,
+                                meta_train_on_expert_traj=False,
+                              #  goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
+                                expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/9_6_test4/",
+                                goals_save_to=None, #'/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
                             )
                             run_experiment_lite(
                                 algo.train(),

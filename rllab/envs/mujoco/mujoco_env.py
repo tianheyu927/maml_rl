@@ -138,8 +138,8 @@ class MujocoEnv(Env):
                 start += datum_dim
 
     @overrides
-    def reset(self, init_state=None):
-        self.reset_mujoco(init_state)
+    def reset(self, init_state=None, **kwargs):
+        self.reset_mujoco(init_state, **kwargs)
         self.model.forward()
         self.current_com = self.model.data.com_subtree[0]
         self.dcom = np.zeros_like(self.current_com)

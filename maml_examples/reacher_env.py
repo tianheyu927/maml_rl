@@ -14,7 +14,7 @@ class ReacherEnv(MujocoEnv, Serializable):
     def __init__(self, *args, **kwargs):
         self.goal = None
         #utils.EzPickle.__init__(self)
-        MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml') #,frame_skip=2)
+        MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.35.xml') #,frame_skip=2)
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
@@ -40,13 +40,13 @@ class ReacherEnv(MujocoEnv, Serializable):
         done = False
         return Step(next_obs, reward, done)
 
-    @overrides
-    def reset(self, init_state=None, **kwargs):
-        self.reset_mujoco(init_state, **kwargs)
-        self.model.forward()
-        self.current_com = self.model.data.com_subtree[0]
-        self.dcom = np.zeros_like(self.current_com)
-        return self.get_current_obs()
+    # @overrides
+    # def reset(self, init_state=None, **kwargs):
+    #     self.reset_mujoco(init_state, **kwargs)
+    #     self.model.forward()
+    #     self.current_com = self.model.data.com_subtree[0]
+    #     self.dcom = np.zeros_like(self.current_com)
+    #     return self.get_current_obs()
 
 
     def _step(self, a):
@@ -124,7 +124,7 @@ class ReacherEnv(MujocoEnv, Serializable):
                 newgoal
             ])
             goals_list.append(state_and_goal)
-        return goals_list
+        return np.array(goals_list)
 
     @property
     def spec(self):

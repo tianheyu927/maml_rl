@@ -27,14 +27,16 @@ algo = TRPO(
     env=env,
     policy=policy,
     baseline=baseline,
-    batch_size=100*100,
+    batch_size=20*100,
     max_path_length=100,
-    start_itr=-200,
-    n_itr=101,
+    start_itr=-100,
+    n_itr=31,
     discount=0.99,
     step_size=0.01,
     #plot=True,
-    save_expert_trajectories="/home/rosen/maml_rl/saved_expert_traj/test_point5fast.pkl"
+    itrs_to_pickle=list(range(0, 31)),
+    save_expert_traj_dir="/home/rosen/maml_rl/saved_expert_traj/9_6_test4/",
+    goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
 
 )
 

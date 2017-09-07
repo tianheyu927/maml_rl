@@ -18,16 +18,22 @@ import time
 
 beta_steps_list = [1]  # Not implemented for TRPO
 
-fast_learning_rates = [0.001] # we don't know what's best for reacher
 baselines = ['linear']
-fast_batch_size = 250  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
-meta_batch_size = 1  # 50 # 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
+fast_learning_rates = [ 0.01,0.0001, 0.001,] # we don't know what's best for reacher
+fast_batch_size = 20  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
+meta_batch_size = 40  # 50 # 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
+num_grad_updates = 1 #1
+n_itr = 100
+hidden_nonlinearity = tf.nn.relu
+# hidden_nonlinearity = tf.nn.tanh
 max_path_length = 100
-num_grad_updates = 100 #1
 meta_step_size = 0.01  ## it was 0.01
 pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [1.0]
-post_std_modifier_test_list = [1.0]
+post_std_modifier_test_list = [0.03]
+#initial_action_limiter = 0.1
+#action_limiter_multiplier = 1.0
+
 l2loss_std_mult_list = [1.0]  # not needed here
 
 
@@ -54,8 +60,11 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 name="policy",
                                 env_spec=env.spec,
                                 grad_step_size=fast_learning_rate,
+                                hidden_nonlinearity=hidden_nonlinearity,
                                 hidden_sizes=(100, 100),
-                                output_nonlinearity=tf.nn.tanh,
+                                # output_nonlinearity=tf.nn.tanh,
+                                std_modifier=pre_std_modifier,
+                                #action_limiter=initial_action_limiter,
                             )
                             if bas == 'zero':
                                 baseline = ZeroBaseline(env_spec=env.spec)
@@ -71,28 +80,30 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 max_path_length=max_path_length,
                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                n_itr=1, #100
+                                n_itr=n_itr, #100
                                 use_maml=use_maml,
                                 step_size=meta_step_size,
                                 plot=False,
                                 pre_std_modifier=pre_std_modifier,
                                 post_std_modifier_train=post_std_modifier_train,
-                                post_std_modifier_test=post_std_modifier_test
+                                post_std_modifier_test=post_std_modifier_test,
+                           #     initial_action_limiter=initial_action_limiter,
+                           #     action_limiter_multiplier=action_limiter_multiplier,
                             )
                             run_experiment_lite(
                                 algo.train(),
-                                n_parallel=10, #10,
+                                n_parallel=1, #10,
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
                                 exp_prefix='maml_trpo_reach100',
-                                exp_name='trpomaml'
+                                exp_name='MTReach'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)
                                          + '_flr_' + str(fast_learning_rate)
-                                         #     +'metalr_'+str(meta_step_size)
-                                         #     +'_ngrad'+str(num_grad_updates)
+                                         +'metalr_'+str(meta_step_size)
+                                         +'_ngrad'+str(num_grad_updates)
                                          + "_prsm" + str(pre_std_modifier)
                                          + "_pstr" + str(post_std_modifier_train)
                                          + '_posm' + str(post_std_modifier_test)

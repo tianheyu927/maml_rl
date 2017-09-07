@@ -35,6 +35,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             min_std=1e-6,
             max_std=1000.0,
             std_modifier=1.0,
+     #       action_limiter=None,
             std_hidden_nonlinearity=tf.nn.tanh,
             hidden_nonlinearity=tf.nn.tanh,
             output_nonlinearity=tf.identity,
@@ -71,6 +72,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         obs_dim = env_spec.observation_space.flat_dim
         self.action_dim = env_spec.action_space.flat_dim
         self.n_hidden = len(hidden_sizes)
+       # self.action_limiter = action_limiter
+       # self.action_bounds = env_spec.action_space.bounds
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
         self.input_shape = (None, obs_dim,)
@@ -224,8 +227,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             outputs.append([info['mean'], info['log_std']])
 
         self._cur_f_dist = tensor_utils.compile_function(
-            inputs = [self.input_tensor],
-            outputs = outputs,
+            inputs=[self.input_tensor],
+            outputs=outputs,
         )
         total_time = time.time() - start
         logger.record_tabular("ComputeUpdatedDistTime", total_time)
@@ -271,9 +274,9 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         if self.max_std_param is not None:
             std_param_var = tf.minimum(std_param_var, self.max_std_param)
         if self.std_parametrization == 'exp':
-            log_std_var = std_param_var + np.log(self.std_modifier)
+            log_std_var = std_param_var + tf.log(self.std_modifier)
         elif self.std_parametrization == 'softplus':
-            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + np.log(self.std_modifier)
+            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + tf.log(self.std_modifier)
         else:
             raise NotImplementedError
 
@@ -317,8 +320,12 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         flat_obs = self.observation_space.flatten(observation)
         f_dist = self._cur_f_dist
         mean, log_std = [x[0] for x in f_dist([flat_obs])]
+      #  if self.action_limiter is not None:
+      #      mean = np.clip(mean, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter)
         rnd = np.random.normal(size=np.shape(mean))
         action = rnd * np.exp(log_std) + mean
+      #  if self.action_limiter is not None:
+      #      action = np.clip(action, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter) # TODO: these multiplications should be done ahead of time
         return action, dict(mean=mean, log_std=log_std)
 
     def get_actions(self, observations):
@@ -333,9 +340,12 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         else:
             means = np.array([res[0] for res in result])[:,0,:]
             log_stds = np.array([res[1] for res in result])[:,0,:]
-
+   #     if self.action_limiter is not None:
+   #         means = [np.clip(mean, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter) for mean in means]
         rnd = np.random.normal(size=np.shape(means))
         actions = rnd * np.exp(log_stds) + means
+        #if self.action_limiter is not None:
+        #    actions = [np.clip(action, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter) for action in actions] # TODO: This is probably not parallelized at all
         return actions, dict(mean=means, log_std=log_stds)
 
     @property
