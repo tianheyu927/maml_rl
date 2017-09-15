@@ -3,6 +3,7 @@ from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.baselines.gaussian_mlp_baseline import GaussianMLPBaseline
 from rllab.baselines.zero_baseline import ZeroBaseline
 from maml_examples.point_env_randgoal_expert import PointEnvRandGoalExpert
+from maml_examples.point_env_randgoal import PointEnvRandGoal
 from maml_examples.point_env_randgoal_oracle import PointEnvRandGoalOracle
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
@@ -16,14 +17,14 @@ beta_steps_list = [10] ## maybe try 1 and 10 to compare, we know that 1 is only 
 
 fast_learning_rates = [1.0]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
-fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size = 60  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
-meta_step_size = 0.01
+meta_step_size = 0.01 # 0.01
 pre_std_modifier_list = [1.0]
-post_std_modifier_train_list = [0.001]
-post_std_modifier_test_list = [0.001]
+post_std_modifier_train_list = [0.00001]
+post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 env_options = ["box"]
 
@@ -39,13 +40,14 @@ for env_option in env_options:
                             for bas in baselines:
                                 stub(globals())
 
-                                env = TfEnv(normalize(PointEnvRandGoalExpert(option=env_option)))
+                                env = TfEnv(normalize(PointEnvRandGoal()))
                                 policy = MAMLGaussianMLPPolicy(
                                     name="policy",
                                     env_spec=env.spec,
                                     grad_step_size=fast_learning_rate,
                                     hidden_nonlinearity=tf.nn.relu,
                                     hidden_sizes=(100, 100),
+                                    std_modifier=pre_std_modifier,
                                 )
                                 if bas == 'zero':
                                     baseline = ZeroBaseline(env_spec=env.spec)
@@ -63,7 +65,7 @@ for env_option in env_options:
                                     max_path_length=max_path_length,
                                     meta_batch_size=meta_batch_size, ## number of tasks sampled for beta grad update
                                     num_grad_updates=num_grad_updates, ## number of alpha grad updates per beta update
-                                    n_itr=30, #100
+                                    n_itr=100, #100
                                     use_maml=use_maml,
                                     step_size=meta_step_size,
                                     plot=False,
@@ -72,11 +74,9 @@ for env_option in env_options:
                                     l2loss_std_mult = l2loss_std_mult,
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
-
-
                                     #  goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
-                                    expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/9_6_test4/",
-                                    goals_save_to=None,  # '/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
+                                    expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/point/9_13_test9_fixedstart_noise0.01_nodone/",
+                                   # goals_pickle_to=None,  # '/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
                                 )
 
                                 run_experiment_lite(
@@ -85,8 +85,8 @@ for env_option in env_options:
                                     snapshot_mode="last",
                                     python_command='python3',
                                     seed=1,
-                                    exp_prefix='maml_il_point100',
-                                    exp_name='L2ILmaml'
+                                    exp_prefix='PR_IL_Off',
+                                    exp_name='PR_IL_Off'
                                              +str(int(use_maml))
                                             # +'_fbs'+str(fast_batch_size)
                                             # +'_mbs'+str(meta_batch_size)
@@ -98,7 +98,7 @@ for env_option in env_options:
                                              +"_pstr"+ str(post_std_modifier_train)
                                              +"_posm" + str(post_std_modifier_test)
                                              +"_l2m" + str(l2loss_std_mult)
-                                             +"_env" + str(env_option)
+                                             #+"_env" + str(env_option)
                                              +"_"+time.strftime("%D.%H:%M").replace("/","."),
                                     plot=False,
                                 )

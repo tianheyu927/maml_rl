@@ -46,20 +46,21 @@ class BaseSampler(Sampler):
         """
         self.algo = algo
 
-    def process_samples(self, itr, paths, prefix='', log=True):
+    def process_samples(self, itr, paths, prefix='', log=True, fit=True):
         baselines = []
         returns = []
 
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
-        if log:
-            logger.log("fitting baseline...")
-        if hasattr(self.algo.baseline, 'fit_with_samples'):
-            self.algo.baseline.fit_with_samples(paths, samples_data) ##TODO: is this going to cause an error?
-        else:
-            self.algo.baseline.fit(paths, log=log)
-        if log:
-            logger.log("fitted")
+        if fit:
+            if log:
+                logger.log("fitting baseline...")
+            if hasattr(self.algo.baseline, 'fit_with_samples'):
+                self.algo.baseline.fit_with_samples(paths, samples_data) ##TODO: is this going to cause an error?
+            else:
+                self.algo.baseline.fit(paths, log=log)
+            if log:
+                logger.log("fitted")
 
 
         if hasattr(self.algo.baseline, "predict_n"):
@@ -76,12 +77,11 @@ class BaseSampler(Sampler):
                 deltas, self.algo.discount * self.algo.gae_lambda)
             baselines.append(path_baselines[:-1])
             returns.append(path["returns"])
-            if "expert_actions" in path["env_infos"].keys():
-                path["expert_actions"] = path["env_infos"]["expert_actions"]
-              #  print("expert actions!")
-            else:
-                path["expert_actions"] = []
-              #  print("no expert actions")
+            if "expert_actions" not in path.keys():
+                if "expert_actions" in path["env_infos"].keys():
+                    path["expert_actions"] = path["env_infos"]["expert_actions"]
+                else:
+                    path["expert_actions"] = np.array([[None, None]] * len(path['rewards']))
 
         ev = special.explained_variance_1d(
             np.concatenate(baselines),
@@ -94,9 +94,9 @@ class BaseSampler(Sampler):
             rewards = tensor_utils.concat_tensor_list([path["rewards"] for path in paths])
             returns = tensor_utils.concat_tensor_list([path["returns"] for path in paths])
             advantages = tensor_utils.concat_tensor_list([path["advantages"] for path in paths])
+            expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
             env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
-            expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
 
             if self.algo.center_adv:
                 advantages = util.center_advantages(advantages)

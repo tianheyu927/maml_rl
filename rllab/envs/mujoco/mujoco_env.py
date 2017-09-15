@@ -42,6 +42,8 @@ class MujocoEnv(Env):
                        'proportional to the action bounds')
     def __init__(self, action_noise=0.0, file_path=None, template_args=None):
         # compile template
+
+        self._seed()
         if file_path is None:
             if self.__class__.FILE is None:
                 raise "Mujoco file not specified"
@@ -88,7 +90,7 @@ class MujocoEnv(Env):
         self.reset()
         super(MujocoEnv, self).__init__()
 
-        self._seed()
+
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -118,9 +120,10 @@ class MujocoEnv(Env):
             if 'reset_args' in kwargs:
                 state_and_goal = kwargs['reset_args']
                 self.model.data.qpos = state_and_goal + \
-                                   np.random.normal(size=self.init_qpos.shape) * 0.01
-            else:
-               self.model.data.qpos = self.init_qpos + \
+                                   np.random.normal(size=self.init_qpos.shape) * 0.00001
+            else:  # we are using the default, higher stdev if we're not using reset_args. (We lowered the stdev for maml training)
+                print("debug17 ERROR")
+                self.model.data.qpos = self.init_qpos + \
                                        np.random.normal(size=self.init_qpos.shape) * 0.01
 
 
@@ -129,6 +132,7 @@ class MujocoEnv(Env):
             self.model.data.qacc = self.init_qacc
             self.model.data.ctrl = self.init_ctrl
         else:
+            print("debug18")
             start = 0
             for datum_name in ["qpos", "qvel", "qacc", "ctrl"]:
                 datum = getattr(self.model.data, datum_name)

@@ -6,8 +6,9 @@ from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import FiniteDiffe
 from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.misc.instrument import stub, run_experiment_lite
-from rllab.envs.mujoco.pusher_env import PusherEnv
 from maml_examples.reacher_env import ReacherEnv
+from maml_examples.reacher_env_oracle import ReacherEnvOracle
+from maml_examples.reacher_env_oracle_noise import ReacherEnvOracleNoise
 
 import pickle
 
@@ -44,13 +45,13 @@ variants = VG().variants()
 def run_task(v):
 
 
-    env = TfEnv(normalize(ReacherEnv()))
+    env = TfEnv(normalize(ReacherEnvOracleNoise(noise=0.0)))
 
     policy = GaussianMLPPolicy(
        name="policy",
        env_spec=env.spec,
        hidden_nonlinearity=tf.nn.relu,
-       hidden_sizes=(128, 128)
+       hidden_sizes=(256, 256),
     )
 
 
@@ -63,14 +64,19 @@ def run_task(v):
         #load_policy='/home/rosen/maml_rl/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
         #load_policy='vendor/pretraining_policy3/itr_300.pkl',
         baseline=baseline,
-        batch_size=25*100, #100*500,
+        batch_size=100*100, #100*500,
         max_path_length=100,
-        n_itr=301, #301,
+        start_itr=-700,
+        n_itr=101, #301,
         discount=0.99,
-        step_size=0.01,
+        step_size=0.005, #0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
-        save_expert_trajectories="/home/rosen/maml_rl/saved_expert_traj/test_reach6fast3.pkl"
+        action_noise_train=0.0,
+        action_noise_test=0.1,
+        expert_traj_itrs_to_pickle=list(range(0, 101)),
+        save_expert_traj_dir="/home/rosen/maml_rl/saved_expert_traj/reacher/test4_noise/",
+        goals_to_load='/home/rosen/maml_rl/saved_goals/reach/saved_goals_9_11.pkl',
     )
     algo.train()
 
@@ -84,7 +90,7 @@ for v in variants:
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
-        exp_prefix='rllab_fixed_reach_experts',
+        exp_prefix='RE',
         python_command='python3',
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used

@@ -19,17 +19,17 @@ import time
 
 beta_steps_list = [10] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
-fast_learning_rates = [1.0]  #1.0 seems to work best, getting to average return -42  1.5
+fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
-fast_batch_size = 7  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
-meta_batch_size = 5  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
+fast_batch_size = 60  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
 pre_std_modifier_list = [1.0]
-post_std_modifier_train_list = [1.0]
-post_std_modifier_test_list = [0.001]
-l2loss_std_mult_list = [10.0]
+post_std_modifier_train_list = [0.00001]
+post_std_modifier_test_list = [0.00001]
+l2loss_std_mult_list = [1.0]
 
 
 use_maml = True
@@ -57,8 +57,11 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 name="policy",
                                 env_spec=env.spec,
                                 grad_step_size=fast_learning_rate,
-                                hidden_nonlinearity=tf.nn.relu,
-                                hidden_sizes=(100, 100),
+                                hidden_nonlinearity=tf.nn.tanh,
+                                hidden_sizes=(150, 150),
+                                std_modifier=pre_std_modifier,
+                                output_nonlinearity=tf.nn.tanh,
+
                             )
                             if bas == 'zero':
                                 baseline = ZeroBaseline(env_spec=env.spec)
@@ -83,6 +86,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 l2loss_std_mult=l2loss_std_mult,
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
+                                expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/reacher/test2_noise/",
+                                #goals_to_load="/home/rosen"
                             )
                             run_experiment_lite(
                                 algo.train(),
@@ -90,8 +95,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='maml_il_reach100',
-                                exp_name='L2ILmaml'
+                                exp_prefix='REIL',
+                                exp_name='REIL'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)

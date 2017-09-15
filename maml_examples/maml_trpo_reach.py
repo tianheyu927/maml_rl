@@ -19,18 +19,18 @@ import time
 beta_steps_list = [1]  # Not implemented for TRPO
 
 baselines = ['linear']
-fast_learning_rates = [ 0.01,0.0001, 0.001,] # we don't know what's best for reacher
+fast_learning_rates = [0.001] # we don't know what's best for reacher
 fast_batch_size = 20  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
 meta_batch_size = 40  # 50 # 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 num_grad_updates = 1 #1
 n_itr = 100
-hidden_nonlinearity = tf.nn.relu
-# hidden_nonlinearity = tf.nn.tanh
+#hidden_nonlinearity = tf.nn.relu
+hidden_nonlinearity = tf.nn.tanh
 max_path_length = 100
 meta_step_size = 0.01  ## it was 0.01
 pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [1.0]
-post_std_modifier_test_list = [0.03]
+post_std_modifier_test_list = [0.0001]
 #initial_action_limiter = 0.1
 #action_limiter_multiplier = 1.0
 
@@ -62,7 +62,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 grad_step_size=fast_learning_rate,
                                 hidden_nonlinearity=hidden_nonlinearity,
                                 hidden_sizes=(100, 100),
-                                # output_nonlinearity=tf.nn.tanh,
+                                output_nonlinearity=tf.nn.tanh,
                                 std_modifier=pre_std_modifier,
                                 #action_limiter=initial_action_limiter,
                             )
@@ -89,15 +89,17 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 post_std_modifier_test=post_std_modifier_test,
                            #     initial_action_limiter=initial_action_limiter,
                            #     action_limiter_multiplier=action_limiter_multiplier,
+                                #goals_pickle_to='/home/rosen/maml_rl/saved_goals/reach/saved_goals_9_11.pkl',
+
                             )
                             run_experiment_lite(
                                 algo.train(),
-                                n_parallel=1, #10,
+                                n_parallel=1, #10, If you use more than 1, your std modifiers may not work
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='maml_trpo_reach100',
-                                exp_name='MTReach'
+                                exp_prefix='RE_TR',
+                                exp_name='RE_TR'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)

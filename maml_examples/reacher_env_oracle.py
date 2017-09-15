@@ -9,18 +9,21 @@ from rllab.envs.base import Step
 from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
+from copy import deepcopy
 
-class ReacherEnv(MujocoEnv, Serializable):
+class ReacherEnvOracle(MujocoEnv, Serializable):
     def __init__(self, *args, **kwargs):
         self.goal = None
         #utils.EzPickle.__init__(self)
+       # MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.25.xml') #,frame_skip=2)
         MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml') #,frame_skip=2)
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
         return np.concatenate([
             self.model.data.qpos.flat[:2],
-            self.model.data.qvel.flat[:2]
+            self.model.data.qvel.flat[:2],
+            self.model.data.qpos.flat[2:]
         ])
 
     def step(self, action):
@@ -37,7 +40,7 @@ class ReacherEnv(MujocoEnv, Serializable):
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()
 
-        done = False
+        done = False # np.linalg.norm(vec)<0.01
         return Step(next_obs, reward, done)
 
     # @overrides
@@ -47,6 +50,18 @@ class ReacherEnv(MujocoEnv, Serializable):
     #     self.current_com = self.model.data.com_subtree[0]
     #     self.dcom = np.zeros_like(self.current_com)
     #     return self.get_current_obs()
+
+    @overrides
+    def reset(self, init_state=None, **kwargs):
+        if init_state is None and 'reset_args' not in kwargs:
+             #init_state = np.array([[0.], [0.], [-0.2], [0.]])
+            self.reset_mujoco(self.sample_goals(1)[0])
+        else:
+            self.reset_mujoco(init_state, **kwargs)
+        self.model.forward()
+        self.current_com = self.model.data.com_subtree[0]
+        self.dcom = np.zeros_like(self.current_com)
+        return self.get_current_obs()
 
 
     def _step(self, a):
@@ -132,3 +147,10 @@ class ReacherEnv(MujocoEnv, Serializable):
             observation_space=self.observation_space,
             action_space=self.action_space,
         )
+
+    def clip_goal_from_obs(selfself, paths):
+        paths_copy = deepcopy(paths)
+        for path in paths_copy:
+            clipped_obs = path['observations'][:, :-2]  # [obs[:-2] for obs in path['observations']]
+            path['observations'] = clipped_obs
+        return paths_copy

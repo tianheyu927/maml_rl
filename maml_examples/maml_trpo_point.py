@@ -45,6 +45,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 grad_step_size=fast_learning_rate,
                                 hidden_nonlinearity=tf.nn.relu,
                                 hidden_sizes=(100, 100),
+                                std_modifier=pre_std_modifier,
+
                             )
                             if bas == 'zero':
                                 baseline = ZeroBaseline(env_spec=env.spec)
@@ -70,7 +72,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 meta_train_on_expert_traj=False,
                               #  goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
                                 expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/9_6_test4/",
-                                goals_save_to=None, #'/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
+                                goals_pickle_to=None, #'/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
                             )
                             run_experiment_lite(
                                 algo.train(),

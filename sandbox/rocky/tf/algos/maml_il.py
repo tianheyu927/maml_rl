@@ -120,7 +120,7 @@ class MAMLIL(BatchMAMLPolopt):
             #surr_objs.append(tf.reduce_mean((m-e)*(m-e)))
             #surr_objs.append(tf.nn.l2_loss(m-e))
 
-        surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over meta_batch_size (the diff tasks)
+        surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + adv_vars + expert_action_vars + old_dist_info_vars_list   # TODO: do we need the input_list values over anything that's not the last grad step?
 
         mean_kl = tf.reduce_mean(tf.concat(kls, 0))

@@ -79,7 +79,7 @@ class PointEnvRandGoalExpert(Env):
         ((low0, low1), (high0, high1)) = self.action_space.bounds
         a0 = max(low0, min(high0, goal0-s0))
         a1 = max(low1, min(high1, goal1 - s1))  # TODO: we should use np.clip here
-        return np.array((a0,a1))
+        return np.array((a0,a1))*10 # need to scale up 10x because of normalized environments
 
     def getExpertActionSmartBox(self, state):
         s0, s1 = state

@@ -1,7 +1,7 @@
 import time
 
 import tensorflow as tf
-
+import numpy as np
 import rllab.misc.logger as logger
 import rllab.plotter as plotter
 from rllab.algos.base import RLAlgorithm
@@ -41,9 +41,11 @@ class BatchPolopt(RLAlgorithm):
             sampler_args=None,
             force_batch_sampler=False,
             load_policy=None,
+            action_noise_train=0.0,
+            action_noise_test=0.0,
             reset_arg=None,
             save_expert_traj_dir=None,
-            itrs_to_pickle=[],
+            expert_traj_itrs_to_pickle=[],
             goals_to_load=None,
             **kwargs
     ):
@@ -95,16 +97,18 @@ class BatchPolopt(RLAlgorithm):
             sampler_args = dict()
         self.sampler = sampler_cls(self, **sampler_args)
         self.reset_arg = reset_arg
+        self.action_noise_train = action_noise_train
+        self.action_noise_test = action_noise_test
         self.save_expert_traj_dir = save_expert_traj_dir
-        self.itrs_to_pickle = itrs_to_pickle
-        if self.itrs_to_pickle is not []:
+        self.expert_traj_itrs_to_pickle = expert_traj_itrs_to_pickle
+        if self.expert_traj_itrs_to_pickle is not []:
             assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
-            assert set(self.itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
+            assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
                 "Not going to go through all itrs that need to be pickled"
             Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=True)
             self.goals_to_save={}
-        elif save_expert_traj_dir is not None and self.itrs_to_pickle is []:
-            self.itrs_to_pickle = range(self.start_itr, self.n_itr)
+        elif save_expert_traj_dir is not None and self.expert_traj_itrs_to_pickle is []:
+            self.expert_traj_itrs_to_pickle = range(self.start_itr, self.n_itr)
         if goals_to_load is not None:
             self.goals_to_use = joblib.load(goals_to_load)
         else:
@@ -115,7 +119,6 @@ class BatchPolopt(RLAlgorithm):
             # The intuition is that for every task used by batch_maml_polopt, we want to have an expert policy
             # that has covered said situation; at the same time, we want an expert policy to pre-train
             # before performing on the set of tasks that we'll use for MAML
-
 
 
     def start_worker(self):
@@ -150,15 +153,15 @@ class BatchPolopt(RLAlgorithm):
             #sess.run(tf.initialize_all_variables())
             self.start_worker()
             start_time = time.time()
-            paths_to_save = {}
             for itr in range(self.start_itr, self.n_itr):
                 if itr in self.goals_to_use.keys():
                     tasks = self.goals_to_use[itr]
+                    noise = self.action_noise_test
                 else:
                     tasks = [None]
-                if itr in self.itrs_to_pickle:
-                    paths_to_save[itr] = {}
-                  #  paths_to_save[itr]['tasks'] = {}
+                    noise = self.action_noise_train
+                if itr in self.expert_traj_itrs_to_pickle:
+                    paths_to_save = {}
                     self.goals_to_save[itr] = tasks
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
@@ -166,40 +169,40 @@ class BatchPolopt(RLAlgorithm):
                     logger.log("Obtaining samples...")
                     paths = []
                     for tasknum, task in enumerate(tasks):
-                        paths_for_task = self.obtain_samples(itr, [task])
-                        paths = paths + paths_for_task
-                        if itr in self.itrs_to_pickle:
+                        paths_for_task = self.obtain_samples(itr=itr, reset_args=[{'task': task, 'noise': noise}])
+                        paths.extend(paths_for_task)
+                        # TODO: there's a bunch of sample processing happening below that we should abstract away
+                        if itr in self.expert_traj_itrs_to_pickle:
                             logger.log("Saving trajectories...")
                             paths_no_goal = self.clip_goal_from_obs(paths_for_task)
                             [path.pop('agent_infos') for path in paths_no_goal]
-                            paths_to_save[itr][tasknum] = paths_no_goal
-                            #paths_to_save[itr]['tasks'][tasknum] = task
-                    if itr in self.itrs_to_pickle:
+                            paths_to_save[tasknum] = paths_no_goal
+                    if itr in self.expert_traj_itrs_to_pickle:
                         logger.log("Pickling trajectories...")
                         Path(self.save_expert_traj_dir+str(itr)+".pkl").touch()
-                        joblib.dump(paths_to_save[itr], self.save_expert_traj_dir+str(itr)+".pkl")
+                        joblib.dump(paths_to_save, self.save_expert_traj_dir+str(itr)+".pkl")
+                        logger.log("Fast-processing returns...")
+                        undiscounted_returns = [sum(path['rewards']) for path in paths]
+                        logger.record_tabular('AverageReturn', np.mean(undiscounted_returns))
 
-
-                    logger.log("Processing samples...")
-                    samples_data = self.process_samples(itr, paths)
-                    logger.log("Logging diagnostics...")
-                    self.log_diagnostics(paths)
-                    logger.log("Optimizing policy...")
-                    self.optimize_policy(itr, samples_data)
-                    #new_param_values = self.policy.get_variable_values(self.policy.all_params)
-
-                    logger.log("Saving snapshot...")
-                    params = self.get_itr_snapshot(itr, samples_data)  # , **kwargs)
-                    if self.store_paths:
-                        params["paths"] = samples_data["paths"]
+                    else:
+                        logger.log("Processing samples...")
+                        samples_data = self.process_samples(itr, paths)
+                        logger.log("Logging diagnostics...")
+                        self.log_diagnostics(paths)
+                        logger.log("Optimizing policy...")
+                        self.optimize_policy(itr, samples_data)
+                        #new_param_values = self.policy.get_variable_values(self.policy.all_params)
+                        logger.log("Saving snapshot...")
+                        params = self.get_itr_snapshot(itr, samples_data)  # , **kwargs)
+                        if self.store_paths:
+                            params["paths"] = samples_data["paths"]
                     logger.save_itr_params(itr, params)
                     logger.log("Saved")
                     logger.record_tabular('Time', time.time() - start_time)
                     logger.record_tabular('ItrTime', time.time() - itr_start_time)
 
-                    #import pickle
-                    #with open('paths_itr'+str(itr)+'.pkl', 'wb') as f:
-                    #    pickle.dump(paths, f)
+
 
                     # debugging
                     """

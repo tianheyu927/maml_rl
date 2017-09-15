@@ -118,16 +118,16 @@ class VectorizedSampler(BaseSampler):
             pbar.inc(len(obses))
             obses = next_obses
 
-        # adding the imcomplete paths
-        for idx in range(self.vec_env.num_envs):
-            if running_paths[idx] is not None:
-                paths[idx].append(dict(
-                    observations=self.env_spec.observation_space.flatten_n(running_paths[idx]["observations"]),
-                    actions=self.env_spec.action_space.flatten_n(running_paths[idx]["actions"]),
-                    rewards=tensor_utils.stack_tensor_list(running_paths[idx]["rewards"]),
-                    env_infos=tensor_utils.stack_tensor_dict_list(running_paths[idx]["env_infos"]),
-                    agent_infos=tensor_utils.stack_tensor_dict_list(running_paths[idx]["agent_infos"]),
-                ))
+        # adding the incomplete paths
+        # for idx in range(self.vec_env.num_envs):
+        #     if running_paths[idx] is not None:
+        #         paths[idx].append(dict(
+        #             observations=self.env_spec.observation_space.flatten_n(running_paths[idx]["observations"]),
+        #             actions=self.env_spec.action_space.flatten_n(running_paths[idx]["actions"]),
+        #             rewards=tensor_utils.stack_tensor_list(running_paths[idx]["rewards"]),
+        #             env_infos=tensor_utils.stack_tensor_dict_list(running_paths[idx]["env_infos"]),
+        #             agent_infos=tensor_utils.stack_tensor_dict_list(running_paths[idx]["agent_infos"]),
+        #         ))
 
 
         pbar.stop()
