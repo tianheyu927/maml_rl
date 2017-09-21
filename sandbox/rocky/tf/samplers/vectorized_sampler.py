@@ -52,6 +52,9 @@ class VectorizedSampler(BaseSampler):
         if env_list is not None and reset_args is not None:
             assert False, "please use at most one of env_list or reset_args to obtain samples"
 
+        if env_list is not None:
+            assert False, "we shouldn't be using env_list, left for debugging purposes"
+
         # if the reset args are not list/numpy, we set the same args for each env
         if reset_args is not None and (type(reset_args) != list and type(reset_args)!=np.ndarray):
             print("WARNING, will vectorize reset_args")

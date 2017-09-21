@@ -26,15 +26,13 @@ class ReacherEnv(MujocoEnv, Serializable):
         ])
 
     def step(self, action):
+
+        # print("debug30", action)
         self.frame_skip = 5
         vec = self.get_body_com("fingertip") - self.get_body_com("target")
- #       vel = self.get_body_comvel("fingertip")
- #       vel1 = self.get_body_comvel("body1")
         reward_dist = - np.linalg.norm(vec)
-  #      reward_vel = - np.square(vel).sum()
-  #      reward_vel1 = - np.square(vel1).sum()
         reward_ctrl = - np.square(action).sum()
-        reward = reward_dist + reward_ctrl # + reward_vel + reward_vel1
+        reward = reward_dist + reward_ctrl
 
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()
@@ -122,7 +120,7 @@ class ReacherEnv(MujocoEnv, Serializable):
         for _ in range(num_goals):
             while True:
                 newgoal = self.np_random.uniform(low=-.2, high=.2, size=(2, 1))
-                if np.linalg.norm(newgoal) < 2:
+                if np.linalg.norm(newgoal) < 0.21:
                     break
             state_and_goal = np.concatenate([
                 np.zeros(np.shape(self.init_qpos[:-2])),

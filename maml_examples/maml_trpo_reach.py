@@ -21,11 +21,11 @@ import time
 beta_steps_list = [1]  # Not implemented for TRPO
 
 baselines = ['linear']
-env_option = ""
-nonlinearity_option = 'relu'
-net_size = 100,
-fast_learning_rates = [0.0001] # we don't know what's best for reacher
-fast_batch_size = 40  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
+env_option = 'g200l0.05nfj.st'
+nonlinearity_option = 'thh'
+net_size = 100
+fast_learning_rates = [0.001] # we don't know what's best for reacher
+fast_batch_size = 20  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
 meta_batch_size = 40  # 50 # 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 num_grad_updates = 1 #1
 n_itr = 100 #100

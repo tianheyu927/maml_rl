@@ -7,13 +7,16 @@ ENV_OPTIONS ={
     'g200l0.15':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.15.xml',
     'g200l0.25':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.25.xml',
     'g200l0.35':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.35.xml',
-    'g10l1':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear10_limit1_nofreejoint.xml',
-    'g10':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear10.xml',
+    'g200nfj':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_nofreejoint.xml',
+    'g10nfj':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear10_nofreejoint.xml',
+    'g10':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear10.xml', # gear 10 seems to have too much friction
     'g1':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear1.xml',
+    'g200nfj.st':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_nofreejoint_stubby.xml',
+    'g200l0.05nfj.st':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_l0.05_nofreejoint_stubby.xml'
 }
 
 EXPERT_TRAJ_LOCATION_DICT={
-    "":"",
-    "g200":"",
-    'g10l1':"/home/rosen/maml_rl_data/saved_expert_traj/reacher10/test7/",
+    "":"", # blank means we don't have one right now
+    "g200nfj":"",
+    'g10nfj':"/home/rosen/maml_rl_data/saved_expert_traj/reacher10/test7/",
 }

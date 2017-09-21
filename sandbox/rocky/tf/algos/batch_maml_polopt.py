@@ -297,7 +297,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                                                log_prefix=str(step))
                         else:
                             # this obtains a dictionary of paths, one dict entry for each env/goal
-                            paths = self.obtain_samples(itr,
+                            paths = self.obtain_samples(itr=itr,
                                                         reset_args=self.goals_to_use_dict[itr],
                                                         log_prefix=str(step))
 
