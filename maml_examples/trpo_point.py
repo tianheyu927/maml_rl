@@ -38,8 +38,8 @@ algo = TRPO(
     action_noise_train=0.0,
     action_noise_test=0.01,
     expert_traj_itrs_to_pickle=list(range(0, 101)),
-    save_expert_traj_dir="/home/rosen/maml_rl/saved_expert_traj/point/9_15_test10_fixedstart_noise0.01_nodone/",
-    goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
+    save_expert_traj_dir="/home/rosen/maml_rl_data/saved_expert_traj/point/9_15_test10_fixedstart_noise0.01_nodone/",
+    goals_to_load='/home/rosen/maml_rl_data/saved_goals/point/saved_goals_9_6.pkl',
 
 )
 

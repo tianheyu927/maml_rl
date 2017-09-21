@@ -27,7 +27,7 @@ AWS_SECURITY_GROUPS = ["rllab"]
 
 AWS_REGION_NAME = "us-west-2"
 
-AWS_CODE_SYNC_S3_PATH = "<insert aws s3 bucket url for code>e"
+AWS_CODE_SYNC_S3_PATH = "s3://rosen.k.bucket"
 
 CODE_SYNC_IGNORES = ["*.git/*", "*data/*", "*src/*",
                      "*.pods/*", "*tests/*", "*examples/*", "docs/*"]

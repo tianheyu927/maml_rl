@@ -10,17 +10,18 @@ from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
 from copy import deepcopy
+from maml_examples.reacher_vars import ENV_OPTIONS
 
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, option="", *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             self.noise = kwargs['noise']
         else:
-            self.noise = 0
+            self.noise = 0.0
         #utils.EzPickle.__init__(self)
        # MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.25.xml') #,frame_skip=2)
-        MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml') #,frame_skip=2)
+        MujocoEnv.__init__(self, file_path=ENV_OPTIONS[option]) #,frame_skip=2)
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
@@ -59,6 +60,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
                 task = reset_args
             if task is None:
                 task = self.sample_goals(1)[0]
+            #print("debug30, task", task)
             self.reset_mujoco(init_state, reset_args=task)
         self.model.forward()
         self.current_com = self.model.data.com_subtree[0]

@@ -9,7 +9,7 @@ from rllab.misc.instrument import stub, run_experiment_lite
 from maml_examples.reacher_env import ReacherEnv
 from maml_examples.reacher_env_oracle import ReacherEnvOracle
 from maml_examples.reacher_env_oracle_noise import ReacherEnvOracleNoise
-
+from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION, EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION
 import pickle
 
 #from rllab.envs.gym_env import GymEnv
@@ -24,7 +24,7 @@ import random
 local = True
 
 DOCKER_CODE_DIR = "/root/code/rllab/"
-LOCAL_CODE_DIR = '/home/rosen/maml_rl/'
+LOCAL_CODE_DIR = '/home/rosen/maml_rl_data/'
 if local:
     DOCKER_CODE_DIR = LOCAL_CODE_DIR
     mode = 'local'
@@ -43,25 +43,18 @@ variants = VG().variants()
 
 
 def run_task(v):
-
-
     env = TfEnv(normalize(ReacherEnvOracleNoise(noise=0.0)))
-
     policy = GaussianMLPPolicy(
        name="policy",
        env_spec=env.spec,
        hidden_nonlinearity=tf.nn.relu,
        hidden_sizes=(256, 256),
     )
-
-
-
     baseline = LinearFeatureBaseline(env_spec=env.spec)
-
     algo = TRPO(
         env=env,
         policy=policy,
-        #load_policy='/home/rosen/maml_rl/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
+        #load_policy='/home/rosen/maml_rl_data/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
         #load_policy='vendor/pretraining_policy3/itr_300.pkl',
         baseline=baseline,
         batch_size=100*100, #100*500,
@@ -73,10 +66,10 @@ def run_task(v):
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
-        action_noise_test=0.1,
+        action_noise_test=0.0,
         expert_traj_itrs_to_pickle=list(range(0, 101)),
-        save_expert_traj_dir="/home/rosen/maml_rl/saved_expert_traj/reacher/test4_noise/",
-        goals_to_load='/home/rosen/maml_rl/saved_goals/reach/saved_goals_9_11.pkl',
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION,
+        goals_to_load=GOALS_LOCATION,
     )
     algo.train()
 
@@ -90,7 +83,7 @@ for v in variants:
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
-        exp_prefix='RE',
+        exp_prefix='RE_ET10',
         python_command='python3',
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used

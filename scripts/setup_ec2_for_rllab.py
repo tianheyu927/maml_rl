@@ -23,7 +23,7 @@ USE_GPU = False
 
 USE_TF = True
 
-AWS_REGION_NAME = "us-west-1"
+AWS_REGION_NAME = "us-west-2"
 
 if USE_GPU:
     DOCKER_IMAGE = "dementrock/rllab3-shared-gpu"
@@ -203,12 +203,12 @@ def setup_s3():
         aws_access_key_id=ACCESS_KEY,
         aws_secret_access_key=ACCESS_SECRET,
     )
-    import pdb; pdb.set_trace()
+   # import pdb; pdb.set_trace()
     try:
         s3_client.create_bucket(
             ACL='private',
             Bucket=S3_BUCKET_NAME,
-            CreateBucketConfiguration={'LocationConstraint':'us-west-1'}
+            CreateBucketConfiguration={'LocationConstraint':'us-west-2'}
         )
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == 'BucketAlreadyExists':
@@ -254,7 +254,7 @@ def setup_ec2():
 
         ALL_REGION_AWS_SECURITY_GROUP_IDS[region] = [security_group.id]
 
-        import pdb; pdb.set_trace()
+      #  import pdb; pdb.set_trace()
 
         ec2_client.create_tags(Resources=[security_group.id], Tags=[{'Key': 'Name', 'Value': 'rllab-sg'}])
         try:

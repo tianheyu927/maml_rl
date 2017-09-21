@@ -46,21 +46,20 @@ class BaseSampler(Sampler):
         """
         self.algo = algo
 
-    def process_samples(self, itr, paths, prefix='', log=True, fit=True):
+    def process_samples(self, itr, paths, prefix='', log=True):
         baselines = []
         returns = []
 
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
-        if fit:
-            if log:
-                logger.log("fitting baseline...")
-            if hasattr(self.algo.baseline, 'fit_with_samples'):
-                self.algo.baseline.fit_with_samples(paths, samples_data) ##TODO: is this going to cause an error?
-            else:
-                self.algo.baseline.fit(paths, log=log)
-            if log:
-                logger.log("fitted")
+        if log:
+            logger.log("fitting baseline...")
+        if hasattr(self.algo.baseline, 'fit_with_samples'):
+            self.algo.baseline.fit_with_samples(paths, samples_data) ##TODO: is this going to cause an error?
+        else:
+            self.algo.baseline.fit(paths, log=log)
+        if log:
+            logger.log("fitted")
 
 
         if hasattr(self.algo.baseline, "predict_n"):
@@ -81,6 +80,7 @@ class BaseSampler(Sampler):
                 if "expert_actions" in path["env_infos"].keys():
                     path["expert_actions"] = path["env_infos"]["expert_actions"]
                 else:
+                    #assert False, "check your expert_actions generator"
                     path["expert_actions"] = np.array([[None, None]] * len(path['rewards']))
 
         ev = special.explained_variance_1d(
@@ -183,7 +183,7 @@ class BaseSampler(Sampler):
             #logger.record_tabular('Iteration', itr)
             #logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
-            logger.record_tabular(prefix + 'AverageReturn', np.mean(undiscounted_returns))
+            logger.record_tabular(prefix + 'AverageReturn------>', np.mean(undiscounted_returns))
             logger.record_tabular(prefix + 'ExplainedVariance', ev)
             logger.record_tabular(prefix + 'NumTrajs', len(paths))
             logger.record_tabular(prefix + 'Entropy', ent)

@@ -87,7 +87,7 @@ class MujocoEnv(Env):
             self.init_qpos = init_qpos
         self.dcom = None
         self.current_com = None
-        self.reset()
+        self.reset(initializing=True)
         super(MujocoEnv, self).__init__()
 
 
@@ -121,18 +121,16 @@ class MujocoEnv(Env):
                 state_and_goal = kwargs['reset_args']
                 self.model.data.qpos = state_and_goal + \
                                    np.random.normal(size=self.init_qpos.shape) * 0.00001
-            else:  # we are using the default, higher stdev if we're not using reset_args. (We lowered the stdev for maml training)
-                print("debug17 ERROR")
+            else:
+                if np.random.uniform() < 10.01:
+                    print("debug17 warning, you shouldn't see this unless initializing", kwargs)
                 self.model.data.qpos = self.init_qpos + \
                                        np.random.normal(size=self.init_qpos.shape) * 0.01
-
-
             self.model.data.qvel = self.init_qvel #+ \
             # np.random.normal(size=self.init_qvel.shape) * 0.1
             self.model.data.qacc = self.init_qacc
             self.model.data.ctrl = self.init_ctrl
         else:
-            print("debug18")
             start = 0
             for datum_name in ["qpos", "qvel", "qacc", "ctrl"]:
                 datum = getattr(self.model.data, datum_name)

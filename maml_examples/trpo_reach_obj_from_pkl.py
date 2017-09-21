@@ -23,7 +23,7 @@ import random
 local = True
 
 DOCKER_CODE_DIR = "/root/code/rllab/"
-LOCAL_CODE_DIR = '/home/rosen/maml_rl/'
+LOCAL_CODE_DIR = '/home/rosen/maml_rl_data/'
 if local:
     DOCKER_CODE_DIR = LOCAL_CODE_DIR
     mode = 'local'
@@ -93,5 +93,5 @@ for v in variants:
         sync_s3_pkl=True,
         # plot=True,
     )
-   # dumpfile=open("/home/rosen/maml_rl/data/saved_experts/test.pkl","wb")
+   # dumpfile=open("/home/rosen/maml_rl_data/data/saved_experts/test.pkl","wb")
    # pickle.dump()

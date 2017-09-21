@@ -14,11 +14,11 @@ class VG(VariantGenerator):
 
     @variant
     def step_size(self):
-        return [0.01, 0.05, 0.1]
+        return [0.01, ] # 0.05, 0.1]
 
     @variant
     def seed(self):
-        return [1, 11, 21, 31, 41]
+        return [1,] # 11, 21, 31, 41]
 
 variants = VG().variants()
 

@@ -74,9 +74,9 @@ for env_option in env_options:
                                     l2loss_std_mult = l2loss_std_mult,
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
-                                    #  goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
-                                    expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/point/9_13_test9_fixedstart_noise0.01_nodone/",
-                                   # goals_pickle_to=None,  # '/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
+                                    #  goals_to_load='/home/rosen/maml_rl_data/saved_goals/point/saved_goals1.pkl',
+                                    expert_trajs_dir="/home/rosen/maml_rl_data/saved_expert_traj/point/9_13_test9_fixedstart_noise0.01_nodone/",
+                                   # goals_pickle_to=None,  # '/home/rosen/maml_rl_data/saved_goals/point/saved_goals_9_6.pkl',
                                 )
 
                                 run_experiment_lite(

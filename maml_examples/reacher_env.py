@@ -9,12 +9,14 @@ from rllab.envs.base import Step
 from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
+from maml_examples.reacher_vars import ENV_OPTIONS
 
 class ReacherEnv(MujocoEnv, Serializable):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, option="", *args, **kwargs):
         self.goal = None
         #utils.EzPickle.__init__(self)
-        MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml') #,frame_skip=2)
+        MujocoEnv.__init__(self, file_path=ENV_OPTIONS[option]) #,frame_skip=2)
+       # MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml') #,frame_skip=2)
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
@@ -76,27 +78,30 @@ class ReacherEnv(MujocoEnv, Serializable):
 
         return self._get_obs()
 
-    # @overrides
-    # def reset(self,reset_args=None):  # soft reset, goal and starting position stay the same
-    #     if self.goal is None:
-    #         print("going to do a hard reset (reset_model) before soft resets")
-    #         return self.reset_model()
-    #     self.set_state(self._initial_qpos,self._initial_qvel)
-    #     return self._get_obs()
+
 
     # @overrides
     # def reset(self, init_state=None, **kwargs):
-    #     self.reset_mujoco(init_state)
+    #     # Here, we generate a new, random goal to reset the environment with
+    #     # We also unpack any noise parameter that may have been passed in reset_args
+    #     if init_state is not None:
+    #         self.reset_mujoco(init_state=init_state, **kwargs)
+    #     else:
+    #         assert len(kwargs) > 0, "debug 25 no kwargs passed" # TODO: we should take this off once we're confident in the functionality
+    #         reset_args = kwargs.get('reset_args', None)
+    #         if type(reset_args) is dict:
+    #             assert False, "reset_args shouldn't be a dictionary for ReacherEnv"
+    #         else:
+    #             task = reset_args
+    #         if task is None:
+    #             print("debug23 WARNING", kwargs)
+    #             task = self.sample_goals(1)[0]
+    #         self.reset_mujoco(init_state, reset_args=task)
+    #   #  print("debug26")
     #     self.model.forward()
     #     self.current_com = self.model.data.com_subtree[0]
     #     self.dcom = np.zeros_like(self.current_com)
-    #     if "reset_args" in kwargs:
-    #         goal = kwargs["reset_args"]
-    #         if goal is not None:
-    #             self.goal = goal
-    #         elif self.goal is None:
-    #             return self.reset_model()
-    #     return self._get_full_obs()
+    #     return self.get_current_obs()
 
 
 
@@ -132,3 +137,9 @@ class ReacherEnv(MujocoEnv, Serializable):
             observation_space=self.observation_space,
             action_space=self.action_space,
         )
+
+def fingertip(obs):
+    a,b  = obs
+    elbow = np.array([np.cos(a),np.sin(a)]) * 0.1
+    fingertip = elbow + np.array([np.cos(a+b), np.sin(a+b)]) * 0.11
+    return fingertip

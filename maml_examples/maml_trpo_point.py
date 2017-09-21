@@ -70,9 +70,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
                                 meta_train_on_expert_traj=False,
-                              #  goals_to_load='/home/rosen/maml_rl/saved_goals/point/saved_goals1.pkl',
-                                expert_trajs_dir="/home/rosen/maml_rl/saved_expert_traj/9_6_test4/",
-                                goals_pickle_to=None, #'/home/rosen/maml_rl/saved_goals/point/saved_goals_9_6.pkl',
+                              #  goals_to_load='/home/rosen/maml_rl_data/saved_goals/point/saved_goals1.pkl',
+                                expert_trajs_dir="/home/rosen/maml_rl_data/saved_expert_traj/9_6_test4/",
+                                goals_pickle_to=None, #'/home/rosen/maml_rl_data/saved_goals/point/saved_goals_9_6.pkl',
                             )
                             run_experiment_lite(
                                 algo.train(),
