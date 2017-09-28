@@ -119,11 +119,9 @@ class MujocoEnv(Env):
         if init_state is None:
             if 'reset_args' in kwargs:
                 state_and_goal = kwargs['reset_args']
-                self.model.data.qpos = state_and_goal + \
-                                   np.random.normal(size=self.init_qpos.shape) * 0.00001
+                self.model.data.qpos = state_and_goal #+ \
+                                 #  np.random.normal(size=self.init_qpos.shape) * 0.00001
             else:
-                if np.random.uniform() < 10.01:
-                    print("debug17 warning, you shouldn't see this unless initializing", kwargs)
                 self.model.data.qpos = self.init_qpos + \
                                        np.random.normal(size=self.init_qpos.shape) * 0.01
             self.model.data.qvel = self.init_qvel #+ \

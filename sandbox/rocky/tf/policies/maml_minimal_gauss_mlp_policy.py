@@ -35,7 +35,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             min_std=1e-6,
             max_std=1000.0,
             std_modifier=1.0,
-     #       action_limiter=None,
             std_hidden_nonlinearity=tf.nn.tanh,
             hidden_nonlinearity=tf.nn.tanh,
             output_nonlinearity=tf.identity,
@@ -72,8 +71,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         obs_dim = env_spec.observation_space.flat_dim
         self.action_dim = env_spec.action_space.flat_dim
         self.n_hidden = len(hidden_sizes)
-       # self.action_limiter = action_limiter
-       # self.action_bounds = env_spec.action_space.bounds
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
         self.input_shape = (None, obs_dim,)
@@ -320,12 +317,23 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         flat_obs = self.observation_space.flatten(observation)
         f_dist = self._cur_f_dist
         mean, log_std = [x[0] for x in f_dist([flat_obs])]
-      #  if self.action_limiter is not None:
-      #      mean = np.clip(mean, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter)
+
         rnd = np.random.normal(size=np.shape(mean))
         action = rnd * np.exp(log_std) + mean
-      #  if self.action_limiter is not None:
-      #      action = np.clip(action, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter) # TODO: these multiplications should be done ahead of time
+        return action, dict(mean=mean, log_std=log_std)
+
+
+    @overrides
+    def get_action_single_env(self, observation, idx=0, num_tasks=40):
+        # this function takes a numpy array observations and outputs randomly sampled actions.
+        # idx: index corresponding to the task/updated policy.
+        flat_obs = self.observation_space.flatten(observation)
+        f_dist = self._cur_f_dist
+        output = f_dist([flat_obs for _ in range(num_tasks)])
+        mean, log_std = output[idx]
+
+        rnd = np.random.normal(size=np.shape(mean))
+        action = rnd * np.exp(log_std) + mean
         return action, dict(mean=mean, log_std=log_std)
 
     def get_actions(self, observations):

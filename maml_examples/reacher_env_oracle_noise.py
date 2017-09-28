@@ -13,15 +13,15 @@ from copy import deepcopy
 from maml_examples.reacher_vars import ENV_OPTIONS
 
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
-    def __init__(self, option="", *args, **kwargs):
+    def __init__(self, option='g3nfj', *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             self.noise = kwargs['noise']
         else:
             self.noise = 0.0
         #utils.EzPickle.__init__(self)
-       # MujocoEnv.__init__(self, file_path='/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_limit0.25.xml') #,frame_skip=2)
-        MujocoEnv.__init__(self, file_path=ENV_OPTIONS[option]) #,frame_skip=2)
+        print("env option", ENV_OPTIONS[option])
+        MujocoEnv.__init__(self, file_path=ENV_OPTIONS[option])
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
@@ -37,7 +37,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
         vec = self.get_body_com("fingertip") - self.get_body_com("target")
         reward_dist = - np.linalg.norm(vec)
         reward_ctrl = - np.square(action).sum()
-        reward = reward_dist + reward_ctrl
+        reward = reward_dist + 0.0 * reward_ctrl
 
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()
@@ -71,7 +71,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
         vec = self.get_body_com("fingertip")-self.get_body_com("target")
         reward_dist = - np.linalg.norm(vec)
         reward_ctrl = - np.square(a).sum()
-        reward = reward_dist + reward_ctrl
+        reward = reward_dist + 0.0 * reward_ctrl
         self.do_simulation(a, self.frame_skip)
         ob = self._get_obs()
         done = False

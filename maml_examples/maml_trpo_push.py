@@ -44,7 +44,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             stub(globals())
 
                             seed = 1
-                            env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))  #TODO: force_reset was True
+                            env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))
                             #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
                             #env = TfEnv(normalize(PusherEnv(xml_file=xml_filepath)))
 

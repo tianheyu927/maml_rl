@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from maml_examples.reacher_env import fingertip
 import os.path as osp
+from rllab.sampler.utils import rollout
 
 
 class BatchPolopt(RLAlgorithm):
@@ -104,7 +105,7 @@ class BatchPolopt(RLAlgorithm):
         self.action_noise_test = action_noise_test
         self.save_expert_traj_dir = save_expert_traj_dir
         self.expert_traj_itrs_to_pickle = expert_traj_itrs_to_pickle
-        if self.expert_traj_itrs_to_pickle is not []:
+        if len(self.expert_traj_itrs_to_pickle) > 0:
             assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
             assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
                 "Not going to go through all itrs that need to be pickled"
@@ -161,7 +162,7 @@ class BatchPolopt(RLAlgorithm):
                     tasks = self.goals_to_use_dict[itr]
                     noise = self.action_noise_test
                 else:
-                    tasks =  [None] #[np.array([0., 0., -0.20, 0.06])]  # [self.env.wrapped_env.wrapped_env.sample_goals(1)[0]]
+                    tasks = [None] #[np.array([0., 0., -0.20, 0.06])]  # [self.env.wrapped_env.wrapped_env.sample_goals(1)[0]]
                     noise = self.action_noise_train
                 if itr in self.expert_traj_itrs_to_pickle:
                     paths_to_save = {}
@@ -208,38 +209,42 @@ class BatchPolopt(RLAlgorithm):
 
                     if True and ((itr - 1) % 20 == 0) and self.env.observation_space.shape[0] <= 6:  # ReacherEnvOracleNoise
                         logger.log("Saving visualization of paths")
-                        for ind in range(1):
-                            plt.clf()
-     #                       plt.plot(self.goals_to_use_dict[itr][ind][2], self.goals_to_use_dict[itr][ind][3], 'k*',
-                                 #    markersize=10)
-                            plt.hold(True)
+                        plt.clf()
+                        plt.hold(True)
 
-                            goal = paths[0]['observations'][0][4:]
-                            plt.plot(goal[0], goal[1], 'k*', markersize=10)
+                        goal = paths[0]['observations'][0][4:]
+                        # print(paths[0]['actions'])
+                        plt.plot(goal[0], goal[1], 'k*', markersize=10)
 
-                            goal = paths[1]['observations'][0][4:]
-                            plt.plot(goal[0], goal[1], 'k*', markersize=10)
+                        goal = paths[1]['observations'][0][4:]
+                        # print(paths[1]['actions'])
+                        plt.plot(goal[0], goal[1], 'k*', markersize=10)
 
-                            goal = paths[2]['observations'][0][4:]
-                            plt.plot(goal[0], goal[1], 'k*', markersize=10)
+                        goal = paths[2]['observations'][0][4:]
+                        # print(paths[2]['actions'])
+                        plt.plot(goal[0], goal[1], 'k*', markersize=10)
 
-                            points = np.array([fingertip(obs[:2]) for obs in paths[0]['observations']])
-                            plt.plot(points[:, 0], points[:, 1], '-r', linewidth=2)
+                        points = np.array([fingertip(obs[:2]) for obs in paths[0]['observations']])
+                        plt.plot(points[:, 0], points[:, 1], '-r', linewidth=2)
 
-                            points = np.array([fingertip(obs[:2]) for obs in paths[1]['observations']])
-                            plt.plot(points[:, 0], points[:, 1], '--r', linewidth=2)
+                        points = np.array([fingertip(obs[:2]) for obs in paths[1]['observations']])
+                        plt.plot(points[:, 0], points[:, 1], '--r', linewidth=2)
 
-                            points = np.array([fingertip(obs[:2]) for obs in paths[2]['observations']])
-                            plt.plot(points[:, 0], points[:, 1], '-.r', linewidth=2)
+                        points = np.array([fingertip(obs[:2]) for obs in paths[2]['observations']])
+                        plt.plot(points[:, 0], points[:, 1], '-.r', linewidth=2)
 
-                            plt.plot(0, 0, 'k.', markersize=5)
-                            plt.xlim([-0.25, 0.25])
-                            plt.ylim([-0.25, 0.25])
-                            plt.legend(['path'])
-                            plt.savefig(osp.join(logger.get_snapshot_dir(),
-                                                 'path' + str(ind) + '_' + str(itr) + '.png'))
-                            print(osp.join(logger.get_snapshot_dir(),
-                                           'path' + str(ind) + '_' + str(itr) + '.png'))
+                        plt.plot(0, 0, 'k.', markersize=5)
+                        plt.xlim([-0.25, 0.25])
+                        plt.ylim([-0.25, 0.25])
+                        plt.legend(['path'])
+                        plt.savefig(osp.join(logger.get_snapshot_dir(),
+                                             'path' + str(0) + '_' + str(itr) + '.png'))
+                        print(osp.join(logger.get_snapshot_dir(),
+                                       'path' + str(0) + '_' + str(itr) + '.png'))
+
+                    #logger.log("Saving videos...")
+                    #self.env.reset(reset_args=[self.goals_to_use_dict[itr]])
+                   # rollout(self.env, self.policy)
 
 
 

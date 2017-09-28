@@ -12,8 +12,10 @@ from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.envs.gym_env import GymEnv
 from maml_examples.reacher_env import ReacherEnv
 from rllab.envs.mujoco.pusher_env import PusherEnv
-from maml_examples.reacher_vars import GOALS_LOCATION
+from gym.wrappers.monitoring import Monitor
+
 from maml_examples.maml_experiment_vars import HIDDEN_NONLINEARITY, OUTPUT_NONLINEARITY
+from maml_examples.reacher_vars import GOALS_LOCATION
 
 import tensorflow as tf
 import time
@@ -21,10 +23,10 @@ import time
 beta_steps_list = [1]  # Not implemented for TRPO
 
 baselines = ['linear']
-env_option = 'g200l0.05nfj.st'
-nonlinearity_option = 'thh'
-net_size = 100
-fast_learning_rates = [0.001] # we don't know what's best for reacher
+env_option = 'g100l0.25nfj'
+nonlinearity_option = 'relu'
+net_size = 200
+fast_learning_rates = [0.3] # we don't know what's best for reacher
 fast_batch_size = 20  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
 meta_batch_size = 40  # 50 # 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 num_grad_updates = 1 #1
@@ -54,7 +56,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             seed = 1
                             #env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))  #TODO: force_reset was True
                             #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
+                          #  env = Monitor(TfEnv(normalize(ReacherEnv(option=env_option))), '/home/rosen/temp/')
                             env = TfEnv(normalize(ReacherEnv(option=env_option)))
+                          #  env = TfEnv(normalize(GymEnv("Reacher-v1", force_reset=True, record_video=True)))
 
                             policy = MAMLGaussianMLPPolicy(
                                 name="policy",
@@ -86,7 +90,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 pre_std_modifier=pre_std_modifier,
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
-                                # goals_to_load=GOALS_LOCATION,
+                               # goals_to_load=GOALS_LOCATION,
                                 # goals_pickle_to=GOALS_LOCATION,
 
                             )
@@ -96,8 +100,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='RE_TR',
-                                exp_name='RE_TR'
+                                exp_prefix='RE_TR_1',
+                                exp_name='RE_TR_1'
                                          # + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)

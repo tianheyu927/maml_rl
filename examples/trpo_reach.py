@@ -13,7 +13,7 @@ from rllab.envs.gym_env import GymEnv
 
 def run_task(*_):
 
-    env = TfEnv(normalize(GymEnv("Reacher-v1", force_reset=True, record_video=False)))
+    env = TfEnv(normalize(GymEnv("Reacher-v1", force_reset=True, record_video=True)))
     #env = TfEnv(normalize(PusherEnv()))
     policy = GaussianMLPPolicy(
         name="policy",

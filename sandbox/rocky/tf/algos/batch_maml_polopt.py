@@ -19,6 +19,7 @@ import numpy as np
 import joblib
 from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_list
 from maml_examples.reacher_env import fingertip
+from rllab.sampler.utils import rollout
 
 
 class BatchMAMLPolopt(RLAlgorithm):
@@ -271,16 +272,12 @@ class BatchMAMLPolopt(RLAlgorithm):
                 except tf.errors.FailedPreconditionError:
                     uninit_vars.append(var)
             sess.run(tf.variables_initializer(uninit_vars))
-
             self.start_worker()
             start_time = time.time()
-
             for itr in range(self.start_itr, self.n_itr):
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
                     self.policy.std_modifier = self.pre_std_modifier
-            #        if self.policy.action_limiter is not None:
-            #            self.policy.action_limiter = self.policy.action_limiter * self.action_limiter_multiplier
                     self.policy.switch_to_init_dist()  # Switch to pre-update policy
                     all_samples_data, all_paths = [], []
                     for step in range(self.num_grad_updates+1):
@@ -325,23 +322,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                             else:
                                 self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
                             self.policy.compute_updated_dists(samples_data)
-
-                        # if step == 0 and itr == 0:
-                        #     # this is how we know what a samples_data should look like once it comes out of
-                        #     # process_expert_samples:
-                        #     print("debug7", np.shape(all_samples_data[step][0]['observations'])) # inner grad step,task,
-                        #     print("debug7", np.shape(all_samples_data[step][0]['returns']))
-                        #     print("debug7", np.shape(all_samples_data[step][0]['agent_infos']['log_std']))
-                        #     print("debug7", np.shape(all_samples_data[step][0]['agent_infos']['mean']))
-                        #     print("debug7", np.shape(all_samples_data[step][0]['advantages']))
-                        #     print("debug7", np.shape(all_samples_data[step][0]['rewards']))
-                        #     # print("debug7", np.shape(all_samples_data[step][0]['expert_actions']))
-                        #     print("debug7", np.shape(all_samples_data[step][0]['paths'])) # what is this for??
-                        #     print("debug7", np.shape(all_samples_data[step][0]['actions']))
-                        #     # used to make expert_actions:
-                        #     # print("debug7", np.shape(all_samples_data[step][0]['env_infos']['expert_actions']))
-                        #     # print("debug7", np.shape(all_samples_data[step][0]['env_infos']['goal'])) # not used
-
                     logger.log("Optimizing policy...")
                     # This needs to take all samples_data so that it can construct graph for meta-optimization.
                     self.optimize_policy(itr, all_samples_data)
@@ -389,7 +369,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and ((itr-1) % 6 == 0 or (itr-2) % 6 == 0) and self.env.observation_space.shape[0] <= 4:  # reacher
+                    elif True and ((itr-1) % 6 == 0 or (itr-0) % 6 == 0) and self.env.observation_space.shape[0] <= 4:  # reacher
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
@@ -420,11 +400,29 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
+
+                            # logger.log("Saving videos...")
+                            # self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
+                            # video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                            # rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                            #         animated=True, speedup=2, save_video=True,
+                            #         video_filename=video_filename,
+                            #         reset_arg=self.goals_to_use_dict[itr][0])
+
+
+                            # toy = deepcopy(self.env)
+                            # toy.reset(reset_arg=self.goals_to_use_dict[itr][0])
+                            # for obs in postupdate_paths[ind][0]['observations']:
+                            #     state = obs + goal_for_ind
+                            #     toy.set_state(state)
+                            #     toy.render()
+                            #     toy.save_video
+
                     elif False and itr % 2 == 0:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
-                            goal_vel = goals_to_use_dict[itr][ind]
+                            goal_vel = self.goals_to_use_dict[itr][ind]
                             plt.title('Swimmer paths, goal vel='+str(goal_vel))
                             plt.hold(True)
 
