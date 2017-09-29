@@ -317,7 +317,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         flat_obs = self.observation_space.flatten(observation)
         f_dist = self._cur_f_dist
         mean, log_std = [x[0] for x in f_dist([flat_obs])]
-
         rnd = np.random.normal(size=np.shape(mean))
         action = rnd * np.exp(log_std) + mean
         return action, dict(mean=mean, log_std=log_std)
@@ -331,7 +330,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         f_dist = self._cur_f_dist
         output = f_dist([flat_obs for _ in range(num_tasks)])
         mean, log_std = output[idx]
-
         rnd = np.random.normal(size=np.shape(mean))
         action = rnd * np.exp(log_std) + mean
         return action, dict(mean=mean, log_std=log_std)

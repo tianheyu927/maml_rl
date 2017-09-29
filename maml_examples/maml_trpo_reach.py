@@ -24,10 +24,10 @@ beta_steps_list = [1]  # Not implemented for TRPO
 
 baselines = ['linear']
 env_option = 'g100l0.25nfj'
-nonlinearity_option = 'relu'
+nonlinearity_option = 'reluh'
 net_size = 200
-fast_learning_rates = [0.3] # we don't know what's best for reacher
-fast_batch_size = 20  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
+fast_learning_rates = [0.15]  # we don't know what's best for reacher
+fast_batch_size = 40  # 50 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
 meta_batch_size = 40  # 50 # 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 num_grad_updates = 1 #1
 n_itr = 100 #100

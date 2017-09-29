@@ -57,7 +57,7 @@ for v in variants:
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used
         seed=v["seed"],
-        # mode="local",
+        #mode="local",
         mode="ec2",
         variant=v,
         # plot=True,

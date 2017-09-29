@@ -57,6 +57,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             force_batch_sampler=False,
             use_maml=True,
             load_policy=None,
+            make_video=False,
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
             post_std_modifier_test=0.001,
@@ -114,6 +115,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
         self.post_std_modifier_test = post_std_modifier_test
+        self.make_video = make_video
         #   self.action_limiter_multiplier = action_limiter_multiplier
         self.expert_trajs_dir = expert_trajs_dir
         # Next, we will set up the goals and potentially trajectories that we plan to use.
@@ -401,13 +403,15 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
 
-                            # logger.log("Saving videos...")
-                            # self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
-                            # video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
-                            # rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
-                            #         animated=True, speedup=2, save_video=True,
-                            #         video_filename=video_filename,
-                            #         reset_arg=self.goals_to_use_dict[itr][0])
+                            if self.make_video:
+                                logger.log("Saving videos...")
+                                self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
+                                video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                                rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                        animated=True, speedup=2, save_video=True,
+                                        video_filename=video_filename,
+                                        reset_arg=self.goals_to_use_dict[itr][0],
+                                        use_maml=True, maml_task_index=ind,maml_num_tasks=len(self.goals_to_use_dict[itr]))
 
 
                             # toy = deepcopy(self.env)

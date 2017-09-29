@@ -19,6 +19,7 @@ ENV_OPTIONS ={
     'g200l0.05nfj.st':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_l0.05_nofreejoint_stubby.xml',
     'g50l0.2nfj.st':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear50_l0.2_nofreejoint_stubby.xml',
     'g100l0.25nfj':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear100_l0.25_nofreejoint.xml',
+    'g200l0.25nfj':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear200_l0.25_nofreejoint.xml',
     'g50l0.25nfj.st':'/home/rosen/gym/gym/envs/mujoco/assets/reacher_gear50_l0.25_nofreejoint_stubby.xml',
 }
 EXPERT_TRAJ_LOCATION_DICT={
