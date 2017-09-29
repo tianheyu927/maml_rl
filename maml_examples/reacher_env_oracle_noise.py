@@ -13,7 +13,7 @@ from copy import deepcopy
 from maml_examples.reacher_vars import ENV_OPTIONS
 
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
-    def __init__(self, option='g3nfj', *args, **kwargs):
+    def __init__(self, option='g100l0.25nfj', *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             self.noise = kwargs['noise']
