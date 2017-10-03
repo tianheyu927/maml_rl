@@ -409,7 +409,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
 
-                            if self.make_video:
+                            if self.make_video and itr % 80 == 0:
                                 logger.log("Saving videos...")
                                 self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                                 video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))

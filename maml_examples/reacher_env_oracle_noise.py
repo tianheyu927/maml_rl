@@ -13,14 +13,14 @@ from copy import deepcopy
 from maml_examples.reacher_vars import ENV_OPTIONS
 
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
-    def __init__(self, option='g100l0.25nfj', *args, **kwargs):
+    def __init__(self, option='g200nfj', *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             self.noise = kwargs['noise']
         else:
             self.noise = 0.0
         #utils.EzPickle.__init__(self)
-        print("env option", ENV_OPTIONS[option])
+        print("using env option", ENV_OPTIONS[option])
         MujocoEnv.__init__(self, file_path=ENV_OPTIONS[option])
         Serializable.__init__(self, *args, **kwargs)
 

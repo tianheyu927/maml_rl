@@ -60,7 +60,7 @@ def run_task(v):
         baseline=baseline,
         batch_size=500*100, #100*500,
         max_path_length=100,
-        start_itr=-700,
+        start_itr=-200,
         n_itr=101, #301,
         discount=0.99,
         step_size=0.005, #0.01

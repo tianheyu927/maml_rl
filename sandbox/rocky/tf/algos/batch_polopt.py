@@ -207,7 +207,7 @@ class BatchPolopt(RLAlgorithm):
                     logger.record_tabular('Time', time.time() - start_time)
                     logger.record_tabular('ItrTime', time.time() - itr_start_time)
 
-                    if True and ((itr - 1) % 20 == 0) and self.env.observation_space.shape[0] <= 6:  # ReacherEnvOracleNoise
+                    if True and ((itr - 1) % 20 == 0) and self.env.observation_space.shape[0] <= 9:  # ReacherEnvOracleNoise
                         logger.log("Saving visualization of paths")
                         plt.clf()
                         plt.hold(True)
