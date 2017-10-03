@@ -18,7 +18,7 @@ import time
 import numpy as np
 import joblib
 from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_list
-from maml_examples.reacher_env import fingertip
+# from maml_examples.reacher_env import fingertip
 from rllab.sampler.utils import rollout
 
 
@@ -319,7 +319,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
                         if step < self.num_grad_updates:
                             logger.log("Computing policy updates...")
-                            if itr % 2 == 0:
+                            if True: # itr % 2 == 0: TODO: Revert this when comparing with MAML+IL
                                 self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                             else:
                                 self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
@@ -371,7 +371,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and ((itr-1) % 16 == 0 or (itr-0) % 16 == 0) and self.env.observation_space.shape[0] <= 9:  # reacher
+                    elif True and ((itr-0) % 16 == 0) and self.env.observation_space.shape[0] <= 9:  # reacher
                         logger.log("Saving visualization of paths")
 
                         # def fingertip(env):
@@ -414,7 +414,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                                 video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
                                 rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
-                                        animated=True, speedup=2, save_video=True,video_filename=video_filename,
+                                        animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                         reset_arg=self.goals_to_use_dict[itr][ind],
                                         use_maml=True, maml_task_index=ind,
                                         maml_num_tasks=len(self.goals_to_use_dict[itr]))

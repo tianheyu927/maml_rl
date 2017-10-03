@@ -187,7 +187,7 @@ class MAMLNPO(BatchMAMLPolopt):
 
         logger.log("Computing loss before")
         loss_before = self.optimizer.loss(input_list)
-        if itr % 2 == 0:
+        if True: # itr % 2 == 0:
             logger.log("Optimizing")
             self.optimizer.optimize(input_list)
         else:
