@@ -87,7 +87,7 @@ class MujocoEnv(Env):
             self.init_qpos = init_qpos
         self.dcom = None
         self.current_com = None
-        self.reset(initializing=True)
+        self.reset()
         super(MujocoEnv, self).__init__()
 
 

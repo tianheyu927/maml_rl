@@ -11,7 +11,6 @@ from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 from pathlib import Path
 import matplotlib.pyplot as plt
-from maml_examples.reacher_env import fingertip
 import os.path as osp
 from rllab.sampler.utils import rollout
 
@@ -45,6 +44,7 @@ class BatchPolopt(RLAlgorithm):
             sampler_args=None,
             force_batch_sampler=False,
             load_policy=None,
+            make_video=True,
             action_noise_train=0.0,
             action_noise_test=0.0,
             reset_arg=None,
@@ -103,26 +103,37 @@ class BatchPolopt(RLAlgorithm):
         self.reset_arg = reset_arg
         self.action_noise_train = action_noise_train
         self.action_noise_test = action_noise_test
+        self.make_video = make_video
         self.save_expert_traj_dir = save_expert_traj_dir
         self.expert_traj_itrs_to_pickle = expert_traj_itrs_to_pickle
-        if len(self.expert_traj_itrs_to_pickle) > 0:
-            assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
-            assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
-                "Not going to go through all itrs that need to be pickled"
-            Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=True)
-            self.goals_to_save={}
-        elif save_expert_traj_dir is not None and self.expert_traj_itrs_to_pickle is []:
-            self.expert_traj_itrs_to_pickle = range(self.start_itr, self.n_itr)
         if goals_to_load is not None:
             self.goals_to_use_dict = joblib.load(goals_to_load)
         else:
             self.goals_to_use_dict = {}
+        if len(self.expert_traj_itrs_to_pickle) > 0:
+            assert save_expert_traj_dir is not None,\
+                "please provide a filename to save expert trajectories"
+            assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
+                "Not going to go through all itrs that need to be pickled"
+            assert set(self.expert_traj_itrs_to_pickle).issubset(set(self.goals_to_use_dict.keys())),\
+                "Haven't loaded goals for all expert trajectories"
+            Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=True)
+            logger.log("Pickling goals...")
+            Path(self.save_expert_traj_dir+"goals.pkl").touch()
+            joblib.dump(self.goals_to_use_dict, self.save_expert_traj_dir+"goals.pkl")
+            # I know this was redundant, but we are doing it to make sure the goals stay with the expert trajs
+
+        elif save_expert_traj_dir is not None and len(self.expert_traj_itrs_to_pickle) == 0:
+            assert False, "please provide expert_traj_itrs_to_pickle"
+
             # note, in batch_polopt, goals_to use can be a subset of all iterations/goals used,
             # while in batch_maml_polopt, once we use goals_to_load, we enforce that all iterations
             # and meta batch sizes are covered by those goals.
             # The intuition is that for every task used by batch_maml_polopt, we want to have an expert policy
             # that has covered said situation; at the same time, we want an expert policy to pre-train
             # before performing on the set of tasks that we'll use for MAML
+
+
 
 
     def start_worker(self):
@@ -159,21 +170,20 @@ class BatchPolopt(RLAlgorithm):
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
                 if itr in self.goals_to_use_dict.keys():
-                    tasks = self.goals_to_use_dict[itr]
+                    goals = self.goals_to_use_dict[itr]
                     noise = self.action_noise_test
                 else:
-                    tasks = [None] #[np.array([0., 0., -0.20, 0.06])]  # [self.env.wrapped_env.wrapped_env.sample_goals(1)[0]]
+                    goals = [None]
                     noise = self.action_noise_train
                 if itr in self.expert_traj_itrs_to_pickle:
                     paths_to_save = {}
-                    self.goals_to_save[itr] = tasks
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
 
                     logger.log("Obtaining samples...")
                     paths = []
-                    for tasknum, task in enumerate(tasks):
-                        paths_for_task = self.obtain_samples(itr=itr, reset_args=[task])  # reset_args=[{'task': task, 'noise': noise}])
+                    for tasknum, task in enumerate(goals):
+                        paths_for_task = self.obtain_samples(itr=itr, reset_args=[{'goal': goal, 'noise': noise} for goal in goals])
                         paths.extend(paths_for_task)  # we need this to be flat because we process all of them together
                         # TODO: there's a bunch of sample processing happening below that we should abstract away
                         if itr in self.expert_traj_itrs_to_pickle:
@@ -207,30 +217,27 @@ class BatchPolopt(RLAlgorithm):
                     logger.record_tabular('Time', time.time() - start_time)
                     logger.record_tabular('ItrTime', time.time() - itr_start_time)
 
-                    if True and ((itr - 1) % 20 == 0) and self.env.observation_space.shape[0] <= 9:  # ReacherEnvOracleNoise
+                    if True and (itr % 16 == 0) and self.env.observation_space.shape[0] < 12:  # ReacherEnvOracleNoise
                         logger.log("Saving visualization of paths")
                         plt.clf()
                         plt.hold(True)
 
-                        goal = paths[0]['observations'][0][4:]
-                        # print(paths[0]['actions'])
+                        goal = paths[0]['observations'][0][-2:]
                         plt.plot(goal[0], goal[1], 'k*', markersize=10)
 
-                        goal = paths[1]['observations'][0][4:]
-                        # print(paths[1]['actions'])
+                        goal = paths[1]['observations'][0][-2:]
                         plt.plot(goal[0], goal[1], 'k*', markersize=10)
 
-                        goal = paths[2]['observations'][0][4:]
-                        # print(paths[2]['actions'])
+                        goal = paths[2]['observations'][0][-2:]
                         plt.plot(goal[0], goal[1], 'k*', markersize=10)
 
-                        points = np.array([fingertip(obs[:2]) for obs in paths[0]['observations']])
+                        points = np.array([obs[6:8] for obs in paths[0]['observations']])
                         plt.plot(points[:, 0], points[:, 1], '-r', linewidth=2)
 
-                        points = np.array([fingertip(obs[:2]) for obs in paths[1]['observations']])
+                        points = np.array([obs[6:8] for obs in paths[1]['observations']])
                         plt.plot(points[:, 0], points[:, 1], '--r', linewidth=2)
 
-                        points = np.array([fingertip(obs[:2]) for obs in paths[2]['observations']])
+                        points = np.array([obs[6:8] for obs in paths[2]['observations']])
                         plt.plot(points[:, 0], points[:, 1], '-.r', linewidth=2)
 
                         plt.plot(0, 0, 'k.', markersize=5)
@@ -242,11 +249,14 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                    #logger.log("Saving videos...")
-                    #self.env.reset(reset_args=[self.goals_to_use_dict[itr]])
-                   # rollout(self.env, self.policy)
-
-
+                        if self.make_video and itr % 80 == 0:
+                            logger.log("Saving videos...")
+                            self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s.mp4' % itr)
+                            rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                    animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                    reset_arg=self.goals_to_use_dict[itr][0],
+                                    use_maml=False,)
 
                     # debugging
                     """
@@ -276,10 +286,6 @@ class BatchPolopt(RLAlgorithm):
 
 
 
-            if self.save_expert_traj_dir is not None:
-                logger.log("Pickling goals...")
-                Path(self.save_expert_traj_dir+"goals.pkl").touch()
-                joblib.dump(self.goals_to_save, self.save_expert_traj_dir+"goals.pkl")
 
 
 

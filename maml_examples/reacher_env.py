@@ -23,8 +23,8 @@ class ReacherEnv(MujocoEnv, Serializable):
             np.cos(theta),
             np.sin(theta),
             self.model.data.qvel.flat[:2],
-            np.cos(theta[0]) * 0.1 + np.cos(np.sum(theta)) * 0.11,
-            np.sin(theta[0]) * 0.1 + np.sin(np.sum(theta)) * 0.11,
+            [np.cos(theta[0]) * 0.1 + np.cos(theta[0]+theta[1]) * 0.11,
+             np.sin(theta[0]) * 0.1 + np.sin(theta[0]+theta[1]) * 0.11],
         ])
 
     def step(self, action):

@@ -8,6 +8,7 @@ from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
 from maml_examples.reacher_vars import ENV_OPTIONS
+from copy import deepcopy
 
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
     def __init__(self, option='g200nfj', *args, **kwargs):
@@ -39,7 +40,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
         reward_ctrl = - np.square(action).sum()
         reward = reward_dist + reward_ctrl
 
-        self.forward_dynamics(action)
+        self.forward_dynamics(action)  # TODO: make sure to edit forward_dynamics once we introduce noise
         next_obs = self.get_current_obs()
 
         done = False

@@ -20,12 +20,12 @@ import time
 baselines = ['linear']
 env_option = 'g200nfj'
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
-net_size = 200
+net_size = 100
 fast_learning_rates = [0.001]  # A1=0.3, A2=0.15, B1=0.01
 fast_batch_size = 20  # A1=40,  B1=20
 meta_batch_size = 40  # A1=40
 num_grad_updates = 1  # 1
-n_itr = 800  #100
+n_itr = 801  #100
 max_path_length = 50  # A1=100, B1=50
 meta_step_size = 0.01  # 0.01
 pre_std_modifier_list = [1.0]
@@ -85,7 +85,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             post_std_modifier_train=post_std_modifier_train,
                             post_std_modifier_test=post_std_modifier_test,
                            # goals_to_load=GOALS_LOCATION,
-                            # goals_pickle_to=GOALS_LOCATION,
+                           # goals_pickle_to=GOALS_LOCATION,
 
                         )
                         run_experiment_lite(

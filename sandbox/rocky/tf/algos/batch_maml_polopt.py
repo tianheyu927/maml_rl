@@ -371,7 +371,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and ((itr-0) % 16 == 0) and self.env.observation_space.shape[0] <= 9:  # reacher
+                    elif True and ((itr-0) % 16 == 0) and self.env.observation_space.shape[0] < 10:  # reacher
                         logger.log("Saving visualization of paths")
 
                         # def fingertip(env):
@@ -381,7 +381,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
-                            plt.plot(self.goals_to_use_dict[itr][ind][2], self.goals_to_use_dict[itr][ind][3], 'k*', markersize=10)
+                            plt.plot(self.goals_to_use_dict[itr][ind][0], self.goals_to_use_dict[itr][ind][1], 'k*', markersize=10)
                             plt.hold(True)
 
                             preupdate_paths = all_paths[0]
@@ -419,14 +419,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         use_maml=True, maml_task_index=ind,
                                         maml_num_tasks=len(self.goals_to_use_dict[itr]))
 
-
-                            # toy = deepcopy(self.env)
-                            # toy.reset(reset_arg=self.goals_to_use_dict[itr][0])
-                            # for obs in postupdate_paths[ind][0]['observations']:
-                            #     state = obs + goal_for_ind
-                            #     toy.set_state(state)
-                            #     toy.render()
-                            #     toy.save_video
 
                     elif False and itr % 2 == 0:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")

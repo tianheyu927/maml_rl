@@ -1,6 +1,6 @@
 
 #EXPERT_TRAJ_LOCATION = "/home/rosen/maml_rl_data/saved_expert_traj/reacher10/test7/"
-GOALS_LOCATION = '/home/rosen/maml_rl_data/saved_goals/reach/saved_goals_9_11.pkl'
+GOALS_LOCATION = '/home/rosen/maml_rl_data/saved_goals/reach/B1_saved_goals_10_3.pkl'
 
 ENV_OPTIONS ={
     '':'/home/rosen/gym/gym/envs/mujoco/assets/reacher.xml',
@@ -24,6 +24,6 @@ ENV_OPTIONS ={
 }
 EXPERT_TRAJ_LOCATION_DICT={
     "":"", # blank means we haven't recorded expert traj yet
-    "g200nfj":"",
+    "g200nfj":"/home/rosen/maml_rl_data/saved_expert_traj/g200nfj/test1/",
     'g10nfj':"/home/rosen/maml_rl_data/saved_expert_traj/reacher10/test7/",
 }
