@@ -18,16 +18,16 @@ import tensorflow as tf
 import time
 
 baselines = ['linear']
-env_option = 'g100l0.25nfj'
-nonlinearity_option = 'reluh'  #A1=relu, A2=reluh
-net_size = 200
-fast_learning_rates = [0.15]  # A1=0.3, A2=0.15
-fast_batch_size = 40  # A1=40
+env_option = 'g200nfj'
+nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
+net_size = 100
+fast_learning_rates = [0.01]  # A1=0.3, A2=0.15, B1=0.01
+fast_batch_size = 20  # A1=40,  B1=40
 meta_batch_size = 40  # A1=40
-num_grad_updates = 1  #1
-n_itr = 200  #100
-max_path_length = 100
-meta_step_size = 0.01  ## it was 0.01
+num_grad_updates = 1  # 1
+n_itr = 800  #100
+max_path_length = 50  # A1=100, B1=50
+meta_step_size = 0.01  # 0.01
 pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [1.0]
 post_std_modifier_test_list = [0.0001]

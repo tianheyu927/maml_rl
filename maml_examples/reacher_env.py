@@ -12,7 +12,7 @@ from rllab.envs.env_spec import EnvSpec
 from maml_examples.reacher_vars import ENV_OPTIONS
 
 class ReacherEnv(MujocoEnv, Serializable):
-    def __init__(self, option='g100l0.25nfj', *args, **kwargs):
+    def __init__(self, option='g200nfj', *args, **kwargs):
         self.goal = None
         #utils.EzPickle.__init__(self)
         print("using env option ", ENV_OPTIONS[option])
@@ -20,9 +20,12 @@ class ReacherEnv(MujocoEnv, Serializable):
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
+        theta = self.model.data.qpos.flat[:2]
         return np.concatenate([
-            self.model.data.qpos.flat[:2],
-            self.model.data.qvel.flat[:2]
+            np.cos(theta),
+            np.sin(theta),
+            self.model.data.qvel.flat[:2],
+            self.get_body_com("fingertip"),
         ])
 
     def step(self, action):
@@ -30,7 +33,7 @@ class ReacherEnv(MujocoEnv, Serializable):
         vec = self.get_body_com("fingertip") - self.get_body_com("target")
         reward_dist = - np.linalg.norm(vec)
         reward_ctrl = - np.square(action).sum()
-        reward = reward_dist + 0.00 * reward_ctrl
+        reward = reward_dist + 1.0 * reward_ctrl
 
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()

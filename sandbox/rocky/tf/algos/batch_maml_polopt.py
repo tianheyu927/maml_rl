@@ -57,7 +57,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             force_batch_sampler=False,
             use_maml=True,
             load_policy=None,
-            make_video=False,
+            make_video=True,
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
             post_std_modifier_test=0.001,
@@ -371,8 +371,14 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and ((itr-1) % 6 == 0 or (itr-0) % 6 == 0) and self.env.observation_space.shape[0] <= 4:  # reacher
+                    elif True and ((itr-1) % 16 == 0 or (itr-0) % 16 == 0) and self.env.observation_space.shape[0] <= 9:  # reacher
                         logger.log("Saving visualization of paths")
+
+                        # def fingertip(env):
+                        #     while 'get_body_com' not in dir(env):
+                        #         env = env.wrapped_env
+                        #     return env.get_body_com('fingertip')
+
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
                             plt.plot(self.goals_to_use_dict[itr][ind][2], self.goals_to_use_dict[itr][ind][3], 'k*', markersize=10)
@@ -381,18 +387,18 @@ class BatchMAMLPolopt(RLAlgorithm):
                             preupdate_paths = all_paths[0]
                             postupdate_paths = all_paths[-1]
 
-                            pre_points = np.array([fingertip(obs[:2]) for obs in preupdate_paths[ind][0]['observations']])
-                            post_points = np.array([fingertip(obs[:2]) for obs in postupdate_paths[ind][0]['observations']])
+                            pre_points = np.array([obs[6:8] for obs in preupdate_paths[ind][0]['observations']])
+                            post_points = np.array([obs[6:8] for obs in postupdate_paths[ind][0]['observations']])
                             plt.plot(pre_points[:,0], pre_points[:,1], '-r', linewidth=2)
                             plt.plot(post_points[:,0], post_points[:,1], '-b', linewidth=1)
 
-                            pre_points = np.array([fingertip(obs[:2]) for obs in preupdate_paths[ind][1]['observations']])
-                            post_points = np.array([fingertip(obs[:2]) for obs in postupdate_paths[ind][1]['observations']])
+                            pre_points = np.array([obs[6:8] for obs in preupdate_paths[ind][1]['observations']])
+                            post_points = np.array([obs[6:8] for obs in postupdate_paths[ind][1]['observations']])
                             plt.plot(pre_points[:,0], pre_points[:,1], '--r', linewidth=2)
                             plt.plot(post_points[:,0], post_points[:,1], '--b', linewidth=1)
 
-                            pre_points = np.array([fingertip(obs[:2]) for obs in preupdate_paths[ind][2]['observations']])
-                            post_points = np.array([fingertip(obs[:2]) for obs in postupdate_paths[ind][2]['observations']])
+                            pre_points = np.array([obs[6:8] for obs in preupdate_paths[ind][2]['observations']])
+                            post_points = np.array([obs[6:8] for obs in postupdate_paths[ind][2]['observations']])
                             plt.plot(pre_points[:,0], pre_points[:,1], '-.r', linewidth=2)
                             plt.plot(post_points[:,0], post_points[:,1], '-.b', linewidth=1)
 
@@ -405,13 +411,13 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                             if self.make_video:
                                 logger.log("Saving videos...")
-                                self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
+                                self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                                 video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
                                 rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
-                                        animated=True, speedup=2, save_video=True,
-                                        video_filename=video_filename,
-                                        reset_arg=self.goals_to_use_dict[itr][0],
-                                        use_maml=True, maml_task_index=ind,maml_num_tasks=len(self.goals_to_use_dict[itr]))
+                                        animated=True, speedup=2, save_video=True,video_filename=video_filename,
+                                        reset_arg=self.goals_to_use_dict[itr][ind],
+                                        use_maml=True, maml_task_index=ind,
+                                        maml_num_tasks=len(self.goals_to_use_dict[itr]))
 
 
                             # toy = deepcopy(self.env)
