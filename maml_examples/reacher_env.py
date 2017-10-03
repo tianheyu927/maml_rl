@@ -33,7 +33,7 @@ class ReacherEnv(MujocoEnv, Serializable):
         vec = self.get_body_com("fingertip") - self.get_body_com("target")
         reward_dist = - np.linalg.norm(vec)
         reward_ctrl = - np.square(action).sum()
-        reward = reward_dist + 1.0 * reward_ctrl
+        reward = reward_dist + reward_ctrl
 
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()

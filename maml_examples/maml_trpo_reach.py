@@ -22,7 +22,7 @@ env_option = 'g200nfj'
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
 net_size = 200
 fast_learning_rates = [0.001]  # A1=0.3, A2=0.15, B1=0.01
-fast_batch_size = 20  # A1=40,  B1=40
+fast_batch_size = 20  # A1=40,  B1=20
 meta_batch_size = 40  # A1=40
 num_grad_updates = 1  # 1
 n_itr = 800  #100
