@@ -54,7 +54,6 @@ class ReacherEnv(MujocoEnv, Serializable):
             goals_list.append(newgoal)
         return np.array(goals_list)
 
-
     # this isn't used
     """
     def _step(self, a):
