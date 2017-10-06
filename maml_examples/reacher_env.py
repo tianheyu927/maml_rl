@@ -23,9 +23,10 @@ class ReacherEnv(MujocoEnv, Serializable):
             np.cos(theta),
             np.sin(theta),
             self.model.data.qvel.flat[:2],
-            [np.cos(theta[0]) * 0.1 + np.cos(theta[0]+theta[1]) * 0.11,
-             np.sin(theta[0]) * 0.1 + np.sin(theta[0]+theta[1]) * 0.11],
+            [np.cos(theta[0]) * 0.1 + np.cos(theta[0]+theta[1]) * 0.11],
+            [np.sin(theta[0]) * 0.1 + np.sin(theta[0]+theta[1]) * 0.11],
         ])
+
 
     def step(self, action):
         self.frame_skip = 5
@@ -44,6 +45,7 @@ class ReacherEnv(MujocoEnv, Serializable):
         goals_list = []
         for _ in range(num_goals):
             while True:
+                #newgoal = np.array([-0.145, -0.145])
                 newgoal = np.random.uniform(low=-.2, high=.2, size=2)
                 if np.linalg.norm(newgoal) < 0.21:
                     break

@@ -8,7 +8,7 @@ from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
 from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
 from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import ConjugateGradientOptimizer
-
+from maml_examples.maml_experiment_vars import TESTING_ITRS
 
 class MAMLIL(BatchMAMLPolopt):
 
@@ -175,7 +175,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         logger.log("Computing loss before")
         loss_before = self.optimizer.loss(input_vals_list)
-        if itr % 2 == 0:
+        if itr not in TESTING_ITRS:
             logger.log("Optimizing")
             self.optimizer.optimize(input_vals_list)
         else:
@@ -186,9 +186,10 @@ class MAMLIL(BatchMAMLPolopt):
         mean_kl = self.optimizer.constraint_val(input_vals_list)
         logger.record_tabular('MeanKLBefore', mean_kl_before)
         logger.record_tabular('MeanKL', mean_kl)
-        logger.record_tabular('LossBefore', loss_before)
-        logger.record_tabular('LossAfter', loss_after)
-        logger.record_tabular('dLoss', loss_before - loss_after)
+      #  logger.record_tabular('LossBefore', loss_before)
+      #  logger.record_tabular('LossAfter', loss_after)
+      #  logger.record_tabular('dLoss', loss_before - loss_after)
+        # getting rid of the above because of issues with tabular
         return dict()
 
 

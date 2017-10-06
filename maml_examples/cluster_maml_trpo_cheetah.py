@@ -102,5 +102,5 @@ for v in variants:
         mode="ec2",
         variant=v,
         # plot=True,
-        # terminate_machine=False,
+        terminate_machine=False,
     )

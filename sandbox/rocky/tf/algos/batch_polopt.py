@@ -82,6 +82,7 @@ class BatchPolopt(RLAlgorithm):
         self.n_itr = n_itr
         self.start_itr = start_itr
         self.batch_size = batch_size
+        self.batch_size_orig = batch_size
         self.max_path_length = max_path_length
         self.discount = discount
         self.gae_lambda = gae_lambda
@@ -175,6 +176,7 @@ class BatchPolopt(RLAlgorithm):
                 else:
                     goals = [None]
                     noise = self.action_noise_train
+                self.batch_size = self.batch_size_orig/len(goals)
                 if itr in self.expert_traj_itrs_to_pickle:
                     paths_to_save = {}
                 itr_start_time = time.time()
@@ -182,15 +184,15 @@ class BatchPolopt(RLAlgorithm):
 
                     logger.log("Obtaining samples...")
                     paths = []
-                    for tasknum, task in enumerate(goals):
-                        paths_for_task = self.obtain_samples(itr=itr, reset_args=[{'goal': goal, 'noise': noise} for goal in goals])
-                        paths.extend(paths_for_task)  # we need this to be flat because we process all of them together
+                    for goalnum, goal in enumerate(goals):
+                        paths_for_goal = self.obtain_samples(itr=itr, reset_args=[{'goal': goal, 'noise': noise}])
+                        paths.extend(paths_for_goal)  # we need this to be flat because we process all of them together
                         # TODO: there's a bunch of sample processing happening below that we should abstract away
                         if itr in self.expert_traj_itrs_to_pickle:
                             logger.log("Saving trajectories...")
-                            paths_no_goal = self.clip_goal_from_obs(paths_for_task)
-                            [path.pop('agent_infos') for path in paths_no_goal]
-                            paths_to_save[tasknum] = paths_no_goal
+                            paths_no_goalobs = self.clip_goal_from_obs(paths_for_goal)
+                            [path.pop('agent_infos') for path in paths_no_goalobs]
+                            paths_to_save[goalnum] = paths_no_goalobs
                     if itr in self.expert_traj_itrs_to_pickle:
                         logger.log("Pickling trajectories...")
                         Path(self.save_expert_traj_dir+str(itr)+".pkl").touch()
@@ -249,7 +251,7 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                        if self.make_video and itr % 80 == 0:
+                        if self.make_video and itr % 80 and itr in self.goals_to_use_dict.keys() == 0:
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s.mp4' % itr)

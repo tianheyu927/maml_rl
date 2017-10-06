@@ -12,6 +12,16 @@ from sandbox.rocky.tf.envs.base import TfEnv
 import tensorflow as tf
 import time
 
+# from rllab.misc.instrument import VariantGenerator, variant
+#
+# class VF(VariantGenerator):
+#
+#     @variant
+#     def flr(self):
+#         return [0.5]
+
+
+
 fast_learning_rates = [0.5]  # 0.5
 baselines = ['linear']
 fast_batch_size = 20  #20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]
@@ -89,5 +99,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                      + "_pstr" + str(post_std_modifier_train)
                                      + '_posm' + str(post_std_modifier_test)
                                      + "_" + time.strftime("%D.%H:%M").replace("/", "."),
+                            mode="ec2",
                             plot=False,
+                            sync_s3_pkl=True,
+                            terminate_machine=False,
                         )

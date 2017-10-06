@@ -17,7 +17,7 @@ beta_steps_list = [10] ## maybe try 1 and 10 to compare, we know that 1 is only 
 
 fast_learning_rates = [1.0]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
-fast_batch_size = 60  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -65,7 +65,7 @@ for env_option in env_options:
                                     max_path_length=max_path_length,
                                     meta_batch_size=meta_batch_size, ## number of tasks sampled for beta grad update
                                     num_grad_updates=num_grad_updates, ## number of alpha grad updates per beta update
-                                    n_itr=100, #100
+                                    n_itr=20, #100
                                     use_maml=use_maml,
                                     step_size=meta_step_size,
                                     plot=False,
@@ -75,7 +75,7 @@ for env_option in env_options:
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
                                     #  goals_to_load='/home/rosen/maml_rl_data/saved_goals/point/saved_goals1.pkl',
-                                    expert_trajs_dir="/home/rosen/maml_rl_data/saved_expert_traj/point/9_13_test9_fixedstart_noise0.01_nodone/",
+                                    expert_trajs_dir="/home/rosen/maml_rl_data/saved_expert_traj/point/9_13_test8_randstart_noise0.01_nodone/",
                                    # goals_pickle_to=None,  # '/home/rosen/maml_rl_data/saved_goals/point/saved_goals_9_6.pkl',
                                 )
 

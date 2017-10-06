@@ -28,8 +28,8 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
             np.cos(theta),
             np.sin(theta),
             self.model.data.qvel.flat[:2],
-            np.cos(theta[0]) * 0.1 + np.cos(np.sum(theta)) * 0.11,
-            np.sin(theta[0]) * 0.1 + np.sin(np.sum(theta)) * 0.11,
+            [np.cos(theta[0]) * 0.1 + np.cos(np.sum(theta)) * 0.11],
+            [np.sin(theta[0]) * 0.1 + np.sin(np.sum(theta)) * 0.11],
             self.model.data.qpos.flat[2:]
         ])
 
@@ -80,7 +80,8 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
     def reset(self, reset_args=None, **kwargs):
         # Here, we generate a new, random goal to reset the environment with
         # We also unpack any noise parameter that may have been passed in reset_args
-        qpos = np.random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos.T[0]
+        qpos = np.random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos.T[0]  #TODO: rever to this one
+        # qpos = np.random.uniform(low=-2.9, high=2.9, size=self.model.nq) + self.init_qpos.T[0] # if we want to do rand goal
 
         if type(reset_args) is dict:
             goal_pos = reset_args['goal']
@@ -89,8 +90,9 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
             goal_pos = reset_args
         if goal_pos is not None:
             self.goal = goal_pos
-        elif self.goal is None:
+        else:
             while True:
+                #self.goal = np.array([-0.145, -0.145])
                 self.goal = np.random.uniform(low=-.2, high=.2, size=2)
                 if np.linalg.norm(self.goal) < 0.21:
                     break

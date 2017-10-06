@@ -49,7 +49,7 @@ def run_task(v):
        name="policy",
        env_spec=env.spec,
        hidden_nonlinearity=tf.nn.relu,
-       hidden_sizes=(256, 256),
+       hidden_sizes=(100, 100),
     )
     baseline = LinearFeatureBaseline(env_spec=env.spec)
     algo = TRPO(
@@ -57,12 +57,12 @@ def run_task(v):
         policy=policy,
         #load_policy='/home/rosen/maml_rl_data/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
         baseline=baseline,
-        batch_size=500*100, # 100*500,
+        batch_size=2000*50, # 100*500, # we divide this by #envs on every iteration
         max_path_length=50,
-        start_itr=-200,
+        start_itr=-2000,
         n_itr=801,  # actually last iteration number, not total iterations
         discount=0.99,
-        step_size=0.01,  # 0.01
+        step_size=0.005,  # 0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,

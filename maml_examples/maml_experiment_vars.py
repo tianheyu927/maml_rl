@@ -14,3 +14,9 @@ OUTPUT_NONLINEARITY = {
     'thh':tf.nn.tanh,
     'reluh':tf.nn.tanh,
 }
+
+TESTING_ITRS = [1,3,5,7,9,11,13,] + [8*x-1 for x in range(1000)]
+
+PLOT_ITRS = [0,2,8] + [100*x for x in range(80)] + [1,3,5,7,9,11,13,] + [16*x-1 for x in range(500)]
+
+VIDEO_ITRS = [40*x-1 for x in range(200)]

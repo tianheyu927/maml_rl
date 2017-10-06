@@ -18,15 +18,15 @@ from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT
 import tensorflow as tf
 import time
 
-beta_steps_list = [10] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_steps_list = [5] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
-env_option = 'g50l0.25nfj.st'
+env_option = 'g200nfj'
 
-fast_batch_size = 40  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
-max_path_length = 100  # 100
+max_path_length = 50  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
 pre_std_modifier_list = [1.0]
@@ -46,14 +46,14 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             stub(globals())
 
                             seed = 1
-                            env = TfEnv(normalize(ReacherEnv()))
+                            env = TfEnv(normalize(ReacherEnv(option=env_option)))
 
                             policy = MAMLGaussianMLPPolicy(
                                 name="policy",
                                 env_spec=env.spec,
                                 grad_step_size=fast_learning_rate,
                                 hidden_nonlinearity=tf.nn.relu,
-                                hidden_sizes=(100, 100),
+                                hidden_sizes=(200, 200),
                                 std_modifier=pre_std_modifier,
                                 # output_nonlinearity=tf.nn.tanh,
                             )
@@ -71,7 +71,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 max_path_length=max_path_length,
                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                n_itr=20, #100
+                                n_itr=801, #100
                                 use_maml=use_maml,
                                 step_size=meta_step_size,
                                 plot=False,
@@ -89,8 +89,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='RE_IL20',
-                                exp_name='RE_IL20'
+                                exp_prefix='RE_IL_B1',
+                                exp_name='RE_IL_B1'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)

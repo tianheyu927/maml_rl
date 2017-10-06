@@ -20,6 +20,7 @@ import joblib
 from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_list
 # from maml_examples.reacher_env import fingertip
 from rllab.sampler.utils import rollout
+from maml_examples.maml_experiment_vars import TESTING_ITRS, PLOT_ITRS, VIDEO_ITRS
 
 
 class BatchMAMLPolopt(RLAlgorithm):
@@ -127,7 +128,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             print("successfully extracted goals", self.goals_to_use_dict.keys())
             assert set(range(self.start_itr, self.n_itr)).issubset(
                 set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
-            # TODO: chop off any unnecessary tasks, for now we'll stick with 40
+            # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere
         elif goals_to_load is not None:
             env = self.env
             while 'sample_goals' not in dir(env):
@@ -202,9 +203,6 @@ class BatchMAMLPolopt(RLAlgorithm):
         # TODO: add usage of meta batch size and batch size as a way of sampling desired number
         start = time.time()
         expert_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
-        #goals_for_itr = joblib.load(expert_trajs_dir+"goals.pkl")[itr]
-        #assert np.array_equal(goals_for_itr, reset_args), "Something went wrong, we should be using the same goals used during" \
-        #                                                 "expert trajectory sampling"
         # some initial rearrangement
         tasknums = expert_trajs.keys()
         for t in tasknums:
@@ -223,6 +221,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             for t, action, agent_info in zip(itertools.count(), actions, agent_infos):
                 # expert_trajs[t][running_path_idx]['actions'][running_intra_path_idx[t]]= action
                 expert_trajs[t][running_path_idx[t]]['agent_infos'][running_intra_path_idx[t]] = agent_info
+                # NEXT UP, INDEX JUGGLING:
                 if -0.5 < running_intra_path_idx[t] < len(expert_trajs[t][running_path_idx[t]]['rewards'])-1:
                     # if we haven't reached the end:
                     running_intra_path_idx[t] += 1
@@ -287,39 +286,31 @@ class BatchMAMLPolopt(RLAlgorithm):
                         #    import pdb; pdb.set_trace() # test param_vals functions.
                         logger.log('** Step ' + str(step) + ' **')
                         logger.log("Obtaining samples...")
-                        if self.expert_trajs_dir is not None and step == self.num_grad_updates and itr % 2 == 0:
-                            # only train on even itr, sample as regular on odd to see performance
+                        if self.expert_trajs_dir is not None and step == self.num_grad_updates and itr not in TESTING_ITRS:
+                            # train for 7 itrs, starting with 0, test on the 8th one
                             # this extracts the paths we want to be working with: observations, rewards, expert actions
                             paths = self.obtain_expert_samples(itr=itr,
                                                                expert_trajs_dir=self.expert_trajs_dir,
                                                                reset_args=self.goals_to_use_dict[itr],
                                                                log_prefix=str(step))
                         else:
-                            # this obtains a dictionary of paths, one dict entry for each env/goal
-                            paths = self.obtain_samples(itr=itr,
-                                                        reset_args=self.goals_to_use_dict[itr],
+                            # this obtains a dictionary of paths, one dict entry for each task/goal
+                            paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr],
                                                         log_prefix=str(step))
-
                         all_paths.append(paths)
                         logger.log("Processing samples...")
                         samples_data = {}
-
                         for tasknum in paths.keys():  # the keys are the tasks
                             # don't log because this will spam the console with every task.
-                            samples_data[tasknum] = self.process_samples(itr,
-                                                                         paths[tasknum],
-                                                                         log=False)
+                            samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False)
                         all_samples_data.append(samples_data)
                         # for logging purposes only
-                        self.process_samples(itr,
-                                             flatten_list(paths.values()),
-                                             prefix=str(step),
-                                             log=True,)
+                        self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True,)
                         logger.log("Logging diagnostics...")
                         self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
                         if step < self.num_grad_updates:
                             logger.log("Computing policy updates...")
-                            if True: # itr % 2 == 0: TODO: Revert this when comparing with MAML+IL
+                            if itr not in TESTING_ITRS:
                                 self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                             else:
                                 self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
@@ -340,7 +331,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                     # The rest is some example plotting code.
                     # Plotting code is useful for visualizing trajectories across a few different tasks.
-                    if False and (itr-1) % 4 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
+                    if True and (itr-1) % 4 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
@@ -371,7 +362,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and ((itr-0) % 16 == 0) and self.env.observation_space.shape[0] < 10:  # reacher
+                    elif False and itr in PLOT_ITRS and self.env.observation_space.shape[0] < 10:  # reacher
                         logger.log("Saving visualization of paths")
 
                         # def fingertip(env):
@@ -409,7 +400,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
 
-                            if self.make_video and itr % 80 == 0:
+                            if self.make_video and itr in VIDEO_ITRS:
                                 logger.log("Saving videos...")
                                 self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                                 video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
@@ -420,7 +411,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         maml_num_tasks=len(self.goals_to_use_dict[itr]))
 
 
-                    elif False and itr % 2 == 0:  # swimmer or cheetah
+                    elif False and itr in PLOT_ITRS:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()

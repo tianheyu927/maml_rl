@@ -12,6 +12,7 @@ from sandbox.rocky.tf.algos.batch_maml_polopt import BatchMAMLPolopt
 from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
+from maml_examples.maml_experiment_vars import TESTING_ITRS
 
 
 class MAMLNPO(BatchMAMLPolopt):
@@ -187,7 +188,7 @@ class MAMLNPO(BatchMAMLPolopt):
 
         logger.log("Computing loss before")
         loss_before = self.optimizer.loss(input_list)
-        if True: # itr % 2 == 0:
+        if itr not in TESTING_ITRS:
             logger.log("Optimizing")
             self.optimizer.optimize(input_list)
         else:
