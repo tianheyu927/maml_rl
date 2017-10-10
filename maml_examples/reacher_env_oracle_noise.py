@@ -85,7 +85,11 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
 
         if type(reset_args) is dict:
             goal_pos = reset_args['goal']
-            self.action_noise = reset_args['noise']
+            noise = reset_args['noise']
+            if self.action_noise != noise:
+                print("debug action noise changing")
+                self.action_noise = noise
+
         else:
             goal_pos = reset_args
         if goal_pos is not None:

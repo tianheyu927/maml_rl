@@ -331,7 +331,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                     # The rest is some example plotting code.
                     # Plotting code is useful for visualizing trajectories across a few different tasks.
-                    if True and (itr-1) % 4 == 0 and self.env.observation_space.shape[0] <= 4: # point-mass
+                    if True and itr in PLOT_ITRS and self.env.observation_space.shape[0] == 2: # point-mass
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
@@ -362,7 +362,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif False and itr in PLOT_ITRS and self.env.observation_space.shape[0] < 10:  # reacher
+                    elif True and itr in PLOT_ITRS and self.env.observation_space.shape[0] == 8:  # reacher
                         logger.log("Saving visualization of paths")
 
                         # def fingertip(env):

@@ -251,7 +251,7 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                        if self.make_video and itr % 80 and itr in self.goals_to_use_dict.keys() == 0:
+                        if self.make_video and itr % 80 == 0 and itr in self.goals_to_use_dict.keys() == 0:
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s.mp4' % itr)
