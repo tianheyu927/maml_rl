@@ -21,7 +21,7 @@ baselines = ['linear']
 env_option = default_reacher_env_option
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
 net_size = 200
-fast_learning_rates = [0.01, 0.001]  # A1=0.3, A2=0.15, B1=0.01
+fast_learning_rates = [0.1, 0.01, 0.001]  # A1=0.3, A2=0.15, B1=0.01
 fast_batch_size = 20  # A1=40,  B1=20
 meta_batch_size = 40  # A1=40
 num_grad_updates = 1  # 1
@@ -30,7 +30,7 @@ max_path_length = 50  # A1=100, B1=50
 meta_step_size = 0.01  # 0.01
 pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [1.0]
-post_std_modifier_test_list = [1.0]
+post_std_modifier_test_list = [0.00001]
 
 
 l2loss_std_mult_list = [1.0]  # not needed here
@@ -94,8 +94,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             snapshot_mode="last",
                             python_command='python3',
                             seed=seed,
-                            exp_prefix='RE_TR_1',
-                            exp_name='RE_TR_1'
+                            exp_prefix='RE_TR_B1',
+                            exp_name='RE_TR_B1'
                                      # + ".itr." + str(n_itr)
                                      # + str(int(use_maml))
                                      #     +'_fbs'+str(fast_batch_size)

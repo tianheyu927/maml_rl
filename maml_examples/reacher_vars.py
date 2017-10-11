@@ -23,7 +23,7 @@ ENV_OPTIONS = {
     'g50l0.25nfj.st':'reacher_versions/reacher_gear50_l0.25_nofreejoint_stubby.xml',
 }
 
-default_reacher_env_option = ''
+default_reacher_env_option = 'g200nfj'
 
 EXPERT_TRAJ_LOCATION_DICT = {
     "":"", # blank means we haven't recorded expert traj yet

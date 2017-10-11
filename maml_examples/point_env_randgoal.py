@@ -12,6 +12,7 @@ class PointEnvRandGoal(Env):
     def observation_space(self):
         return Box(low=-np.inf, high=np.inf, shape=(2,))
 
+    # file_path=ENV_OPTIONS[option])
     @property
     def action_space(self):
         return Box(low=-0.1, high=0.1, shape=(2,))

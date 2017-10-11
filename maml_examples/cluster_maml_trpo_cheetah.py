@@ -99,7 +99,7 @@ for v in variants:
         # will be used
         seed=v["seed"],
         #mode="local",
-        mode="ec2",
+        mode="local",
         variant=v,
         # plot=True,
         terminate_machine=False,

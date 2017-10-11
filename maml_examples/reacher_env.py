@@ -9,14 +9,13 @@ from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
 from maml_examples.reacher_vars import ENV_OPTIONS, default_reacher_env_option
 
-class ReacherEnv(MujocoEnv, Serializable):
 
+class ReacherEnv(MujocoEnv, Serializable):
     def __init__(self, option=default_reacher_env_option, *args, **kwargs):
         self.goal = None
-        #utils.EzPickle.__init__(self)
         print("using env option ", ENV_OPTIONS[option])
         self.__class__.FILE = ENV_OPTIONS[option]
-        super().__init__() #file_path=ENV_OPTIONS[option])
+        super().__init__()
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
@@ -51,10 +50,6 @@ class ReacherEnv(MujocoEnv, Serializable):
                 newgoal = np.random.uniform(low=-.2, high=.2, size=2)
                 if np.linalg.norm(newgoal) < 0.21:
                     break
-            #state_and_goal = np.concatenate([
-            #    np.zeros(np.shape(self.init_qpos[:-2])),
-            #    newgoal
-            #])
             goals_list.append(newgoal)
         return np.array(goals_list)
 

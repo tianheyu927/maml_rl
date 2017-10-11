@@ -61,8 +61,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             make_video=False,
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
-            post_std_modifier_test=0.001,
-         #   action_limiter_multiplier=1.0,
+            post_std_modifier_test=1.0,
             goals_to_load=None,
             expert_trajs_dir=None,
             goals_pickle_to=None,
@@ -362,7 +361,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and itr in PLOT_ITRS and self.env.observation_space.shape[0] == 8:  # reacher
+                    elif False and itr in PLOT_ITRS and self.env.observation_space.shape[0] == 8:  # reacher
                         logger.log("Saving visualization of paths")
 
                         # def fingertip(env):

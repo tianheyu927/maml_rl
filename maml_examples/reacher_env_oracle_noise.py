@@ -10,6 +10,7 @@ from rllab.envs.env_spec import EnvSpec
 from maml_examples.reacher_vars import ENV_OPTIONS, default_reacher_env_option
 from copy import deepcopy
 
+
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
     def __init__(self, option=default_reacher_env_option, *args, **kwargs):
         self.goal = None
@@ -17,9 +18,9 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
             noise = kwargs['noise']
         else:
             noise = 0.0
-        #utils.EzPickle.__init__(self)
         print("using env option", ENV_OPTIONS[option])
-        MujocoEnv.__init__(self, action_noise=noise, file_path=ENV_OPTIONS[option])
+        self.__class__.FILE = ENV_OPTIONS[option]
+        super().__init__(action_noise=noise)  # file_path=ENV_OPTIONS[option])
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):
@@ -53,10 +54,6 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
                 newgoal = np.random.uniform(low=-.2, high=.2, size=2)
                 if np.linalg.norm(newgoal) < 0.21:
                     break
-            # state_and_goal = np.concatenate([
-            #     np.zeros(np.shape(self.init_qpos[:-2])),
-            #     newgoal
-            # ])
             goals_list.append(newgoal)
         return np.array(goals_list)
 
@@ -80,8 +77,8 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
     def reset(self, reset_args=None, **kwargs):
         # Here, we generate a new, random goal to reset the environment with
         # We also unpack any noise parameter that may have been passed in reset_args
-        qpos = np.random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos.T[0]  #TODO: rever to this one
-        # qpos = np.random.uniform(low=-2.9, high=2.9, size=self.model.nq) + self.init_qpos.T[0] # if we want to do rand goal
+        qpos = np.random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos.T[0]
+        # qpos=np.random.uniform(low=-2.9, high=2.9, size=self.model.nq)+self.init_qpos.T[0]  if we want to do rand start
 
         if type(reset_args) is dict:
             goal_pos = reset_args['goal']
