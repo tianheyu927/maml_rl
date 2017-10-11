@@ -88,9 +88,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                      + "_prsm" + str(pre_std_modifier)
                                      + "_pstr" + str(post_std_modifier_train)
                                      + '_posm' + str(post_std_modifier_test)
-                                     + "_" + time.strftime("%D.%H:%M").replace("/", "."),
+                                     + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                             plot=False,
                             sync_s3_pkl=True,
-                            mode="ec2",
+                            mode="local",
                             terminate_machine=False,
                         )

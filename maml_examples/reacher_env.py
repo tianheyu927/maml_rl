@@ -7,14 +7,16 @@ from rllab.envs.base import Step
 from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
-from maml_examples.reacher_vars import ENV_OPTIONS
+from maml_examples.reacher_vars import ENV_OPTIONS, default_reacher_env_option
 
 class ReacherEnv(MujocoEnv, Serializable):
-    def __init__(self, option='g200nfj', *args, **kwargs):
+
+    def __init__(self, option=default_reacher_env_option, *args, **kwargs):
         self.goal = None
         #utils.EzPickle.__init__(self)
         print("using env option ", ENV_OPTIONS[option])
-        MujocoEnv.__init__(self, file_path=ENV_OPTIONS[option])
+        self.__class__.FILE = ENV_OPTIONS[option]
+        super().__init__() #file_path=ENV_OPTIONS[option])
         Serializable.__init__(self, *args, **kwargs)
 
     def get_current_obs(self):

@@ -13,15 +13,15 @@ from maml_examples.reacher_env import ReacherEnv
 from rllab.envs.mujoco.pusher_env import PusherEnv
 from gym.wrappers.monitoring import Monitor
 from maml_examples.maml_experiment_vars import HIDDEN_NONLINEARITY, OUTPUT_NONLINEARITY
-from maml_examples.reacher_vars import GOALS_LOCATION
+from maml_examples.reacher_vars import GOALS_LOCATION, default_reacher_env_option
 import tensorflow as tf
 import time
 
 baselines = ['linear']
-env_option = 'g200nfj'
+env_option = default_reacher_env_option
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
-net_size = 100
-fast_learning_rates = [0.001]  # A1=0.3, A2=0.15, B1=0.01
+net_size = 200
+fast_learning_rates = [0.01, 0.001]  # A1=0.3, A2=0.15, B1=0.01
 fast_batch_size = 20  # A1=40,  B1=20
 meta_batch_size = 40  # A1=40
 num_grad_updates = 1  # 1
@@ -85,7 +85,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             post_std_modifier_train=post_std_modifier_train,
                             post_std_modifier_test=post_std_modifier_test,
                            # goals_to_load=GOALS_LOCATION,
-                            goals_pickle_to=GOALS_LOCATION,
+                          #  goals_pickle_to=GOALS_LOCATION,
 
                         )
                         run_experiment_lite(
@@ -109,6 +109,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                      #  + "_prsm" + str(pre_std_modifier)
                                      #  + "_pstr" + str(post_std_modifier_train)
                                      # + '_posm' + str(post_std_modifier_test)
-                                     + "_" + time.strftime("%D_%H:%M").replace("/", ""),
+                                     + "_" + time.strftime("%D_%H_%M").replace("/", ""),
                             plot=False,
+                            sync_s3_pkl=True,
+                            mode="ec2",
+                            terminate_machine=False,
                         )

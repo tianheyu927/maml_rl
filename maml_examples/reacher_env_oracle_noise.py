@@ -7,11 +7,11 @@ from rllab.envs.base import Step
 from rllab.envs.base import Env
 from rllab.spaces import Box
 from rllab.envs.env_spec import EnvSpec
-from maml_examples.reacher_vars import ENV_OPTIONS
+from maml_examples.reacher_vars import ENV_OPTIONS, default_reacher_env_option
 from copy import deepcopy
 
 class ReacherEnvOracleNoise(MujocoEnv, Serializable):
-    def __init__(self, option='g200nfj', *args, **kwargs):
+    def __init__(self, option=default_reacher_env_option, *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             noise = kwargs['noise']

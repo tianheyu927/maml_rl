@@ -99,6 +99,6 @@ for env_option in env_options:
                                              +"_posm" + str(post_std_modifier_test)
                                              +"_l2m" + str(l2loss_std_mult)
                                              #+"_env" + str(env_option)
-                                             +"_"+time.strftime("%D.%H:%M").replace("/","."),
+                                             +"_"+time.strftime("%D_%H_%M").replace("/","."),
                                     plot=False,
                                 )
