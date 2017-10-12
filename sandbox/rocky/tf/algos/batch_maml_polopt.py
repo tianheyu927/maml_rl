@@ -248,7 +248,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         running_intra_path_idx[t] = -1
                         running_path_idx[t] = -1
         total_time = time.time()-start
-        logger.record_tabular(log_prefix+"TotalExecTime", total_time)
+       # logger.record_tabular(log_prefix+"TotalExecTime", total_time)
         return expert_trajs
 
     def process_samples(self, itr, paths, prefix='', log=True):

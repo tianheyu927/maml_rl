@@ -140,9 +140,9 @@ class VectorizedSampler(BaseSampler):
 
 
 
-        logger.record_tabular(log_prefix + "PolicyExecTime", policy_time)
-        logger.record_tabular(log_prefix + "EnvExecTime", env_time)
-        logger.record_tabular(log_prefix + "ProcessExecTime", process_time)
+      #  logger.record_tabular(log_prefix + "PolicyExecTime", policy_time)
+      #  logger.record_tabular(log_prefix + "EnvExecTime", env_time)
+       # logger.record_tabular(log_prefix + "ProcessExecTime", process_time)
 
         if not return_dict:
             flatten_list = lambda l: [item for sublist in l for item in sublist]
