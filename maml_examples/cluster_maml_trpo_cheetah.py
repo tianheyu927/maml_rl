@@ -77,7 +77,7 @@ for v in variants:
         max_path_length=max_path_length,
         meta_batch_size=v['meta_batch_size'],
         num_grad_updates=num_grad_updates,
-        n_itr=4,
+        n_itr=800,
         use_maml=use_maml,
         step_size=v['meta_step_size'],
         plot=False,
@@ -99,7 +99,7 @@ for v in variants:
         # will be used
         seed=v["seed"],
         #mode="local",
-        mode="local",
+        mode="ec2",
         variant=v,
         # plot=True,
         terminate_machine=False,

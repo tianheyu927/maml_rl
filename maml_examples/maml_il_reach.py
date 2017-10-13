@@ -18,7 +18,7 @@ from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT
 import tensorflow as tf
 import time
 
-beta_steps_list = [25] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_steps_list = [125] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
