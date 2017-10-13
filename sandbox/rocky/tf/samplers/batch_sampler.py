@@ -55,7 +55,6 @@ class BatchSampler(BaseSampler):
         # do tasks sequentially and parallelize within rollouts per task.
         paths = {}
         for i in range(self.n_envs):
-            print("debug51, batch size per env", self.algo.batch_size/self.n_envs)
             paths[i] = parallel_sampler.sample_paths(
                 policy_params=cur_policy_params[i],
                 env_params=cur_env_params,

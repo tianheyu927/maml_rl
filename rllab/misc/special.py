@@ -49,7 +49,8 @@ def cat_perplexity(x):
 
 
 def explained_variance_1d(ypred, y):
-    assert y.ndim == 1 and ypred.ndim == 1
+    assert y.ndim == 1
+    assert ypred.ndim == 1
     vary = np.var(y)
     if np.isclose(vary, 0):
         if np.var(ypred) > 0:

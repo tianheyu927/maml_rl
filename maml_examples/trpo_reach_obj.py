@@ -9,7 +9,7 @@ from rllab.misc.instrument import stub, run_experiment_lite
 from maml_examples.reacher_env import ReacherEnv
 from maml_examples.reacher_env_oracle import ReacherEnvOracle
 from maml_examples.reacher_env_oracle_noise import ReacherEnvOracleNoise
-from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION
+from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION, default_reacher_env_option
 import pickle
 
 #from rllab.envs.gym_env import GymEnv
@@ -41,7 +41,7 @@ class VG(VariantGenerator):
 
 variants = VG().variants()
 
-env_option = 'g200nfj'
+env_option = default_reacher_env_option
 
 def run_task(v):
     env = TfEnv(normalize(ReacherEnvOracleNoise(option='g200nfj',noise=0.0)))
@@ -92,7 +92,6 @@ for v in variants:
         # mode="ec2",
         # mode="local_docker",
         mode='local',
-        confirm_remote=False,
         sync_s3_pkl=True,
         # plot=True,
     )

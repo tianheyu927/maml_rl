@@ -25,10 +25,18 @@ class HalfCheetahEnvRand(MujocoEnv, Serializable):
 
     @overrides
     def reset(self, init_state=None, reset_args=None, **kwargs):
-        goal_vel = reset_args
+        print("debug52", reset_args)
+        if type(reset_args) is dict:
+            goal_vel = reset_args['goal']
+            noise = reset_args['noise']
+            # if self.action_noise != noise:
+            #     print("debug action noise changing")
+            #     self.action_noise = noise
+        else:
+            goal_vel = reset_args
         if goal_vel is not None:
             self._goal_vel = goal_vel
-        elif self._goal_vel is None:
+        elif self._goal_vel is None:  # keep the goal the same between resets
             #self._goal_vel = np.random.uniform(0.1, 0.8)
             self._goal_vel = np.random.uniform(0.0, 2.0)
         self.reset_mujoco(init_state)

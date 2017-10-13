@@ -92,8 +92,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
         if goal_pos is not None:
             self.goal = goal_pos
         else:
-            while True:
-                #self.goal = np.array([-0.145, -0.145])
+            while True: # this behavior resets the goal on every reset
                 self.goal = np.random.uniform(low=-.2, high=.2, size=2)
                 if np.linalg.norm(self.goal) < 0.21:
                     break

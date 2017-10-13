@@ -83,6 +83,9 @@ class BaseSampler(Sampler):
                     #assert False, "check your expert_actions generator"
                     path["expert_actions"] = np.array([[None, None]] * len(path['rewards']))
 
+        # print("debug1", returns)
+        # assert False
+
         ev = special.explained_variance_1d(
             np.concatenate(baselines),
             np.concatenate(returns)

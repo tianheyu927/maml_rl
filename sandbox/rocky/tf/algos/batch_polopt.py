@@ -174,7 +174,7 @@ class BatchPolopt(RLAlgorithm):
                     goals = self.goals_to_use_dict[itr]
                     noise = self.action_noise_test
                 else:
-                    goals = [None]
+                    goals = [1.0]  # TODO: revert to [None]
                     noise = self.action_noise_train
                 self.batch_size = self.batch_size_orig/len(goals)
                 if itr in self.expert_traj_itrs_to_pickle:

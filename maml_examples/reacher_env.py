@@ -76,7 +76,7 @@ class ReacherEnv(MujocoEnv, Serializable):
         goal_pos = reset_args
         if goal_pos is not None:
             self.goal = goal_pos
-        elif self.goal is None:
+        elif self.goal is None:  # keep the goal the same between resets
             while True:
                 self.goal = np.random.uniform(low=-.2, high=.2, size=2)
                 if np.linalg.norm(self.goal) < 0.21:
