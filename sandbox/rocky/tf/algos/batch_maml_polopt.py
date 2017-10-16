@@ -303,10 +303,12 @@ class BatchMAMLPolopt(RLAlgorithm):
                             # don't log because this will spam the console with every task.
                             samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False)
                         all_samples_data.append(samples_data)
+
                         # for logging purposes only
                         self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True,)
                         logger.log("Logging diagnostics...")
                         self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
+
                         if step < self.num_grad_updates:
                             logger.log("Computing policy updates...")
                             if itr not in TESTING_ITRS:
@@ -314,6 +316,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             else:
                                 self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
                             self.policy.compute_updated_dists(samples_data)
+
                     logger.log("Optimizing policy...")
                     # This needs to take all samples_data so that it can construct graph for meta-optimization.
                     self.optimize_policy(itr, all_samples_data)

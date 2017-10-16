@@ -59,7 +59,7 @@ def run_task(v):
         baseline=baseline,
         batch_size=10*200,  # we divide this by #envs on every iteration
         max_path_length=200,
-        start_itr=-4000,
+        start_itr=-10000,
         n_itr=1,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.01,  # 0.01

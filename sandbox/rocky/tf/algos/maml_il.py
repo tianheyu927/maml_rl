@@ -77,7 +77,7 @@ class MAMLIL(BatchMAMLPolopt):
         all_surr_objs, input_vars_list = [], []  # TODO: we should probably use different variable names for the inside and outside objective
         new_params = []
         dist_info_vars_list = []
-        for grad_step in [0]:  # range(self.num_grad_updates): we are only going to do this for grad_step=0
+        for grad_step in range(self.num_grad_updates):  # we are doing this for all but the last step
             obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
             surr_objs = []  # surrogate objectives
 
@@ -117,8 +117,6 @@ class MAMLIL(BatchMAMLPolopt):
             s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
             surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*tf.exp(s)**2+m**2-2*m*e))
-            #surr_objs.append(tf.reduce_mean((m-e)*(m-e)))
-            #surr_objs.append(tf.nn.l2_loss(m-e))
 
         surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + adv_vars + expert_action_vars + old_dist_info_vars_list   # TODO: do we need the input_list values over anything that's not the last grad step?
@@ -153,10 +151,6 @@ class MAMLIL(BatchMAMLPolopt):
                 action_list.append(inputs[1])
                 adv_list.append(inputs[2])
                 expert_action_list.append(inputs[3])
-                # if i == 0:  # diagnostic printout
-                #     print("diagnostic1 step", step)
-                #
-                #     print(obs_list, "\n\n", action_list, '\n\n', expert_action_list, '\n\n')
 
             input_vals_list += obs_list + action_list + adv_list + expert_action_list # [ [obs_0], [act_0], [adv_0]. [act*_0], [obs_1], ... ]
 
@@ -165,10 +159,6 @@ class MAMLIL(BatchMAMLPolopt):
         for i in range(self.meta_batch_size):
             agent_infos = all_samples_data[self.kl_constrain_step][i]['agent_infos']  ##kl_constrain_step default is -1, meaning post all alpha grad updates
             dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
-            # if i == 0:
-            #     print('diagnostic2 \n', dist_info_list)
-            #     print('diagnostic3 \n', agent_infos["mean"])
-            #     print('diag4 \n', agent_infos["log_std"])
         input_vals_list += tuple(dist_info_list)  # TODO: doesn't this populate old_dist_info_vars_list?
         logger.log("Computing KL before")
         mean_kl_before = self.optimizer.constraint_val(input_vals_list)  # TODO: need to make sure the input list has the correct form. Maybe start naming the input lists based on what they're needed for
