@@ -27,7 +27,7 @@ class QuadDistExpertOptimizer(Serializable):
             decrease_penalty_factor=0.5,
             max_penalty_itr=10,
             adapt_penalty=True,
-            beta_steps=1,
+            adam_steps=10,
     ):
         Serializable.quick_init(self, locals())
         self._name = name
@@ -45,7 +45,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._target = None
         self._max_constraint_val = None
         self._constraint_name = None
-        self._beta_steps = beta_steps
+        self._adam_steps = adam_steps
 
 
     def update_opt(self, loss, target, leq_constraint, inputs, constraint_name="constraint", *args, **kwargs):
@@ -119,7 +119,7 @@ class QuadDistExpertOptimizer(Serializable):
 
     def optimize(self, input_vals_list):
         sess = tf.get_default_session()
-        for _ in range(self._beta_steps):
+        for _ in range(self._adam_steps):
             sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
 
 

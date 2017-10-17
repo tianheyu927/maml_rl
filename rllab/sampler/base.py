@@ -55,12 +55,11 @@ class BaseSampler(Sampler):
         if log:
             logger.log("fitting baseline...")
         if hasattr(self.algo.baseline, 'fit_with_samples'):
-            self.algo.baseline.fit_with_samples(paths, samples_data) ##TODO: is this going to cause an error?
+            self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: is this going to cause an error?
         else:
             self.algo.baseline.fit(paths, log=log)
         if log:
             logger.log("fitted")
-
 
         if hasattr(self.algo.baseline, "predict_n"):
             all_path_baselines = self.algo.baseline.predict_n(paths)
@@ -80,11 +79,10 @@ class BaseSampler(Sampler):
                 if "expert_actions" in path["env_infos"].keys():
                     path["expert_actions"] = path["env_infos"]["expert_actions"]
                 else:
-                    #assert False, "check your expert_actions generator"
+                   # assert False, "you shouldn't need expert_actions"
                     path["expert_actions"] = np.array([[None, None]] * len(path['rewards']))
-
-        # print("debug1", returns)
-        # assert False
+            if "agent_infos_orig" not in path.keys():  # TODO: kill me
+                path["agent_infos_orig"] = path["agent_infos"]
 
         ev = special.explained_variance_1d(
             np.concatenate(baselines),
@@ -100,6 +98,7 @@ class BaseSampler(Sampler):
             expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
             env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
+            agent_infos_orig = tensor_utils.concat_tensor_dict_list([path["agent_infos_orig"] for path in paths])
 
             if self.algo.center_adv:
                 advantages = util.center_advantages(advantages)
@@ -122,6 +121,7 @@ class BaseSampler(Sampler):
                 advantages=advantages,
                 env_infos=env_infos,
                 agent_infos=agent_infos,
+                agent_infos_orig=agent_infos_orig,
                 paths=paths,
                 expert_actions=expert_actions,
             )

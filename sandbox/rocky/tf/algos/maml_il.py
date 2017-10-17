@@ -1,5 +1,6 @@
 
 import tensorflow as tf
+import numpy as np
 import rllab.misc.logger as logger
 from rllab.misc import ext
 from rllab.misc.overrides import overrides
@@ -19,23 +20,24 @@ class MAMLIL(BatchMAMLPolopt):
             step_size=0.01,
             use_maml=True,
             beta_steps=1,
+            adam_steps=1,
             l2loss_std_mult=10.0,
             **kwargs):
         if optimizer is None:
             if optimizer_args is None:
                 optimizer_args = dict(min_penalty=1e-8)
-            optimizer = QuadDistExpertOptimizer("name1", beta_steps=beta_steps)  #  **optimizer_args)
+            optimizer = QuadDistExpertOptimizer("name1", adam_steps=adam_steps)  #  **optimizer_args)
         self.optimizer = optimizer
         self.step_size = step_size
         self.use_maml = use_maml
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
-        super(MAMLIL, self).__init__(optimizer=optimizer, **kwargs)
+        super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, **kwargs)
 
 
     def make_vars(self, stepnum='0'):
         # lists over the meta_batch_size
-        # We should only need the last stepnum.
+        # We should only need the last stepnum for meta-optimization.
         obs_vars, action_vars, adv_vars, expert_action_vars = [], [], [], []
         for i in range(self.meta_batch_size):
             obs_vars.append(self.env.observation_space.new_tensor_variable(
@@ -72,11 +74,32 @@ class MAMLIL(BatchMAMLPolopt):
                 })
             old_dist_info_vars_list += [old_dist_info_vars[i][k] for k in dist.dist_info_keys]
 
+        theta0_dist_info_vars, theta0_dist_info_vars_list = [], []
+        for i in range(self.meta_batch_size):
+            theta0_dist_info_vars.append({
+                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta0_%s_%s' % (i, k))
+                for k, shape in dist.dist_info_specs
+                })
+            theta0_dist_info_vars_list += [theta0_dist_info_vars[i][k] for k in dist.dist_info_keys]
+
+        theta_l_dist_info_vars, theta_l_dist_info_vars_list = [], []  #theta_l is the current beta step's pre-inner grad update params
+        for i in range(self.meta_batch_size):
+            theta_l_dist_info_vars.append({
+                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta_l_%s_%s' % (i, k))
+                for k, shape in dist.dist_info_specs
+                })
+            theta_l_dist_info_vars_list += [theta_l_dist_info_vars[i][k] for k in dist.dist_info_keys]
+
+
         state_info_vars, state_info_vars_list = {}, []  # TODO: is this needed?
 
         all_surr_objs, input_vars_list = [], []  # TODO: we should probably use different variable names for the inside and outside objective
         new_params = []
         dist_info_vars_list = []
+
+        input_vars_list += tuple(theta0_dist_info_vars_list)
+        input_vars_list += tuple(theta_l_dist_info_vars_list)
+
         for grad_step in range(self.num_grad_updates):  # we are doing this for all but the last step
             obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
             surr_objs = []  # surrogate objectives
@@ -91,15 +114,18 @@ class MAMLIL(BatchMAMLPolopt):
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
                     kls.append(kl)
                 new_params.append(params)
-                logli = dist.log_likelihood_sym(action_vars[i], dist_info_vars_i)
+                logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_vars_i)
+                lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                surr_objs.append(-tf.reduce_mean(logli * adv_vars[i]))
+                surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))
 
-            input_vars_list += obs_vars + action_vars + adv_vars + expert_action_vars
+            input_vars_list += obs_vars + action_vars + adv_vars
             # For computing the fast update for sampling
+            # At this point, input_vars_list is theta0 + theta_l + obs + action + adv
             self.policy.set_init_surr_obj(input_vars_list, surr_objs)
 
+            input_vars_list += expert_action_vars
             all_surr_objs.append(surr_objs)
 
         # last inner grad step
@@ -107,7 +133,6 @@ class MAMLIL(BatchMAMLPolopt):
         surr_objs = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             dist_info_vars_i, _ = self.policy.updated_dist_info_sym(i, all_surr_objs[-1][i], obs_vars[i], params_dict=new_params[i])
-            #print("debug2", dist_info_vars_i)
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
                 kls.append(kl)  # we either get kl from here or from kl_constrain_step =0
@@ -140,7 +165,24 @@ class MAMLIL(BatchMAMLPolopt):
         assert self.use_maml
 
         input_vals_list = []
-        for step in range(len(all_samples_data)):
+
+        # Code to account for off-policy sampling when more than 1 beta steps
+        theta0_dist_info_list = []
+        for i in range(self.meta_batch_size):
+            if 'agent_infos_orig' not in all_samples_data[0][i].keys():
+                assert False, "agent_infos_orig is missing--this should have been handled by process_samples"
+            else:
+                agent_infos_orig = all_samples_data[0][i]['agent_infos_orig']
+            theta0_dist_info_list += [agent_infos_orig[k] for k in self.policy.distribution.dist_info_keys]
+        input_vals_list += tuple(theta0_dist_info_list)
+
+        theta_l_dist_info_list = []
+        for i in range(self.meta_batch_size):
+            agent_infos = all_samples_data[0][i]['agent_infos']
+            theta_l_dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
+        input_vals_list += tuple(theta_l_dist_info_list)
+
+        for step in range(len(all_samples_data)):  # TODO: should we change this to self.num_grad_updates? more descriptive
             obs_list, action_list, adv_list, expert_action_list = [], [], [], []
             for i in range(self.meta_batch_size):  # for each task
                 inputs = ext.extract(
@@ -159,23 +201,24 @@ class MAMLIL(BatchMAMLPolopt):
         for i in range(self.meta_batch_size):
             agent_infos = all_samples_data[self.kl_constrain_step][i]['agent_infos']  ##kl_constrain_step default is -1, meaning post all alpha grad updates
             dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
-        input_vals_list += tuple(dist_info_list)  # TODO: doesn't this populate old_dist_info_vars_list?
-        logger.log("Computing KL before")
-        mean_kl_before = self.optimizer.constraint_val(input_vals_list)  # TODO: need to make sure the input list has the correct form. Maybe start naming the input lists based on what they're needed for
+        input_vals_list += tuple(dist_info_list)  # This populates old_dist_info_vars_list
+
+      #  logger.log("Computing KL before")
+      #  mean_kl_before = self.optimizer.constraint_val(input_vals_list)  # TODO: need to make sure the input list has the correct form. Maybe start naming the input lists based on what they're needed for
 
         logger.log("Computing loss before")
-        loss_before = self.optimizer.loss(input_vals_list)
+       # loss_before = self.optimizer.loss(input_vals_list)
         if itr not in TESTING_ITRS:
             logger.log("Optimizing")
             self.optimizer.optimize(input_vals_list)
         else:
             logger.log("Not Optimizing")
         logger.log("Computing loss after")
-        loss_after = self.optimizer.loss(input_vals_list)
-        logger.log("Computing KL after")
-        mean_kl = self.optimizer.constraint_val(input_vals_list)
-        logger.record_tabular('MeanKLBefore', mean_kl_before)
-        logger.record_tabular('MeanKL', mean_kl)
+      #  loss_after = self.optimizer.loss(input_vals_list)
+      #  logger.log("Computing KL after")
+       # mean_kl = self.optimizer.constraint_val(input_vals_list)
+       # logger.record_tabular('MeanKLBefore', mean_kl_before)
+       # logger.record_tabular('MeanKL', mean_kl)
       #  logger.record_tabular('LossBefore', loss_before)
       #  logger.record_tabular('LossAfter', loss_after)
       #  logger.record_tabular('dLoss', loss_before - loss_after)

@@ -38,7 +38,7 @@ class VectorizedSampler(BaseSampler):
         self.vec_env.terminate()
 
 
-    def obtain_samples(self, itr, env_list = None, reset_args=None, return_dict=False, log_prefix=''):
+    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix=''):
         # reset_args: arguments to pass to the environments to reset
         # return_dict: whether or not to return a dictionary or list form of paths
 
@@ -49,14 +49,8 @@ class VectorizedSampler(BaseSampler):
         for i in range(self.vec_env.num_envs):
             paths[i] = []
 
-        if env_list is not None and reset_args is not None:
-            assert False, "please use at most one of env_list or reset_args to obtain samples"
-
-        if env_list is not None:
-            assert False, "we shouldn't be using env_list, left for debugging purposes"
-
         # if the reset args are not list/numpy, we set the same args for each env
-        if reset_args is not None and (type(reset_args) != list and type(reset_args)!=np.ndarray):
+        if reset_args is not None and (type(reset_args) != list and type(reset_args) != np.ndarray):
             print("WARNING, will vectorize reset_args")
             reset_args = [reset_args]*self.vec_env.num_envs
 

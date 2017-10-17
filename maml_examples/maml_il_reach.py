@@ -18,12 +18,12 @@ from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT, default_reache
 import tensorflow as tf
 import time
 
-beta_steps_list = [125,200] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_steps_list = [3] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
 env_option = default_reacher_env_option
-
+adam_steps = 3
 fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 50  # 100
@@ -76,6 +76,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 step_size=meta_step_size,
                                 plot=False,
                                 beta_steps=beta_steps,
+                                adam_steps=adam_steps,
                                 pre_std_modifier=pre_std_modifier,
                                 l2loss_std_mult=l2loss_std_mult,
                                 post_std_modifier_train=post_std_modifier_train,
@@ -89,8 +90,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='RE_IL_B1',
-                                exp_name='RE_IL_B1'
+                                exp_prefix='RE_IL_C1',
+                                exp_name='RE_IL_C1'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)
@@ -98,6 +99,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                          #     +'metalr_'+str(meta_step_size)
                                          #     +'_ngrad'+str(num_grad_updates)
                                          + "_bs" + str(beta_steps)
+                                         + "_as" + str(adam_steps)
                                        #  + "_prsm" + str(pre_std_modifier)
                                         # + "_pstr" + str(post_std_modifier_train)
                                          #+ "_posm" + str(post_std_modifier_test)

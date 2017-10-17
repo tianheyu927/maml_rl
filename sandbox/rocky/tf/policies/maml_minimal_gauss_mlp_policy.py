@@ -175,6 +175,21 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
         sess = tf.get_default_session()
 
+        # extracting theta0 agent infos
+        theta0_dist_info_list = []
+        for i in range(num_tasks):
+            if 'agent_infos_orig' not in samples[i].keys():
+                assert False, "agent_infos_orig is missing--this should have been handled by process_samples"
+            else:
+                agent_infos_orig = samples[i]['agent_infos_orig']
+            theta0_dist_info_list += [agent_infos_orig[k] for k in agent_infos_orig.keys()]
+
+
+        theta_l_dist_info_list = []
+        for i in range(num_tasks):
+            agent_infos = samples[i]['agent_infos']
+            theta_l_dist_info_list += [agent_infos[k] for k in agent_infos.keys()]
+
         obs_list, action_list, adv_list = [], [], []
         for i in range(num_tasks):
             inputs = ext.extract(samples[i],
@@ -183,7 +198,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             action_list.append(inputs[1])
             adv_list.append(inputs[2])
 
-        inputs = obs_list + action_list + adv_list
+        inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + adv_list
 
         # To do a second update, replace self.all_params below with the params that were used to collect the policy.
         init_param_values = None
@@ -285,13 +300,13 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
     def updated_dist_info_sym(self, task_id, surr_obj, new_obs_var, params_dict=None, is_training=True):
         """ symbolically create MAML graph, for the meta-optimization, only called at the beginning of meta-training.
-        Called more than once if you want to do more than one grad step.
+        Called more than once if you want to do more than one inner grad step.
         """
         old_params_dict = params_dict
 
         step_size = self.step_size
 
-        if old_params_dict == None:
+        if old_params_dict is None:
             old_params_dict = self.all_params
         param_keys = self.all_params.keys()
         # print("debug1", self.all_params['std_param'])
@@ -346,12 +361,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         else:
             means = np.array([res[0] for res in result])[:,0,:]
             log_stds = np.array([res[1] for res in result])[:,0,:]
-   #     if self.action_limiter is not None:
-   #         means = [np.clip(mean, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter) for mean in means]
         rnd = np.random.normal(size=np.shape(means))
         actions = rnd * np.exp(log_stds) + means
-        #if self.action_limiter is not None:
-        #    actions = [np.clip(action, self.action_bounds[0]*self.action_limiter, self.action_bounds[1]*self.action_limiter) for action in actions] # TODO: This is probably not parallelized at all
         return actions, dict(mean=means, log_std=log_stds)
 
     @property

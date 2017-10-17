@@ -46,8 +46,10 @@ class BatchMAMLPolopt(RLAlgorithm):
             num_grad_updates=1,
             discount=0.99,
             gae_lambda=1,
+            beta_steps=1,
             plot=False,
             pause_for_plot=False,
+            make_video=False,
             center_adv=True,
             positive_adv=False,
             store_paths=False,
@@ -58,13 +60,13 @@ class BatchMAMLPolopt(RLAlgorithm):
             force_batch_sampler=False,
             use_maml=True,
             load_policy=None,
-            make_video=False,
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
             post_std_modifier_test=1.0,
             goals_to_load=None,
             expert_trajs_dir=None,
             goals_pickle_to=None,
+
             **kwargs
     ):
         """
@@ -103,8 +105,10 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.max_path_length = max_path_length
         self.discount = discount
         self.gae_lambda = gae_lambda
+        self.beta_steps = beta_steps
         self.plot = plot
         self.pause_for_plot = pause_for_plot
+        self.make_video = make_video
         self.center_adv = center_adv
         self.positive_adv = positive_adv
         self.store_paths = store_paths
@@ -115,7 +119,6 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
         self.post_std_modifier_test = post_std_modifier_test
-        self.make_video = make_video
         #   self.action_limiter_multiplier = action_limiter_multiplier
         self.expert_trajs_dir = expert_trajs_dir
         # Next, we will set up the goals and potentially trajectories that we plan to use.
@@ -198,49 +201,54 @@ class BatchMAMLPolopt(RLAlgorithm):
         assert type(paths) == dict
         return paths
 
-    def obtain_expert_samples(self, itr, expert_trajs_dir, reset_args=None, log_prefix=''):
+    def obtain_agent_info_offpolicy(self, itr, expert_trajs_dir=None, offpol_trajs=None, log_prefix=''):
         # TODO: add usage of meta batch size and batch size as a way of sampling desired number
         start = time.time()
-        expert_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
+        if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
+            assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
+            offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
+
+
         # some initial rearrangement
-        tasknums = expert_trajs.keys()
+        tasknums = offpol_trajs.keys()
         for t in tasknums:
-            for path in expert_trajs[t]:
-                path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
-                #path['actions'] = [None] * len(path['rewards'])
-                path['agent_infos'] = [None] * len(path['rewards'])
+            for path in offpol_trajs[t]:
+                if 'expert_actions' not in path.keys():
+                    path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
+                if 'agent_infos' in path.keys():  #storing old agent_infos if any
+                    if 'agent_infos_orig' not in path.keys():
+                        path['agent_infos_orig'] = deepcopy(path['agent_infos'])
+                     #   print("debug9.1, length of newly created agent_infos_orig,", len(path['agent_infos_orig']['mean']))
+                else:
+                    if expert_trajs_dir is None:
+                        assert False, "debug9, there were no agent_infos, and it doesn't look like it came from expert_traj"
+                path['agent_infos'] = [None] * len(path['rewards'])  # erasing/setting up agent_infos to be populated
 
         running_path_idx = {t: 0 for t in tasknums}
         running_intra_path_idx = {t: 0 for t in tasknums}
         while max([running_path_idx[t] for t in tasknums]) > -0.5: # we cycle until all indices are -1
-            observations = [expert_trajs[t][running_path_idx[t]]['observations'][running_intra_path_idx[t]]
+            observations = [offpol_trajs[t][running_path_idx[t]]['observations'][running_intra_path_idx[t]]
                             for t in tasknums]
             actions, agent_infos = self.policy.get_actions(observations)
             agent_infos = split_tensor_dict_list(agent_infos)
             for t, action, agent_info in zip(itertools.count(), actions, agent_infos):
-                # expert_trajs[t][running_path_idx]['actions'][running_intra_path_idx[t]]= action
-                expert_trajs[t][running_path_idx[t]]['agent_infos'][running_intra_path_idx[t]] = agent_info
-                # NEXT UP, INDEX JUGGLING:
-                if -0.5 < running_intra_path_idx[t] < len(expert_trajs[t][running_path_idx[t]]['rewards'])-1:
+                offpol_trajs[t][running_path_idx[t]]['agent_infos'][running_intra_path_idx[t]] = agent_info
+                # INDEX JUGGLING:
+                if -0.5 < running_intra_path_idx[t] < len(offpol_trajs[t][running_path_idx[t]]['rewards'])-1:
                     # if we haven't reached the end:
                     running_intra_path_idx[t] += 1
                 else:
-                    # expert_trajs[t][running_path_idx[t]]['actions'] = self.env.spec.action_space.flatten_n(
-                    #    expert_trajs[t][running_path_idx[t]]['actions'])
-                    # if type(expert_trajs[t][running_path_idx[t]]['agent_infos'][0]) is not dict:
-                    #     print("debug14")
-                    #     print(t,running_path_idx[t],running_intra_path_idx[t],expert_trajs[t][running_path_idx[t]]['agent_infos'],agent_infos)
 
-                    if -0.5 < running_path_idx[t] < len(expert_trajs[t])-1:
+                    if -0.5 < running_path_idx[t] < len(offpol_trajs[t])-1:
                         # we wrap up the agent_infos
-                        expert_trajs[t][running_path_idx[t]]['agent_infos'] = \
-                            stack_tensor_dict_list(expert_trajs[t][running_path_idx[t]]['agent_infos'])
+                        offpol_trajs[t][running_path_idx[t]]['agent_infos'] = \
+                            stack_tensor_dict_list(offpol_trajs[t][running_path_idx[t]]['agent_infos'])
                         # if we haven't reached the last path:
                         running_intra_path_idx[t] = 0
                         running_path_idx[t] += 1
-                    elif running_path_idx[t] == len(expert_trajs[t])-1:
-                        expert_trajs[t][running_path_idx[t]]['agent_infos'] = \
-                            stack_tensor_dict_list(expert_trajs[t][running_path_idx[t]]['agent_infos'])
+                    elif running_path_idx[t] == len(offpol_trajs[t])-1:
+                        offpol_trajs[t][running_path_idx[t]]['agent_infos'] = \
+                            stack_tensor_dict_list(offpol_trajs[t][running_path_idx[t]]['agent_infos'])
                         running_intra_path_idx[t] = -1
                         running_path_idx[t] = -1
                     else:
@@ -249,7 +257,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                         running_path_idx[t] = -1
         total_time = time.time()-start
        # logger.record_tabular(log_prefix+"TotalExecTime", total_time)
-        return expert_trajs
+        #if expert_trajs_dir is not None:
+            #print("debug10.1, this came from expert trajs")
+        #print("debug10.2", offpol_trajs[0][0].keys())
+        return offpol_trajs
 
     def process_samples(self, itr, paths, prefix='', log=True):
         return self.sampler.process_samples(itr, paths, prefix=prefix, log=log)
@@ -277,53 +288,68 @@ class BatchMAMLPolopt(RLAlgorithm):
             for itr in range(self.start_itr, self.n_itr):
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
-                    self.policy.std_modifier = self.pre_std_modifier
-                    self.policy.switch_to_init_dist()  # Switch to pre-update policy
-                    all_samples_data, all_paths = [], []
-                    for step in range(self.num_grad_updates+1):
-                        # if step > 0:
-                        #    import pdb; pdb.set_trace() # test param_vals functions.
-                        logger.log('** Step ' + str(step) + ' **')
-                        logger.log("Obtaining samples...")
-                        if self.expert_trajs_dir is not None and step == self.num_grad_updates and itr not in TESTING_ITRS:
-                            # train for 7 itrs, starting with 0, test on the 8th one
-                            # this extracts the paths we want to be working with: observations, rewards, expert actions
-                            paths = self.obtain_expert_samples(itr=itr,
-                                                               expert_trajs_dir=self.expert_trajs_dir,
-                                                               reset_args=self.goals_to_use_dict[itr],
-                                                               log_prefix=str(step))
-                        else:
-                            # this obtains a dictionary of paths, one dict entry for each task/goal
-                            paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr],
-                                                        log_prefix=str(step))
-                        all_paths.append(paths)
-                        logger.log("Processing samples...")
-                        samples_data = {}
-                        for tasknum in paths.keys():  # the keys are the tasks
-                            # don't log because this will spam the console with every task.
-                            samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False)
-                        all_samples_data.append(samples_data)
+                    all_paths_for_plotting = []
+                    beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else [0]
+                    beta0_step0_paths = None
+                    for beta_step in beta_steps_range:
+                        all_samples_data_for_betastep = []
+                        self.policy.std_modifier = self.pre_std_modifier
+                        self.policy.switch_to_init_dist()  # Switch to pre-update policy
+                        for step in range(self.num_grad_updates+1): # inner loop
+                            logger.log('** Betastep %s ** Step %s **' % (str(beta_step), str(step)))
+                            logger.log("Obtaining samples...")
 
-                        # for logging purposes only
-                        self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True,)
-                        logger.log("Logging diagnostics...")
-                        self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
-
-                        if step < self.num_grad_updates:
-                            logger.log("Computing policy updates...")
-                            if itr not in TESTING_ITRS:
-                                self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
+                            if self.expert_trajs_dir is None or itr in TESTING_ITRS or (beta_step == 0 and step < self.num_grad_updates):
+                                paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step))
+                                #print("debug8.1, obtaining samples")
+                                if beta_step == 0 and step == 0:
+                                  #  print("debug5.1, we are at betastep 0 step 0")
+                                    beta0_step0_paths = deepcopy(paths)
+                            elif step == self.num_grad_updates:
+                                #print("debug8.2, using expert trajectories")
+                                paths = self.obtain_agent_info_offpolicy(itr=itr,
+                                                                         expert_trajs_dir=self.expert_trajs_dir,
+                                                                         offpol_trajs=None,
+                                                                         log_prefix=str(beta_step)+"_"+str(step))
+                            elif beta_step > 0 and step < self.num_grad_updates:
+                                #print("debug8.3, using importance sampling on existing rollouts")
+                                paths = self.obtain_agent_info_offpolicy(itr=itr,
+                                                                         expert_trajs_dir=None,
+                                                                         offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0
+                                                                         log_prefix=str(beta_step) + "_" + str(step))
                             else:
-                                self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
-                            self.policy.compute_updated_dists(samples_data)
+                                assert False, "we shouldn't be able to get here"
 
-                    logger.log("Optimizing policy...")
-                    # This needs to take all samples_data so that it can construct graph for meta-optimization.
-                    self.optimize_policy(itr, all_samples_data)
+                            all_paths_for_plotting.append(paths)
+                            logger.log("Processing samples...")
+                            samples_data = {}
+                            for tasknum in paths.keys():  # the keys are the tasks
+                                # don't log because this will spam the console with every task.
+                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False)
+
+                            all_samples_data_for_betastep.append(samples_data)
+
+                            # for logging purposes only
+                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True,)
+                            logger.log("Logging diagnostics...")
+                            self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
+
+                            if step < self.num_grad_updates:
+                                logger.log("Computing policy updates...")
+                                if itr not in TESTING_ITRS:
+                                    self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
+                                else:
+                                    self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
+                                self.policy.compute_updated_dists(samples_data)
+
+                        logger.log("Optimizing policy...")
+                        # This needs to take all samples_data so that it can construct graph for meta-optimization.
+                        self.optimize_policy(itr, all_samples_data_for_betastep)
+                    
                     logger.log("Saving snapshot...")
-                    params = self.get_itr_snapshot(itr, all_samples_data[-1])  # , **kwargs)
+                    params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
                     if self.store_paths:
-                        params["paths"] = all_samples_data[-1]["paths"]
+                        params["paths"] = all_samples_data_for_betastep[-1]["paths"]
                     logger.save_itr_params(itr, params)
                     logger.log("Saved")
                     logger.record_tabular('Time', time.time() - start_time)
@@ -340,8 +366,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.plot(self.goals_to_use_dict[itr][ind][0], self.goals_to_use_dict[itr][ind][1], 'k*', markersize=10)
                             plt.hold(True)
 
-                            preupdate_paths = all_paths[0]
-                            postupdate_paths = all_paths[-1]
+                            preupdate_paths = all_paths_for_plotting[0]
+                            postupdate_paths = all_paths_for_plotting[-1]
 
                             pre_points = preupdate_paths[ind][0]['observations']
                             post_points = postupdate_paths[ind][0]['observations']
@@ -377,8 +403,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.plot(self.goals_to_use_dict[itr][ind][0], self.goals_to_use_dict[itr][ind][1], 'k*', markersize=10)
                             plt.hold(True)
 
-                            preupdate_paths = all_paths[0]
-                            postupdate_paths = all_paths[-1]
+                            preupdate_paths = all_paths_for_plotting[0]
+                            postupdate_paths = all_paths_for_plotting[-1]
 
                             pre_points = np.array([obs[6:8] for obs in preupdate_paths[ind][0]['observations']])
                             post_points = np.array([obs[6:8] for obs in postupdate_paths[ind][0]['observations']])
@@ -421,8 +447,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.title('Swimmer paths, goal vel='+str(goal_vel))
                             plt.hold(True)
 
-                            prepathobs = all_paths[0][ind][0]['observations']
-                            postpathobs = all_paths[-1][ind][0]['observations']
+                            prepathobs = all_paths_for_plotting[0][ind][0]['observations']
+                            postpathobs = all_paths_for_plotting[-1][ind][0]['observations']
                             plt.plot(prepathobs[:,0], prepathobs[:,1], '-r', linewidth=2)
                             plt.plot(postpathobs[:,0], postpathobs[:,1], '--b', linewidth=1)
                             plt.plot(prepathobs[-1,0], prepathobs[-1,1], 'r*', markersize=10)
