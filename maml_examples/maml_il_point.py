@@ -96,6 +96,7 @@ for env_option in env_options:
                                             # +'_mlr'+str(meta_step_size)
                                             # +'_ngrad'+str(num_grad_updates)
                                              +"_bs" + str(beta_steps)
+                                             + "_as" + str(adam_steps)
                                              +"_prsm"+ str(pre_std_modifier)
                                              +"_pstr"+ str(post_std_modifier_train)
                                              +"_posm" + str(post_std_modifier_test)
