@@ -46,7 +46,7 @@ class BaseSampler(Sampler):
         """
         self.algo = algo
 
-    def process_samples(self, itr, paths, prefix='', log=True):
+    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False):
         baselines = []
         returns = []
 
@@ -55,7 +55,7 @@ class BaseSampler(Sampler):
         if log:
             logger.log("fitting baseline...")
         if hasattr(self.algo.baseline, 'fit_with_samples'):
-            self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: is this going to cause an error?
+            self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
         else:
             self.algo.baseline.fit(paths, log=log)
         if log:
@@ -79,7 +79,7 @@ class BaseSampler(Sampler):
                 if "expert_actions" in path["env_infos"].keys():
                     path["expert_actions"] = path["env_infos"]["expert_actions"]
                 else:
-                   # assert False, "you shouldn't need expert_actions"
+                    # assert False, "you shouldn't need expert_actions"
                     path["expert_actions"] = np.array([[None, None]] * len(path['rewards']))
             if "agent_infos_orig" not in path.keys():  # TODO: kill me
                 path["agent_infos_orig"] = path["agent_infos"]
@@ -111,7 +111,7 @@ class BaseSampler(Sampler):
 
             undiscounted_returns = [sum(path["rewards"]) for path in paths]
 
-            ent = np.mean(self.algo.policy.distribution.entropy(agent_infos))
+            # ent = np.mean(self.algo.policy.distribution.entropy(agent_infos))
 
             samples_data = dict(
                 observations=observations,
@@ -169,7 +169,7 @@ class BaseSampler(Sampler):
 
             undiscounted_returns = [sum(path["rewards"]) for path in paths]
 
-            ent = np.sum(self.algo.policy.distribution.entropy(agent_infos) * valids) / np.sum(valids)
+            # ent = np.sum(self.algo.policy.distribution.entropy(agent_infos) * valids) / np.sum(valids)
 
             samples_data = dict(
                 observations=obs,
@@ -183,14 +183,14 @@ class BaseSampler(Sampler):
                 paths=paths,
             )
         if log:
-            #logger.record_tabular('Iteration', itr)
-            #logger.record_tabular('AverageDiscountedReturn',
+            # logger.record_tabular('Iteration', itr)
+            # logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
             logger.record_tabular(prefix + 'AverageReturn------>', np.mean(undiscounted_returns))
             logger.record_tabular(prefix + 'ExplainedVariance', ev)
             logger.record_tabular(prefix + 'NumTrajs', len(paths))
-            logger.record_tabular(prefix + 'Entropy', ent)
-            logger.record_tabular(prefix + 'Perplexity', np.exp(ent))
+            # logger.record_tabular(prefix + 'Entropy', ent)
+            # logger.record_tabular(prefix + 'Perplexity', np.exp(ent))
             logger.record_tabular(prefix + 'StdReturn', np.std(undiscounted_returns))
             logger.record_tabular(prefix + 'MaxReturn', np.max(undiscounted_returns))
             logger.record_tabular(prefix + 'MinReturn', np.min(undiscounted_returns))
