@@ -224,37 +224,42 @@ class BatchMAMLPolopt(RLAlgorithm):
                         assert False, "debug9, there were no agent_infos, and it doesn't look like it came from expert_traj"
                 path['agent_infos'] = [None] * len(path['rewards'])  # erasing/setting up agent_infos to be populated
 
-        running_path_idx = {t: 0 for t in tasknums}
-        running_intra_path_idx = {t: 0 for t in tasknums}
-        while max([running_path_idx[t] for t in tasknums]) > -0.5: # we cycle until all indices are -1
-            observations = [offpol_trajs[t][running_path_idx[t]]['observations'][running_intra_path_idx[t]]
-                            for t in tasknums]
-            actions, agent_infos = self.policy.get_actions(observations)
-            agent_infos = split_tensor_dict_list(agent_infos)
-            for t, action, agent_info in zip(itertools.count(), actions, agent_infos):
-                offpol_trajs[t][running_path_idx[t]]['agent_infos'][running_intra_path_idx[t]] = agent_info
-                # INDEX JUGGLING:
-                if -0.5 < running_intra_path_idx[t] < len(offpol_trajs[t][running_path_idx[t]]['rewards'])-1:
-                    # if we haven't reached the end:
-                    running_intra_path_idx[t] += 1
-                else:
+                if expert_trajs_dir is not None:
+                    path['agent_infos'] = dict(mean=[[1.0,1.0]]*len(path['rewards']),log_std=[[1.0,1.0]]*len(path['rewards']))
 
-                    if -0.5 < running_path_idx[t] < len(offpol_trajs[t])-1:
-                        # we wrap up the agent_infos
-                        offpol_trajs[t][running_path_idx[t]]['agent_infos'] = \
-                            stack_tensor_dict_list(offpol_trajs[t][running_path_idx[t]]['agent_infos'])
-                        # if we haven't reached the last path:
-                        running_intra_path_idx[t] = 0
-                        running_path_idx[t] += 1
-                    elif running_path_idx[t] == len(offpol_trajs[t])-1:
-                        offpol_trajs[t][running_path_idx[t]]['agent_infos'] = \
-                            stack_tensor_dict_list(offpol_trajs[t][running_path_idx[t]]['agent_infos'])
-                        running_intra_path_idx[t] = -1
-                        running_path_idx[t] = -1
+        if expert_trajs_dir is None:
+
+            running_path_idx = {t: 0 for t in tasknums}
+            running_intra_path_idx = {t: 0 for t in tasknums}
+            while max([running_path_idx[t] for t in tasknums]) > -0.5: # we cycle until all indices are -1
+                observations = [offpol_trajs[t][running_path_idx[t]]['observations'][running_intra_path_idx[t]]
+                                for t in tasknums]
+                actions, agent_infos = self.policy.get_actions(observations)
+                agent_infos = split_tensor_dict_list(agent_infos)
+                for t, action, agent_info in zip(itertools.count(), actions, agent_infos):
+                    offpol_trajs[t][running_path_idx[t]]['agent_infos'][running_intra_path_idx[t]] = agent_info
+                    # INDEX JUGGLING:
+                    if -0.5 < running_intra_path_idx[t] < len(offpol_trajs[t][running_path_idx[t]]['rewards'])-1:
+                        # if we haven't reached the end:
+                        running_intra_path_idx[t] += 1
                     else:
-                        # otherwise we set the running index to -1 to signal a stop
-                        running_intra_path_idx[t] = -1
-                        running_path_idx[t] = -1
+
+                        if -0.5 < running_path_idx[t] < len(offpol_trajs[t])-1:
+                            # we wrap up the agent_infos
+                            offpol_trajs[t][running_path_idx[t]]['agent_infos'] = \
+                                stack_tensor_dict_list(offpol_trajs[t][running_path_idx[t]]['agent_infos'])
+                            # if we haven't reached the last path:
+                            running_intra_path_idx[t] = 0
+                            running_path_idx[t] += 1
+                        elif running_path_idx[t] == len(offpol_trajs[t])-1:
+                            offpol_trajs[t][running_path_idx[t]]['agent_infos'] = \
+                                stack_tensor_dict_list(offpol_trajs[t][running_path_idx[t]]['agent_infos'])
+                            running_intra_path_idx[t] = -1
+                            running_path_idx[t] = -1
+                        else:
+                            # otherwise we set the running index to -1 to signal a stop
+                            running_intra_path_idx[t] = -1
+                            running_path_idx[t] = -1
         total_time = time.time()-start
        # logger.record_tabular(log_prefix+"TotalExecTime", total_time)
         #if expert_trajs_dir is not None:

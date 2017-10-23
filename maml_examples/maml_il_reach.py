@@ -19,7 +19,7 @@ import tensorflow as tf
 import time
 
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
-beta_adam_steps_list = [(100,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_adam_steps_list = [(25,25)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
@@ -54,7 +54,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 env_spec=env.spec,
                                 grad_step_size=fast_learning_rate,
                                 hidden_nonlinearity=tf.nn.relu,
-                                hidden_sizes=(100, 100),
+                                hidden_sizes=(200, 200),
                                 std_modifier=pre_std_modifier,
                                 # output_nonlinearity=tf.nn.tanh,
                             )
@@ -91,8 +91,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='RE_IL_D2_beta',
-                                exp_name='RE_IL_D2_beta'
+                                exp_prefix='RE_IL_D3_beta',
+                                exp_name='RE_IL_D3_beta'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)
@@ -101,7 +101,6 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                          #     +'_ngrad'+str(num_grad_updates)
                                          + "_bs" + str(beta_steps)
                                          + "_as" + str(adam_steps)
-                                + "_2x100"
                                        #  + "_prsm" + str(pre_std_modifier)
                                         # + "_pstr" + str(post_std_modifier_train)
                                          #+ "_posm" + str(post_std_modifier_test)
@@ -109,7 +108,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                          + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                 plot=False,
                                 sync_s3_pkl=True,
-                                mode="ec2",
+                                mode="local",
                                 terminate_machine=False,
                             )
 
