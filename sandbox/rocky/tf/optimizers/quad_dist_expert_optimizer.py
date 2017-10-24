@@ -119,7 +119,7 @@ class QuadDistExpertOptimizer(Serializable):
 
     def optimize(self, input_vals_list):
         sess = tf.get_default_session()
-        # for _ in range(self._adam_steps):
-        sess.run([self._train_step for _ in range(self._adam_steps)], feed_dict=dict(list(zip(self._inputs, input_vals_list))))
+        for _ in range(self._adam_steps):
+            sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
 
 

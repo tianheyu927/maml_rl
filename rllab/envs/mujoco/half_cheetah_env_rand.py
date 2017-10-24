@@ -25,7 +25,7 @@ class HalfCheetahEnvRand(MujocoEnv, Serializable):
 
     @overrides
     def reset(self, init_state=None, reset_args=None, **kwargs):
-        print("debug52", reset_args)
+        # print("debug52", reset_args)
         if type(reset_args) is dict:
             goal_vel = reset_args['goal']
             noise = reset_args['noise']

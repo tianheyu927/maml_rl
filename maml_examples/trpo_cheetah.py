@@ -7,6 +7,7 @@ from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.misc.instrument import stub, run_experiment_lite
 from rllab.envs.mujoco.half_cheetah_env_rand import HalfCheetahEnvRand
+from rllab.envs.mujoco.half_cheetah_env_oracle import HalfCheetahEnvOracle
 from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION, \
     default_cheetah_env_option
 import pickle
@@ -43,7 +44,7 @@ variants = VG().variants()
 env_option = default_cheetah_env_option
 
 def run_task(v):
-    env = TfEnv(normalize(HalfCheetahEnvRand()))
+    env = TfEnv(normalize(HalfCheetahEnvOracle()))
     policy = GaussianMLPPolicy(
        name="policy",
        env_spec=env.spec,
@@ -57,19 +58,19 @@ def run_task(v):
         # policy=None,
         # load_policy='/home/rosen/maml_rl/data/local/CH-ET-1/CH_ET_1_2017_10_13_13_56_05_0001/itr_-20.pkl',
         baseline=baseline,
-        batch_size=10*200,  # we divide this by #envs on every iteration
+        batch_size=1600*200,  # we divide this by #envs on every iteration
         max_path_length=200,
-        start_itr=-10000,
-        n_itr=1,  # actually last iteration number, not total iterations
+        start_itr=-300,
+        n_itr=801,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.01,  # 0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
         action_noise_test=0.0,
-   #     expert_traj_itrs_to_pickle=list(range(0, 801)),
- #       save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option],
- #       goals_to_load=GOALS_LOCATION,
+        expert_traj_itrs_to_pickle=list(range(0, 801)),
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option],
+        goals_to_load=GOALS_LOCATION,
     )
     algo.train()
 
@@ -83,7 +84,7 @@ for v in variants:
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
-        exp_prefix='CH_ET_1',
+        exp_prefix='CH_ET_D5_beta',
         python_command='python3',
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used

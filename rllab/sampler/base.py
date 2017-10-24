@@ -82,7 +82,7 @@ class BaseSampler(Sampler):
                     path["expert_actions"] = path["env_infos"]["expert_actions"]
                 else:
                     # assert False, "you shouldn't need expert_actions"
-                    path["expert_actions"] = np.array([[None, None]] * len(path['rewards']))
+                    path["expert_actions"] = np.array([[None]*len(path['actions'][0])] * len(path['actions']))
 
 
         if not fast_process:
@@ -101,8 +101,6 @@ class BaseSampler(Sampler):
             expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
             env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
-            if not fast_process:
-                agent_infos_orig = tensor_utils.concat_tensor_dict_list([path["agent_infos_orig"] for path in paths])
 
             if not fast_process:
                 if self.algo.center_adv:
@@ -136,10 +134,13 @@ class BaseSampler(Sampler):
                     advantages=advantages,
                     env_infos=env_infos,
                     agent_infos=agent_infos,
-                    agent_infos_orig=agent_infos_orig,
                     paths=paths,
                     expert_actions=expert_actions,
                 )
+                if 'agent_infos_orig' in paths[0].keys():
+                    agent_infos_orig = tensor_utils.concat_tensor_dict_list([path["agent_infos_orig"] for path in paths])
+                    samples_data["agent_infos_orig"] = agent_infos_orig
+
         else:
             max_path_length = max([len(path["advantages"]) for path in paths])
 

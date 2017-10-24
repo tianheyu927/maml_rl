@@ -5,6 +5,7 @@ from rllab.envs.base import Step
 from rllab.envs.mujoco.mujoco_env import MujocoEnv
 from rllab.misc import logger
 from rllab.misc.overrides import overrides
+from copy import deepcopy
 
 
 def smooth_abs(x, param):
@@ -16,8 +17,8 @@ class HalfCheetahEnvOracle(MujocoEnv, Serializable):
     FILE = 'half_cheetah.xml'
 
     def __init__(self, *args, **kwargs):
-        super(HalfCheetahEnvOracle, self).__init__(*args, **kwargs)
         self._goal_vel = None
+        super(HalfCheetahEnvOracle, self).__init__(*args, **kwargs)
         Serializable.__init__(self, *args, **kwargs)
 
     def sample_goals(self, num_goals):
@@ -25,10 +26,18 @@ class HalfCheetahEnvOracle(MujocoEnv, Serializable):
 
     @overrides
     def reset(self, init_state=None, reset_args=None, **kwargs):
-        goal_vel = reset_args
+        # print("debug52", reset_args)
+        if type(reset_args) is dict:
+            goal_vel = reset_args['goal']
+            noise = reset_args['noise']
+            # if self.action_noise != noise:
+            #     print("debug action noise changing")
+            #     self.action_noise = noise
+        else:
+            goal_vel = reset_args
         if goal_vel is not None:
             self._goal_vel = goal_vel
-        else:
+        elif self._goal_vel is None:  # keep the goal the same between resets
             #self._goal_vel = np.random.uniform(0.1, 0.8)
             self._goal_vel = np.random.uniform(0.0, 2.0)
         self.reset_mujoco(init_state)
@@ -76,3 +85,10 @@ class HalfCheetahEnvOracle(MujocoEnv, Serializable):
         logger.record_tabular(prefix+'MaxForwardProgress', np.max(progs))
         logger.record_tabular(prefix+'MinForwardProgress', np.min(progs))
         logger.record_tabular(prefix+'StdForwardProgress', np.std(progs))
+
+    def clip_goal_from_obs(self, paths):
+        paths_copy = deepcopy(paths)
+        for path in paths_copy:
+            clipped_obs = path['observations'][:, :-1]
+            path['observations'] = clipped_obs
+        return paths_copy

@@ -11,8 +11,9 @@ from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.envs.gym_env import GymEnv
 from maml_examples.reacher_env import ReacherEnv
 from rllab.envs.mujoco.pusher_env import PusherEnv
-from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT, default_reacher_env_option
-
+from rllab.envs.mujoco.half_cheetah_env_rand import HalfCheetahEnvRand
+from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION, \
+    default_cheetah_env_option
 #from examples.trpo_push_obj import
 
 import tensorflow as tf
@@ -23,7 +24,7 @@ beta_adam_steps_list = [(1,1)]  # , ## maybe try 1 and 10 to compare, we know th
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
-env_option = default_reacher_env_option
+env_option = 'debug'
 
 fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
@@ -47,7 +48,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             stub(globals())
 
                             seed = 1
-                            env = TfEnv(normalize(ReacherEnv(option=env_option)))
+                            env = TfEnv(normalize(HalfCheetahEnvRand()))
 
                             policy = MAMLGaussianMLPPolicy(
                                 name="policy",
@@ -91,8 +92,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='RE_IL_D5_beta',
-                                exp_name='RE_IL_D5_beta'
+                                exp_prefix='CH_IL_D5_beta',
+                                exp_name='CH_IL_D5_beta'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)

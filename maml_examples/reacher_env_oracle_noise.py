@@ -148,6 +148,6 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
     def clip_goal_from_obs(self, paths):
         paths_copy = deepcopy(paths)
         for path in paths_copy:
-            clipped_obs = path['observations'][:, :-2]  # [obs[:-2] for obs in path['observations']]
+            clipped_obs = path['observations'][:, :-2]
             path['observations'] = clipped_obs
         return paths_copy

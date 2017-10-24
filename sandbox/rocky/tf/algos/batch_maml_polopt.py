@@ -231,7 +231,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                     path['agent_infos'] = [None] * len(path['rewards'])
 
         if expert_trajs_dir is None:
-
+            print("debug12, running offpol on own previous samples")
             running_path_idx = {t: 0 for t in tasknums}
             running_intra_path_idx = {t: 0 for t in tasknums}
             while max([running_path_idx[t] for t in tasknums]) > -0.5: # we cycle until all indices are -1
@@ -344,12 +344,12 @@ class BatchMAMLPolopt(RLAlgorithm):
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
                             if step < self.num_grad_updates:
-                                logger.log("Computing policy updates...")
                                 if itr not in TESTING_ITRS:
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
                                 if itr in TESTING_ITRS or step < self.num_grad_updates-1 or not self.use_maml_il:
+                                    logger.log("Computing policy updates...")
                                     self.policy.compute_updated_dists(samples_data)  #TODO: do we even need updated_dists for expert trajectories?
 
                         logger.log("Optimizing policy...")

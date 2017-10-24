@@ -9,7 +9,8 @@ from rllab.misc.instrument import stub, run_experiment_lite
 #from rllab.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.policies.maml_minimal_gauss_mlp_policy import MAMLGaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
-
+from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION, \
+    default_cheetah_env_option
 import tensorflow as tf
 
 stub(globals())
@@ -77,10 +78,11 @@ for v in variants:
         max_path_length=max_path_length,
         meta_batch_size=v['meta_batch_size'],
         num_grad_updates=num_grad_updates,
-        n_itr=800,
+        n_itr=801,
         use_maml=use_maml,
         step_size=v['meta_step_size'],
         plot=False,
+        goals_pickle_to=GOALS_LOCATION,
     )
     direc = 'direc' if direc else ''
 
