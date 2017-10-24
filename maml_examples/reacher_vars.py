@@ -27,8 +27,8 @@ default_reacher_env_option = 'g200nfj'
 
 EXPERT_TRAJ_LOCATION_DICT = {
     "":"", # blank means we haven't recorded expert traj yet
-    #"g200nfj":"/root/code/rllab/saved_expert_traj/test_C1_randgoal_noise0.1_MINI/",
-    "g200nfj":"/home/rosen/maml_rl/saved_expert_traj/test_C1_randgoal_noise0.1_MINI/",
+    "g200nfj":"/root/code/rllab/saved_expert_traj/test_C1_randgoal_noise0.1_MINI/",
+    # "g200nfj":"/home/rosen/maml_rl/saved_expert_traj/test_C1_randgoal_noise0.1_MINI/",
   #  "g200nfj":"/home/rosen/maml_rl_data/saved_expert_traj/reacher_g200nfj/test_B1_randgoal_noise0.1/",
     'g10nfj':"/home/rosen/maml_rl_data/saved_expert_traj/reacher10/test7/",
 }

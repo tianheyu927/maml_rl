@@ -331,7 +331,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                             for tasknum in paths.keys():  # the keys are the tasks
                                 # don't log because this will spam the console with every task.
                                 if self.use_maml_il and step == self.num_grad_updates:
-                                    print("debug11, using fast process")
                                     fast_process = True
                                 else:
                                     fast_process = False
