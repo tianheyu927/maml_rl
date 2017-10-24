@@ -102,7 +102,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         for grad_step in range(self.num_grad_updates):  # we are doing this for all but the last step
             obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
-            surr_objs = []  # surrogate objectives
+            inner_surr_objs = []  # surrogate objectives
 
             new_params = []
             kls = []
@@ -118,15 +118,15 @@ class MAMLIL(BatchMAMLPolopt):
                 lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))
+                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))
 
             input_vars_list += obs_vars + action_vars + adv_vars
             # For computing the fast update for sampling
             # At this point, input_vars_list is theta0 + theta_l + obs + action + adv
-            self.policy.set_init_surr_obj(input_vars_list, surr_objs)
+            self.policy.set_init_surr_obj(input_vars_list, inner_surr_objs)
 
             input_vars_list += expert_action_vars
-            all_surr_objs.append(surr_objs)
+            all_surr_objs.append(inner_surr_objs)
 
         # last inner grad step
         obs_vars, action_vars, _, expert_action_vars = self.make_vars('test')  # adv_vars was here instead of _
@@ -139,10 +139,11 @@ class MAMLIL(BatchMAMLPolopt):
 
             # here we define the loss for meta-gradient
             e = expert_action_vars[i]
-            s = dist_info_vars_i["log_std"]
+            # s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
             # surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*tf.exp(s)**2+m**2-2*m*e))
-            surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
+            # surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
+            surr_objs.append(tf.reduce_mean(m**2-2*m*e))
 
         surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: do we need the input_list values over anything that's not the last grad step?
