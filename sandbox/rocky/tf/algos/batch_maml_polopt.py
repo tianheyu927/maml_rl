@@ -59,6 +59,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             sampler_args=None,
             force_batch_sampler=False,
             use_maml=True,
+            use_maml_il=False,
             load_policy=None,
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
@@ -116,6 +117,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.fixed_horizon = fixed_horizon
         self.meta_batch_size = meta_batch_size  # number of tasks
         self.num_grad_updates = num_grad_updates  # number of gradient steps during training
+        self.use_maml_il = use_maml_il
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
         self.post_std_modifier_test = post_std_modifier_test
@@ -208,24 +210,25 @@ class BatchMAMLPolopt(RLAlgorithm):
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
             offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
 
-
         # some initial rearrangement
         tasknums = offpol_trajs.keys()
         for t in tasknums:
             for path in offpol_trajs[t]:
                 if 'expert_actions' not in path.keys():
                     path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
-                if 'agent_infos' in path.keys():  #storing old agent_infos if any
-                    if 'agent_infos_orig' not in path.keys():
-                        path['agent_infos_orig'] = deepcopy(path['agent_infos'])
-                     #   print("debug9.1, length of newly created agent_infos_orig,", len(path['agent_infos_orig']['mean']))
-                else:
-                    if expert_trajs_dir is None:
-                        assert False, "debug9, there were no agent_infos, and it doesn't look like it came from expert_traj"
-                path['agent_infos'] = [None] * len(path['rewards'])  # erasing/setting up agent_infos to be populated
+                # if 'agent_infos' in path.keys():  #storing old agent_infos if any
+                #     if 'agent_infos_orig' not in path.keys():
+                #         path['agent_infos_orig'] = deepcopy(path['agent_infos'])
+                #      #   print("debug9.1, length of newly created agent_infos_orig,", len(path['agent_infos_orig']['mean']))
+                # else:
+                #     if expert_trajs_dir is None:
+                #         assert False, "debug9, there were no agent_infos, and it doesn't look like it came from expert_traj"
+                # path['agent_infos'] = [None] * len(path['rewards'])  # erasing/setting up agent_infos to be populated
 
                 if expert_trajs_dir is not None:
                     path['agent_infos'] = dict(mean=[[1.0,1.0]]*len(path['rewards']),log_std=[[1.0,1.0]]*len(path['rewards']))
+                else:
+                    path['agent_infos'] = [None] * len(path['rewards'])
 
         if expert_trajs_dir is None:
 
@@ -267,8 +270,8 @@ class BatchMAMLPolopt(RLAlgorithm):
         #print("debug10.2", offpol_trajs[0][0].keys())
         return offpol_trajs
 
-    def process_samples(self, itr, paths, prefix='', log=True):
-        return self.sampler.process_samples(itr, paths, prefix=prefix, log=log)
+    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False):
+        return self.sampler.process_samples(itr, paths, prefix=prefix, log=log, fast_process=fast_process)
 
     def train(self):
         # TODO - make this a util
@@ -306,18 +309,15 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                             if self.expert_trajs_dir is None or itr in TESTING_ITRS or (beta_step == 0 and step < self.num_grad_updates):
                                 paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step))
-                                #print("debug8.1, obtaining samples")
                                 if beta_step == 0 and step == 0:
-                                  #  print("debug5.1, we are at betastep 0 step 0")
+                                    paths = store_agent_infos(paths)
                                     beta0_step0_paths = deepcopy(paths)
                             elif step == self.num_grad_updates:
-                                #print("debug8.2, using expert trajectories")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
                                                                          expert_trajs_dir=self.expert_trajs_dir,
                                                                          offpol_trajs=None,
                                                                          log_prefix=str(beta_step)+"_"+str(step))
                             elif beta_step > 0 and step < self.num_grad_updates:
-                                #print("debug8.3, using importance sampling on existing rollouts")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
                                                                          expert_trajs_dir=None,
                                                                          offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0
@@ -330,12 +330,17 @@ class BatchMAMLPolopt(RLAlgorithm):
                             samples_data = {}
                             for tasknum in paths.keys():  # the keys are the tasks
                                 # don't log because this will spam the console with every task.
-                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False)
+                                if self.use_maml_il and step == self.num_grad_updates:
+                                    print("debug11, using fast process")
+                                    fast_process = True
+                                else:
+                                    fast_process = False
+                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process)
 
                             all_samples_data_for_betastep.append(samples_data)
 
                             # for logging purposes only
-                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True,)
+                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process)
                             logger.log("Logging diagnostics...")
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
@@ -345,7 +350,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
-                                self.policy.compute_updated_dists(samples_data)
+                                if itr in TESTING_ITRS or step < self.num_grad_updates-1 or not self.use_maml_il:
+                                    self.policy.compute_updated_dists(samples_data)  #TODO: do we even need updated_dists for expert trajectories?
 
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.
@@ -490,4 +496,12 @@ class BatchMAMLPolopt(RLAlgorithm):
     def update_plot(self):
         if self.plot:
             plotter.update_plot(self.policy, self.max_path_length)
+
+
+def store_agent_infos(paths):
+    tasknums = paths.keys()
+    for t in tasknums:
+        for path in paths[t]:
+            path['agent_infos_orig'] = deepcopy(path['agent_infos'])
+    return paths
 

@@ -32,7 +32,7 @@ class MAMLIL(BatchMAMLPolopt):
         self.use_maml = use_maml
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
-        super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, **kwargs)
+        super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, **kwargs)
 
 
     def make_vars(self, stepnum='0'):
@@ -129,7 +129,7 @@ class MAMLIL(BatchMAMLPolopt):
             all_surr_objs.append(surr_objs)
 
         # last inner grad step
-        obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars('test')
+        obs_vars, action_vars, _, expert_action_vars = self.make_vars('test')  # adv_vars was here instead of _
         surr_objs = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             dist_info_vars_i, _ = self.policy.updated_dist_info_sym(i, all_surr_objs[-1][i], obs_vars[i], params_dict=new_params[i])
@@ -145,7 +145,7 @@ class MAMLIL(BatchMAMLPolopt):
             surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
 
         surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
-        input_vars_list += obs_vars + action_vars + adv_vars + expert_action_vars + old_dist_info_vars_list   # TODO: do we need the input_list values over anything that's not the last grad step?
+        input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: do we need the input_list values over anything that's not the last grad step?
 
         mean_kl = tf.reduce_mean(tf.concat(kls, 0))
 
@@ -171,7 +171,7 @@ class MAMLIL(BatchMAMLPolopt):
         theta0_dist_info_list = []
         for i in range(self.meta_batch_size):
             if 'agent_infos_orig' not in all_samples_data[0][i].keys():
-                assert False, "agent_infos_orig is missing--this should have been handled by process_samples"
+                assert False, "agent_infos_orig is missing--this should have been handled in batch_maml_polopt"
             else:
                 agent_infos_orig = all_samples_data[0][i]['agent_infos_orig']
             theta0_dist_info_list += [agent_infos_orig[k] for k in self.policy.distribution.dist_info_keys]
@@ -183,8 +183,8 @@ class MAMLIL(BatchMAMLPolopt):
             theta_l_dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
         input_vals_list += tuple(theta_l_dist_info_list)
 
-        for step in range(len(all_samples_data)):  # TODO: should we change this to self.num_grad_updates? more descriptive
-            obs_list, action_list, adv_list, expert_action_list = [], [], [], []
+        for step in range(self.num_grad_updates):
+            obs_list, action_list, adv_list, expert_action_list,  = [], [], [], []
             for i in range(self.meta_batch_size):  # for each task
                 inputs = ext.extract(
                     all_samples_data[step][i],
@@ -195,9 +195,22 @@ class MAMLIL(BatchMAMLPolopt):
                 adv_list.append(inputs[2])
                 expert_action_list.append(inputs[3])
 
-            input_vals_list += obs_list + action_list + adv_list + expert_action_list # [ [obs_0], [act_0], [adv_0]. [act*_0], [obs_1], ... ]
+            input_vals_list += obs_list + action_list + adv_list + expert_action_list
 
-        # Code to compute the kl distance
+        for step in [self.num_grad_updates]:  # last step
+            obs_list, action_list, expert_action_list = [], [], []  # last step's adv_list not currently used in maml_il
+            for i in range(self.meta_batch_size):  # for each task
+                inputs = ext.extract(
+                    all_samples_data[step][i],
+                    "observations", "actions", "expert_actions",
+                )
+                obs_list.append(inputs[0])
+                action_list.append(inputs[1])
+                expert_action_list.append(inputs[2])
+
+            input_vals_list += obs_list + action_list + expert_action_list
+
+        # Code to compute the kl distance, kind of pointless on non-testing iterations as agent_infos are zeroed out on expert traj samples
         dist_info_list = []
         for i in range(self.meta_batch_size):
             agent_infos = all_samples_data[self.kl_constrain_step][i]['agent_infos']  ##kl_constrain_step default is -1, meaning post all alpha grad updates
