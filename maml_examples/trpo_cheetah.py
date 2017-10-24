@@ -63,7 +63,7 @@ def run_task(v):
         start_itr=-300,
         n_itr=801,  # actually last iteration number, not total iterations
         discount=0.99,
-        step_size=0.01,  # 0.01
+        step_size=0.025,  # 0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,

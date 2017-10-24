@@ -16,6 +16,7 @@ import rllab.plotter as plotter
 import tensorflow as tf
 import time
 import numpy as np
+import random as rd
 import joblib
 from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_list
 # from maml_examples.reacher_env import fingertip
@@ -67,6 +68,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             goals_to_load=None,
             expert_trajs_dir=None,
             goals_pickle_to=None,
+            goals_pool_size=None
 
             **kwargs
     ):
@@ -132,12 +134,12 @@ class BatchMAMLPolopt(RLAlgorithm):
             print("successfully extracted goals", self.goals_to_use_dict.keys())
             assert set(range(self.start_itr, self.n_itr)).issubset(
                 set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
-            # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere
+            # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere so no chopping off
         elif goals_to_load is not None:
             env = self.env
             while 'sample_goals' not in dir(env):
                 env = env.wrapped_env
-            # TODO, we should avoid all that by adding a method, env.spec.reset_space or something
+            # TODO, we should avoid all that by adding a property, env.spec.reset_args_space or something
             reset_dimensions = env.sample_goals(1).shape[1:]
 
             logger.log("Loading goals from %s ..." % goals_to_load)
@@ -159,21 +161,32 @@ class BatchMAMLPolopt(RLAlgorithm):
                 self.goals_to_use_dict[itr] = temp_goals_slice
 
         else:
+            if goals_pool_size is None:
+                self.goals_pool_size = (self.n_itr-self.start_itr)*self.meta_batch_size
+            else:
+                self.goals_pool_size = goals_pool_size
+
+            logger.log("Sampling a pool of tasks/goals for this meta-batch...")
+            env = self.env
+            while 'sample_goals' not in dir(env):
+                env = env.wrapped_env
+            self.goals_pool = env.sample_goals(self.goals_pool_size)
+
+            self.goals_idx_for_itr_dict = {}
+            for itr in range(self.start_itr, self.n_itr):
+                self.goals_idx_for_itr_dict[itr] = rd.sample(range(self.goals_pool_size),self.meta_batch_size)
+
             self.goals_to_use_dict = {}
             for itr in range(self.start_itr, self.n_itr):
-                with logger.prefix('itr #%d | ' % itr):
-                    logger.log("Sampling set of tasks/goals for this meta-batch...")
-
-                    env = self.env
-                    while 'sample_goals' not in dir(env):
-                        env = env.wrapped_env
-                    goals_for_metaitr = env.sample_goals(self.meta_batch_size)
-                    self.goals_to_use_dict[itr] = goals_for_metaitr
+                self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idx_for_itr_dict[itr]]
             if goals_pickle_to is not None:
                 logger.log("Saving goals to %s..." % goals_pickle_to)
                 from pathlib import Path
                 Path(goals_pickle_to).touch()
                 joblib.dump(self.goals_to_use_dict, goals_pickle_to, compress=5)
+
+
+
 
         if sampler_cls is None:
             if singleton_pool.n_parallel > 1:
