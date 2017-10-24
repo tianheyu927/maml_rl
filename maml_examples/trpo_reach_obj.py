@@ -7,7 +7,6 @@ from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.misc.instrument import stub, run_experiment_lite
 from maml_examples.reacher_env import ReacherEnv
-from maml_examples.reacher_env_oracle import ReacherEnvOracle
 from maml_examples.reacher_env_oracle_noise import ReacherEnvOracleNoise
 from maml_examples.reacher_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION, default_reacher_env_option
 import pickle

@@ -10,7 +10,7 @@ ENV_OPTIONS = {
 default_cheetah_env_option = ''
 
 EXPERT_TRAJ_LOCATION_DICT = {
-    "":"/home/rosen/maml_rl_data/saved_expert_traj/cheetah/CH-ET1/",
+    "":"/home/rosen/maml_rl_data/saved_expert_traj/cheetah/CH-ET2/",
     "debug":"/home/rosen/maml_rl_data/saved_expert_traj/cheetah/CH-ET1-debug/",
 }
 

@@ -226,7 +226,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                 # path['agent_infos'] = [None] * len(path['rewards'])  # erasing/setting up agent_infos to be populated
 
                 if expert_trajs_dir is not None:
-                    path['agent_infos'] = dict(mean=[[1.0,1.0]]*len(path['rewards']),log_std=[[1.0,1.0]]*len(path['rewards']))
+                    path['agent_infos'] = dict(mean=[[0.0] * len(path['actions'][0])]*len(path['actions']),log_std=[[0.0] * len(path['actions'][0])]*len(path['actions']))
                 else:
                     path['agent_infos'] = [None] * len(path['rewards'])
 

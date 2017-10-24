@@ -20,7 +20,7 @@ import tensorflow as tf
 import time
 
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
-beta_adam_steps_list = [(1,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_adam_steps_list = [(2,2)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']

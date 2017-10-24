@@ -37,7 +37,7 @@ class HalfCheetahEnvOracle(MujocoEnv, Serializable):
             goal_vel = reset_args
         if goal_vel is not None:
             self._goal_vel = goal_vel
-        elif self._goal_vel is None:  # keep the goal the same between resets
+        else:  # keep the goal the same between resets
             #self._goal_vel = np.random.uniform(0.1, 0.8)
             self._goal_vel = np.random.uniform(0.0, 2.0)
         self.reset_mujoco(init_state)

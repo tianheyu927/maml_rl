@@ -19,7 +19,7 @@ import tensorflow as tf
 import time
 
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
-beta_adam_steps_list = [(1,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_adam_steps_list = [(25,25)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
@@ -36,6 +36,8 @@ post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 
 use_maml = True
+
+mode="ec2"
 
 for l2loss_std_mult in l2loss_std_mult_list:
     for post_std_modifier_train in post_std_modifier_train_list:
@@ -72,7 +74,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 max_path_length=max_path_length,
                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                n_itr=105, #100
+                                n_itr=250, #100
                                 use_maml=use_maml,
                                 step_size=meta_step_size,
                                 plot=False,
@@ -82,7 +84,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 l2loss_std_mult=l2loss_std_mult,
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
-                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option],
+                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode],
                                 #goals_to_load="/home/rosen"
                             )
                             run_experiment_lite(
@@ -108,7 +110,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                          + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                 plot=False,
                                 sync_s3_pkl=True,
-                                mode="local",
+                                mode=mode,
                                 terminate_machine=False,
                             )
 

@@ -84,7 +84,7 @@ for v in variants:
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
-        exp_prefix='CH_ET_D5_beta',
+        exp_prefix='CH_ET_2',
         python_command='python3',
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used
