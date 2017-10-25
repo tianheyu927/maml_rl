@@ -19,7 +19,7 @@ import tensorflow as tf
 import time
 
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
-beta_adam_steps_list = [(25,25)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_adam_steps_list = [(2,2)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
@@ -37,7 +37,8 @@ l2loss_std_mult_list = [1.0]
 
 use_maml = True
 
-mode="ec2"
+# mode="ec2"
+mode="local"
 
 for l2loss_std_mult in l2loss_std_mult_list:
     for post_std_modifier_train in post_std_modifier_train_list:
@@ -93,8 +94,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='RE_IL_D5_beta',
-                                exp_name='RE_IL_D5_beta'
+                                exp_prefix='RE_IL_E1_beta',
+                                exp_name='RE_IL_E1_beta'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)

@@ -68,7 +68,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             goals_to_load=None,
             expert_trajs_dir=None,
             goals_pickle_to=None,
-            goals_pool_size=None
+            goals_pool_size=None,
 
             **kwargs
     ):
@@ -133,13 +133,12 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.goals_to_use_dict = joblib.load(self.expert_trajs_dir+"goals.pkl")
             print("successfully extracted goals", self.goals_to_use_dict.keys())
             assert set(range(self.start_itr, self.n_itr)).issubset(
-                set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
-            # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere so no chopping off
+                set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir  # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere so no chopping off
+
         elif goals_to_load is not None:
             env = self.env
             while 'sample_goals' not in dir(env):
                 env = env.wrapped_env
-            # TODO, we should avoid all that by adding a property, env.spec.reset_args_space or something
             reset_dimensions = env.sample_goals(1).shape[1:]
 
             logger.log("Loading goals from %s ..." % goals_to_load)
@@ -350,7 +349,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process)
 
                             all_samples_data_for_betastep.append(samples_data)
-
                             # for logging purposes only
                             self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process)
                             logger.log("Logging diagnostics...")
@@ -361,9 +359,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
-                                if itr in TESTING_ITRS or step < self.num_grad_updates-1 or not self.use_maml_il:
+                                if (itr in TESTING_ITRS or not self.use_maml_il or step<self.num_grad_updates-1) and step < self.num_grad_updates:
+                                    # do not update on last grad step, and do not update on second to last step when training MAMLIL
                                     logger.log("Computing policy updates...")
-                                    self.policy.compute_updated_dists(samples_data)  #TODO: do we even need updated_dists for expert trajectories?
+                                    self.policy.compute_updated_dists(samples_data)
 
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.

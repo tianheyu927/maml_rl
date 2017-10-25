@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 import numpy as np
 import rllab.misc.logger as logger
@@ -93,9 +92,9 @@ class MAMLIL(BatchMAMLPolopt):
 
         state_info_vars, state_info_vars_list = {}, []  # TODO: is this needed?
 
-        all_surr_objs, input_vars_list = [], []  # TODO: we should probably use different variable names for the inside and outside objective
+        all_surr_objs, input_vars_list = [], []
         new_params = []
-        dist_info_vars_list = []
+
 
         input_vars_list += tuple(theta0_dist_info_vars_list)
         input_vars_list += tuple(theta_l_dist_info_vars_list)

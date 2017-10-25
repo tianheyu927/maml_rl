@@ -1,10 +1,5 @@
-
-
-
 import tensorflow as tf
-
 import numpy as np
-
 import rllab.misc.logger as logger
 from rllab.misc import ext
 from rllab.misc.overrides import overrides
@@ -13,7 +8,7 @@ from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
 from maml_examples.maml_experiment_vars import TESTING_ITRS
-
+from copy import deepcopy
 
 class MAMLNPO(BatchMAMLPolopt):
     """
@@ -77,13 +72,33 @@ class MAMLNPO(BatchMAMLPolopt):
                 })
             old_dist_info_vars_list += [old_dist_info_vars[i][k] for k in dist.dist_info_keys]
 
+        theta0_dist_info_vars, theta0_dist_info_vars_list = [], []
+        for i in range(self.meta_batch_size):
+            theta0_dist_info_vars.append({
+                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta0_%s_%s' % (i, k))
+                for k, shape in dist.dist_info_specs
+                })
+            theta0_dist_info_vars_list += [theta0_dist_info_vars[i][k] for k in dist.dist_info_keys]
+
+        theta_l_dist_info_vars, theta_l_dist_info_vars_list = [], []  #theta_l is the current beta step's pre-inner grad update params
+        for i in range(self.meta_batch_size):
+            theta_l_dist_info_vars.append({
+                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta_l_%s_%s' % (i, k))
+                for k, shape in dist.dist_info_specs
+                })
+            theta_l_dist_info_vars_list += [theta_l_dist_info_vars[i][k] for k in dist.dist_info_keys]
+
         state_info_vars, state_info_vars_list = {}, []
 
-        all_surr_objs, input_list = [], []
+        all_surr_objs, input_vars_list = [], []
         new_params = None
+
+        input_vars_list += tuple(theta0_dist_info_vars_list)
+        input_vars_list += tuple(theta_l_dist_info_vars_list)
+
         for j in range(self.num_grad_updates): #note that we cycle through all grad updates except the last one
             obs_vars, action_vars, adv_vars = self.make_vars(str(j))
-            surr_objs = []
+            inner_surr_objs = []
 
             cur_params = new_params
             new_params = []  # if there are several grad_updates the new_params are overwritten
@@ -103,16 +118,16 @@ class MAMLNPO(BatchMAMLPolopt):
 
                 # formulate as a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                surr_objs.append(- tf.reduce_mean(logli * adv_vars[i]))
+                inner_surr_objs.append(- tf.reduce_mean(logli * adv_vars[i]))
 
-            input_list += obs_vars + action_vars + adv_vars + state_info_vars_list
+            input_vars_list += obs_vars + action_vars + adv_vars + state_info_vars_list
           #  print("debug11", len(input_list))
             if j == 0:
                 # For computing the fast update for sampling
-                self.policy.set_init_surr_obj(input_list, surr_objs)
-                init_input_list = input_list
+                self.policy.set_init_surr_obj(input_vars_list, inner_surr_objs)
+                init_input_list = input_vars_list
 
-            all_surr_objs.append(surr_objs)
+            all_surr_objs.append(inner_surr_objs)
 
         obs_vars, action_vars, adv_vars = self.make_vars('test')
         surr_objs = []
@@ -129,11 +144,11 @@ class MAMLNPO(BatchMAMLPolopt):
 
         if self.use_maml:
             surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over meta_batch_size (the diff tasks)
-            input_list += obs_vars + action_vars + adv_vars + old_dist_info_vars_list
+            input_vars_list += obs_vars + action_vars + adv_vars + old_dist_info_vars_list
            # print("debug12", len(input_list))
         else:
             surr_obj = tf.reduce_mean(tf.stack(all_surr_objs[0], 0)) # if not meta, just use the first surr_obj
-            input_list = init_input_list
+            input_vars_list = init_input_list
 
         if self.use_maml:
             mean_kl = tf.reduce_mean(tf.concat(kls, 0))  ##CF shouldn't this have the option of self.kl_constrain_step == -1?
@@ -143,14 +158,14 @@ class MAMLNPO(BatchMAMLPolopt):
                 loss=surr_obj,
                 target=self.policy,
                 leq_constraint=(mean_kl, self.step_size),
-                inputs=input_list,
+                inputs=input_vars_list,
                 constraint_name="mean_kl"
             )
         else:
             self.optimizer.update_opt(
                 loss=surr_obj,
                 target=self.policy,
-                inputs=input_list,
+                inputs=input_vars_list,
             )
         return dict()
 
@@ -162,6 +177,24 @@ class MAMLNPO(BatchMAMLPolopt):
             all_samples_data = [all_samples_data[0]]
 
         input_list = []
+
+        # Code to account for off-policy sampling when more than 1 beta steps
+        theta0_dist_info_list = []
+        for i in range(self.meta_batch_size):
+            if 'agent_infos_orig' not in all_samples_data[0][i].keys():
+                assert False, "agent_infos_orig is missing--this should have been handled in batch_maml_polopt"
+            else:
+                agent_infos_orig = all_samples_data[0][i]['agent_infos_orig']
+            theta0_dist_info_list += [agent_infos_orig[k] for k in self.policy.distribution.dist_info_keys]
+        input_list += tuple(theta0_dist_info_list)
+
+        theta_l_dist_info_list = []
+        for i in range(self.meta_batch_size):
+            agent_infos = all_samples_data[0][i]['agent_infos']
+            theta_l_dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
+        input_list += tuple(theta_l_dist_info_list)
+
+
         for step in range(len(all_samples_data)):  # these are the gradient steps
             obs_list, action_list, adv_list = [], [], []
             for i in range(self.meta_batch_size):
