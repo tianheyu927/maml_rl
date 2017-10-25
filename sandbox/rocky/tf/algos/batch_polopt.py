@@ -109,9 +109,9 @@ class BatchPolopt(RLAlgorithm):
         self.action_noise_test = action_noise_test
         self.make_video = make_video
         self.save_expert_traj_dir = save_expert_traj_dir
-        if goals_to_load is not None:
-            assert False, "deprecated"
-        elif goals_pool_to_load is not None:
+        assert goals_to_load is None, "deprecated"
+        assert len(expert_traj_itrs_to_pickle) == 0, "deprecated"
+        if goals_pool_to_load is not None:
             self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
             self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']  # not used for anything except passing through to expert_traj along with goals pool
             self.goals_for_ET_dict = {t:[goal] for t, goal in enumerate(self.goals_pool)}
