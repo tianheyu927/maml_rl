@@ -10,6 +10,7 @@ from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 
 import joblib
 import matplotlib.pyplot as plt
+from pathlib import Path
 import os.path as osp
 from rllab.sampler.utils import rollout, joblib_dump_safe
 
@@ -51,6 +52,7 @@ class BatchPolopt(RLAlgorithm):
             save_expert_traj_dir=None,
             expert_traj_itrs_to_pickle=[],
             goals_to_load=None,
+            goals_pool_to_load=None,
             **kwargs
     ):
         """
@@ -107,21 +109,23 @@ class BatchPolopt(RLAlgorithm):
         self.action_noise_test = action_noise_test
         self.make_video = make_video
         self.save_expert_traj_dir = save_expert_traj_dir
-        self.expert_traj_itrs_to_pickle = expert_traj_itrs_to_pickle
         if goals_to_load is not None:
-            self.goals_to_use_dict = joblib.load(goals_to_load)
+            assert False, "deprecated"
+        elif goals_pool_to_load is not None:
+            self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
+            self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']  # not used for anything except passing through to expert_traj along with goals pool
+            self.goals_for_ET_dict = {t:[goal] for t, goal in enumerate(self.goals_pool)}
+            self.expert_traj_itrs_to_pickle = list(range(len(self.goals_pool)))  # we go through
         else:
-            self.goals_to_use_dict = {}
+            self.goals_for_ET_dict = {}
+            self.expert_traj_itrs_to_pickle = []
         if len(self.expert_traj_itrs_to_pickle) > 0:
-            assert save_expert_traj_dir is not None,\
-                "please provide a filename to save expert trajectories"
-            assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))),\
-                "Not going to go through all itrs that need to be pickled"
-            assert set(self.expert_traj_itrs_to_pickle).issubset(set(self.goals_to_use_dict.keys())),\
-                "Haven't loaded goals for all expert trajectories"
-            Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=True)
-            logger.log("Pickling goals...")
-            joblib_dump_safe(self.goals_to_use_dict, self.save_expert_traj_dir+"goals.pkl")
+            assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
+            assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))), "Will not go through all itrs that need to be pickled, widen the start_itr and n_itr range"
+            assert set(self.expert_traj_itrs_to_pickle).issubset(set(self.goals_for_ET_dict.keys())), "Haven't loaded goals for all expert trajectories"
+            Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=False)
+            logger.log("Pickling goals pool...")
+            joblib_dump_safe(dict(goals_pool=self.goals_pool, idxs_dict=self.goals_idxs_for_itr_dict), self.save_expert_traj_dir+"goals_pool.pkl")
             # I know this was redundant, but we are doing it to make sure the goals stay with the expert trajs
 
 
@@ -171,16 +175,15 @@ class BatchPolopt(RLAlgorithm):
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
-                if itr in self.goals_to_use_dict.keys():
-                    goals = self.goals_to_use_dict[itr]
+                if itr in self.goals_for_ET_dict.keys():
+                    goals = self.goals_for_ET_dict[itr]
                     noise = self.action_noise_test
                     self.batch_size = self.batch_size_expert_traj
                 else:
                     goals = [None]
                     noise = self.action_noise_train
                     self.batch_size = self.batch_size_train
-                if itr in self.expert_traj_itrs_to_pickle:
-                    paths_to_save = {}
+                paths_to_save = {}
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
 
@@ -197,7 +200,8 @@ class BatchPolopt(RLAlgorithm):
                             paths_to_save[goalnum] = paths_no_goalobs
                     if itr in self.expert_traj_itrs_to_pickle:
                         logger.log("Pickling trajectories...")
-                        joblib_dump_safe(paths_to_save, self.save_expert_traj_dir+str(itr)+".pkl")
+                        assert len(paths_to_save.keys()) == 1, "we're going through ET goals one at a time now 10/24/17"
+                        joblib_dump_safe(paths_to_save[0], self.save_expert_traj_dir+str(itr)+".pkl")
                         logger.log("Fast-processing returns...")
                         undiscounted_returns = [sum(path['rewards']) for path in paths]
                         logger.record_tabular('AverageReturn', np.mean(undiscounted_returns))
@@ -252,13 +256,13 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                        if self.make_video and itr % 80 == 0 and itr in self.goals_to_use_dict.keys() == 0:
+                        if self.make_video and itr % 80 == 0 and itr in self.goals_for_ET_dict.keys() == 0:
                             logger.log("Saving videos...")
-                            self.env.reset(reset_args=self.goals_to_use_dict[itr][0])
+                            self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s.mp4' % itr)
                             rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                     animated=True, speedup=2, save_video=True, video_filename=video_filename,
-                                    reset_arg=self.goals_to_use_dict[itr][0],
+                                    reset_arg=self.goals_for_ET_dict[itr][0],
                                     use_maml=False,)
 
                     # debugging

@@ -128,6 +128,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.expert_trajs_dir = expert_trajs_dir
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
+        assert goals_to_load is None, "deprecated"
         if expert_trajs_dir is not None:
             assert goals_pool_to_load is None, "expert_trajs already comes with its own goals, please disable goals_pool_to_load"
             # extra
@@ -217,22 +218,14 @@ class BatchMAMLPolopt(RLAlgorithm):
         start = time.time()
         if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
-            offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
+            offpol_trajs = {t : joblib.load(expert_trajs_dir+str(task)+".pkl") for t, task in enumerate(self.goals_idxs_for_itr_dict[itr])}
 
         # some initial rearrangement
-        tasknums = offpol_trajs.keys()
+        tasknums = offpol_trajs.keys() # tasknums is basically range(self.meta_batch_size)
         for t in tasknums:
             for path in offpol_trajs[t]:
                 if 'expert_actions' not in path.keys():
                     path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
-                # if 'agent_infos' in path.keys():  #storing old agent_infos if any
-                #     if 'agent_infos_orig' not in path.keys():
-                #         path['agent_infos_orig'] = deepcopy(path['agent_infos'])
-                #      #   print("debug9.1, length of newly created agent_infos_orig,", len(path['agent_infos_orig']['mean']))
-                # else:
-                #     if expert_trajs_dir is None:
-                #         assert False, "debug9, there were no agent_infos, and it doesn't look like it came from expert_traj"
-                # path['agent_infos'] = [None] * len(path['rewards'])  # erasing/setting up agent_infos to be populated
 
                 if expert_trajs_dir is not None:
                     path['agent_infos'] = dict(mean=[[0.0] * len(path['actions'][0])]*len(path['actions']),log_std=[[0.0] * len(path['actions'][0])]*len(path['actions']))

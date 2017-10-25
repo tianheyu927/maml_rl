@@ -57,18 +57,18 @@ def run_task(v):
         #load_policy='/home/rosen/maml_rl_data/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
         baseline=baseline,
         batch_size=4000*50, # 100*500, # we divide this by #envs on every iteration
+        batch_size_expert_traj=40 * 50,
         max_path_length=50,
-        start_itr=-300,
-        n_itr=801,  # actually last iteration number, not total iterations
+        start_itr=-1,
+        n_itr=1001,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.008,  # 0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
         action_noise_test=0.1,
-        expert_traj_itrs_to_pickle=list(range(0, 801)),
         save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local"],
-        goals_to_load=GOALS_LOCATION,
+        goals_pool_to_load=GOALS_LOCATION,
     )
     algo.train()
 
