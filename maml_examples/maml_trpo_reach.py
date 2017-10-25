@@ -85,8 +85,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             post_std_modifier_train=post_std_modifier_train,
                             post_std_modifier_test=post_std_modifier_test,
                             # goals_to_load=GOALS_LOCATION,
-                          #  goals_pickle_to=GOALS_LOCATION,
-                          #  goals_pool_size=1000,
+                            goals_pickle_to=GOALS_LOCATION,
+                            goals_pool_size=1000,
 
                         )
                         run_experiment_lite(

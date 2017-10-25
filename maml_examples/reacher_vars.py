@@ -1,6 +1,6 @@
 
 # GOALS_LOCATION = '/home/rosen/maml_rl_data/saved_goals/reach/goals_E1_test1.pkl'
-GOALS_LOCATION = '/home/rosen/maml_rl_data/saved_goals/reach/g200nfj_goals1'
+GOALS_LOCATION = '/home/rosen/maml_rl_data/saved_goals/reach/g200nfj_goals_pool.pkl'
 
 ENV_OPTIONS = {
     '':'reacher.xml',

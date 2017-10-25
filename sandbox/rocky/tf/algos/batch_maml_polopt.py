@@ -161,7 +161,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         elif goals_pool_to_load is not None:
             logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
             self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
-            self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idx_dict']
+            self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']
             # inspecting the goals pool
             env = self.env
             while 'sample_goals' not in dir(env):
@@ -179,6 +179,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                 self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
                 self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]]
         else:
+            # we build our own goals pool
             if goals_pool_size is None:
                 self.goals_pool_size = (self.n_itr-self.start_itr)*self.meta_batch_size
             else:
@@ -198,8 +199,10 @@ class BatchMAMLPolopt(RLAlgorithm):
             for itr in range(self.start_itr, self.n_itr):
                 self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]]
             if goals_pickle_to is not None:
-                logger.log("Saving goals to %s..." % goals_pickle_to)
-                joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
+                # logger.log("Saving goals to %s..." % goals_pickle_to)
+                # joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
+                logger.log("Saving goals pool to %s..." % goals_pickle_to)
+                joblib_dump_safe(dict(goals_pool=self.goals_pool, idxs_dict=self.goals_idxs_for_itr_dict), goals_pickle_to)
 
 
 
