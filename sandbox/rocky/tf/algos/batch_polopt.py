@@ -30,6 +30,7 @@ class BatchPolopt(RLAlgorithm):
             n_itr=500,
             start_itr=0,
             batch_size=5000,
+            batch_size_expert_traj=5000,
             max_path_length=500,
             discount=0.99,
             gae_lambda=1,
@@ -82,7 +83,8 @@ class BatchPolopt(RLAlgorithm):
         self.n_itr = n_itr
         self.start_itr = start_itr
         self.batch_size = batch_size
-        self.batch_size_orig = batch_size
+        self.batch_size_train = batch_size
+        self.batch_size_expert_traj = batch_size_expert_traj
         self.max_path_length = max_path_length
         self.discount = discount
         self.gae_lambda = gae_lambda
@@ -173,10 +175,11 @@ class BatchPolopt(RLAlgorithm):
                 if itr in self.goals_to_use_dict.keys():
                     goals = self.goals_to_use_dict[itr]
                     noise = self.action_noise_test
+                    self.batch_size = self.batch_size_expert_traj
                 else:
                     goals = [None]
                     noise = self.action_noise_train
-                self.batch_size = self.batch_size_orig/len(goals)
+                    self.batch_size = self.batch_size_train
                 if itr in self.expert_traj_itrs_to_pickle:
                     paths_to_save = {}
                 itr_start_time = time.time()

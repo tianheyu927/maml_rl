@@ -143,8 +143,8 @@ class BatchMAMLPolopt(RLAlgorithm):
 
             logger.log("Loading goals from %s ..." % goals_to_load)
             temp_goals = joblib.load(goals_to_load)
-            assert set(range(self.start_itr, self.n_itr)).issubset(
-                set(temp_goals.keys())), "Not all meta-iteration numbers have saved goals in %s" % goals_to_load
+            assert set(range(self.start_itr, self.n_itr)).issubset(set(temp_goals.keys())),\
+                "Not all meta-iteration numbers have saved goals in %s" % goals_to_load
 
             self.goals_to_use_dict = {}
             for itr in range(self.start_itr, self.n_itr):
