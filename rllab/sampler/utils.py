@@ -1,6 +1,8 @@
 import time
 
 import numpy as np
+import joblib
+from pathlib import Path
 
 from rllab.misc import tensor_utils
 
@@ -60,3 +62,11 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1, save_
         agent_infos=tensor_utils.stack_tensor_dict_list(agent_infos),
         env_infos=tensor_utils.stack_tensor_dict_list(env_infos),
     )
+
+def joblib_dump_safe(val, filepath):
+    # dumps an object making sure we do not overwrite
+    assert not Path(filepath).exists()
+    Path(filepath).touch()
+    joblib.dump(val, filepath, compress=False)
+    return
+

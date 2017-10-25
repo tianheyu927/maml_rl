@@ -84,7 +84,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             pre_std_modifier=pre_std_modifier,
                             post_std_modifier_train=post_std_modifier_train,
                             post_std_modifier_test=post_std_modifier_test,
-                            goals_to_load=GOALS_LOCATION,
+                            # goals_to_load=GOALS_LOCATION,
                           #  goals_pickle_to=GOALS_LOCATION,
                           #  goals_pool_size=1000,
 
@@ -95,8 +95,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             snapshot_mode="last",
                             python_command='python3',
                             seed=seed,
-                            exp_prefix='RE_TR_D5.6_beta',
-                            exp_name='RE_TR_D5.6_beta'
+                            exp_prefix='RE_TR_E1_beta',
+                            exp_name='RE_TR_E1_beta'
                                      # + ".itr." + str(n_itr)
                                      # + str(int(use_maml))
                                      #     +'_fbs'+str(fast_batch_size)

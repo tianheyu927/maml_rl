@@ -20,7 +20,7 @@ import random as rd
 import joblib
 from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_list
 # from maml_examples.reacher_env import fingertip
-from rllab.sampler.utils import rollout
+from rllab.sampler.utils import rollout, joblib_dump_safe
 from maml_examples.maml_experiment_vars import TESTING_ITRS, PLOT_ITRS, VIDEO_ITRS
 
 
@@ -180,9 +180,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                 self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idx_for_itr_dict[itr]]
             if goals_pickle_to is not None:
                 logger.log("Saving goals to %s..." % goals_pickle_to)
-                from pathlib import Path
-                Path(goals_pickle_to).touch()
-                joblib.dump(self.goals_to_use_dict, goals_pickle_to, compress=5)
+                joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
 
 
 

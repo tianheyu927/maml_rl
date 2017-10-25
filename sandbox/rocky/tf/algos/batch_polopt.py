@@ -9,10 +9,9 @@ from sandbox.rocky.tf.policies.base import Policy
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 
 import joblib
-from pathlib import Path
 import matplotlib.pyplot as plt
 import os.path as osp
-from rllab.sampler.utils import rollout
+from rllab.sampler.utils import rollout, joblib_dump_safe
 
 
 class BatchPolopt(RLAlgorithm):
@@ -122,9 +121,9 @@ class BatchPolopt(RLAlgorithm):
                 "Haven't loaded goals for all expert trajectories"
             Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=True)
             logger.log("Pickling goals...")
-            Path(self.save_expert_traj_dir+"goals.pkl").touch()
-            joblib.dump(self.goals_to_use_dict, self.save_expert_traj_dir+"goals.pkl")
+            joblib_dump_safe(self.goals_to_use_dict, self.save_expert_traj_dir+"goals.pkl")
             # I know this was redundant, but we are doing it to make sure the goals stay with the expert trajs
+
 
         elif save_expert_traj_dir is not None and len(self.expert_traj_itrs_to_pickle) == 0:
             assert False, "please provide expert_traj_itrs_to_pickle"
@@ -198,8 +197,7 @@ class BatchPolopt(RLAlgorithm):
                             paths_to_save[goalnum] = paths_no_goalobs
                     if itr in self.expert_traj_itrs_to_pickle:
                         logger.log("Pickling trajectories...")
-                        Path(self.save_expert_traj_dir+str(itr)+".pkl").touch()
-                        joblib.dump(paths_to_save, self.save_expert_traj_dir+str(itr)+".pkl")
+                        joblib_dump_safe(paths_to_save, self.save_expert_traj_dir+str(itr)+".pkl")
                         logger.log("Fast-processing returns...")
                         undiscounted_returns = [sum(path['rewards']) for path in paths]
                         logger.record_tabular('AverageReturn', np.mean(undiscounted_returns))
@@ -323,11 +321,7 @@ class BatchPolopt(RLAlgorithm):
             plotter.update_plot(self.policy, self.max_path_length)
 
     def clip_goal_from_obs(self, paths):
-    #    return paths
-    #
-    #     # unwrapping...
         env = self.env
         while 'clip_goal_from_obs' not in dir(env):
             env = env.wrapped_env
-        return env.clip_goal_from_obs(paths)  # We want to implement this for each Oracle-type environment,
-    # since the goal's observations are env-specific
+        return env.clip_goal_from_obs(paths)

@@ -57,7 +57,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 env_spec=env.spec,
                                 grad_step_size=fast_learning_rate,
                                 hidden_nonlinearity=tf.nn.relu,
-                                hidden_sizes=(100, 100),
+                                hidden_sizes=(200, 200),
                                 std_modifier=pre_std_modifier,
                                 # output_nonlinearity=tf.nn.tanh,
                             )

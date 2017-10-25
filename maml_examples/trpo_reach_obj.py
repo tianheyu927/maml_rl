@@ -67,7 +67,7 @@ def run_task(v):
         action_noise_train=0.0,
         action_noise_test=0.1,
         expert_traj_itrs_to_pickle=list(range(0, 801)),
-        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option],
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local"],
         goals_to_load=GOALS_LOCATION,
     )
     algo.train()
@@ -82,7 +82,7 @@ for v in variants:
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
-        exp_prefix='RE_ET_B1',
+        exp_prefix='RE_ET_E1_beta',
         python_command='python3',
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used
