@@ -66,6 +66,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             post_std_modifier_train=1.0,
             post_std_modifier_test=1.0,
             goals_to_load=None,
+            goals_pool_to_load=None,
             expert_trajs_dir=None,
             goals_pickle_to=None,
             goals_pool_size=None,
@@ -151,14 +152,32 @@ class BatchMAMLPolopt(RLAlgorithm):
                 temp_goals_slice = temp_goals[itr]
                 # number of goals per iteration from loaded file | number of entries per goal:
                 num_goals, dimensions = temp_goals_slice.shape[0], temp_goals_slice.shape[1:]
-                assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s were needed" %\
-                                                          (itr, num_goals, self.meta_batch_size)
-                assert dimensions == reset_dimensions, "loaded dimensions are %s, do not match with environment's %s" %\
-                                                       (dimensions, reset_dimensions)
+                assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s were needed" % (itr, num_goals, self.meta_batch_size)
+                assert dimensions == reset_dimensions, "loaded dimensions are %s, do not match with environment's %s" % (dimensions, reset_dimensions)
                 # chopping the end off in case we were provided more tasks than we need:
                 temp_goals_slice = temp_goals_slice[:self.meta_batch_size]
                 self.goals_to_use_dict[itr] = temp_goals_slice
 
+        elif goals_pool_to_load is not None:
+            logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
+            self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
+            self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idx_dict']
+            # inspecting the goals pool
+            env = self.env
+            while 'sample_goals' not in dir(env):
+                env = env.wrapped_env
+            reset_dimensions = env.sample_goals(1).shape[1:]
+            dimensions = np.shape(self.goals_pool[0])
+            assert reset_dimensions == dimensions, "loaded dimensions are %s, do not match with environment's %s" % (dimensions, reset_dimensions)
+            # inspecting goals_idxs_for_itr_dict and building self.goals_to_use_dict
+            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_idxs_for_itr_dict.keys())),\
+                "Not all meta-iteration numbers have idx_dict in %s" % goals_pool_to_load
+            self.goals_to_use_dict={}
+            for itr in range(self.start_itr, self.n_itr):
+                num_goals = len(self.goals_idxs_for_itr_dict[itr])
+                assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s are needed" %(itr,num_goals, self.meta_batch_size)
+                self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
+                self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]]
         else:
             if goals_pool_size is None:
                 self.goals_pool_size = (self.n_itr-self.start_itr)*self.meta_batch_size
@@ -171,13 +190,13 @@ class BatchMAMLPolopt(RLAlgorithm):
                 env = env.wrapped_env
             self.goals_pool = env.sample_goals(self.goals_pool_size)
 
-            self.goals_idx_for_itr_dict = {}
+            self.goals_idxs_for_itr_dict = {}
             for itr in range(self.start_itr, self.n_itr):
-                self.goals_idx_for_itr_dict[itr] = rd.sample(range(self.goals_pool_size),self.meta_batch_size)
+                self.goals_idxs_for_itr_dict[itr] = rd.sample(range(self.goals_pool_size),self.meta_batch_size)
 
             self.goals_to_use_dict = {}
             for itr in range(self.start_itr, self.n_itr):
-                self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idx_for_itr_dict[itr]]
+                self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]]
             if goals_pickle_to is not None:
                 logger.log("Saving goals to %s..." % goals_pickle_to)
                 joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
