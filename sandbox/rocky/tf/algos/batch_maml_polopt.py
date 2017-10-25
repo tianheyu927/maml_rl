@@ -135,7 +135,6 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['goals_pool']
             self.goals_idxs_for_itr_dict = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['idxs_dict']
             print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys(), len(self.goals_pool))
-            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
         elif goals_pool_to_load is not None:
             logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
             self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']

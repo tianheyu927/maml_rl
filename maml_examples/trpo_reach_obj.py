@@ -60,7 +60,7 @@ def run_task(v):
         batch_size_expert_traj=40 * 50,
         max_path_length=50,
         start_itr=-1,
-        n_itr=1001,  # actually last iteration number, not total iterations
+        n_itr=1000,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.008,  # 0.01
         force_batch_sampler=True,
