@@ -129,55 +129,16 @@ class BatchMAMLPolopt(RLAlgorithm):
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
         if expert_trajs_dir is not None:
-            assert goals_to_load is None, "expert_trajs already comes with its own goals, please disable goals_to_load"
+            assert goals_pool_to_load is None, "expert_trajs already comes with its own goals, please disable goals_pool_to_load"
             # extra
             self.goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['goals_pool']
             self.goals_idxs_for_itr_dict = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['idxs_dict']
-            # extracting the goals_to_load
-            # self.goals_to_use_dict = joblib.load(self.expert_trajs_dir+"goals.pkl")
-            print("successfully extracted goals", self.goals_to_use_dict.keys())
-            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir  # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere so no chopping off
-
-        # not used
-        # elif goals_to_load is not None:
-        #     env = self.env
-        #     while 'sample_goals' not in dir(env):
-        #         env = env.wrapped_env
-        #     reset_dimensions = env.sample_goals(1).shape[1:]
-        #
-        #     logger.log("Loading goals from %s ..." % goals_to_load)
-        #     temp_goals = joblib.load(goals_to_load)
-        #     assert set(range(self.start_itr, self.n_itr)).issubset(set(temp_goals.keys())), "Not all meta-iteration numbers have saved goals in %s" % goals_to_load
-        #
-        #     self.goals_to_use_dict = {}
-        #     for itr in range(self.start_itr, self.n_itr):
-        #         temp_goals_slice = temp_goals[itr]
-        #         # number of goals per iteration from loaded file | number of entries per goal:
-        #         num_goals, dimensions = temp_goals_slice.shape[0], temp_goals_slice.shape[1:]
-        #         assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s were needed" % (itr, num_goals, self.meta_batch_size)
-        #         assert dimensions == reset_dimensions, "loaded dimensions are %s, do not match with environment's %s" % (dimensions, reset_dimensions)
-        #         # chopping the end off in case we were provided more tasks than we need:
-        #         temp_goals_slice = temp_goals_slice[:self.meta_batch_size]
-        #         self.goals_to_use_dict[itr] = temp_goals_slice
-
+            print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys(), len(self.goals_pool))
+            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
         elif goals_pool_to_load is not None:
             logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
             self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
             self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']
-            # inspecting the goals pool
-            env = self.env
-            while 'sample_goals' not in dir(env):
-                env = env.wrapped_env
-            reset_dimensions = env.sample_goals(1).shape[1:]
-            dimensions = np.shape(self.goals_pool[0])
-            assert reset_dimensions == dimensions, "loaded dimensions are %s, do not match with environment's %s" % (dimensions, reset_dimensions)
-            # inspecting goals_idxs_for_itr_dict
-            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_idxs_for_itr_dict.keys())),\
-                "Not all meta-iteration numbers have idx_dict in %s" % goals_pool_to_load
-            for itr in range(self.start_itr, self.n_itr):
-                num_goals = len(self.goals_idxs_for_itr_dict[itr])
-                assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s are needed" %(itr,num_goals, self.meta_batch_size)
-                self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
         else:
             # we build our own goals pool
             if goals_pool_size is None:
@@ -191,6 +152,22 @@ class BatchMAMLPolopt(RLAlgorithm):
                 env = env.wrapped_env
             self.goals_pool = env.sample_goals(self.goals_pool_size)
 
+        # inspecting the goals pool
+        env = self.env
+        while 'sample_goals' not in dir(env):
+            env = env.wrapped_env
+        reset_dimensions = env.sample_goals(1).shape[1:]
+        dimensions = np.shape(self.goals_pool[0])
+        assert reset_dimensions == dimensions, "loaded dimensions are %s, do not match with environment's %s" % (
+        dimensions, reset_dimensions)
+        # inspecting goals_idxs_for_itr_dict
+        assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_idxs_for_itr_dict.keys())), \
+            "Not all meta-iteration numbers have idx_dict in %s" % goals_pool_to_load
+        for itr in range(self.start_itr, self.n_itr):
+            num_goals = len(self.goals_idxs_for_itr_dict[itr])
+            assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s are needed" % (
+            itr, num_goals, self.meta_batch_size)
+            self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
 
         # we build goals_to_use_dict regardless of how we obtained goals_pool, goals_idx_for_itr_dict
         self.goals_to_use_dict = {}
