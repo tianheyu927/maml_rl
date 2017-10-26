@@ -12,6 +12,9 @@ from rllab.misc.instrument import stub, run_experiment_lite
 stub(globals())
 
 import tensorflow as tf
+from maml_examples.point_vars import POINT_GOALS_LOCATION, EXPERT_TRAJ_LOCATION_DICT
+
+
 
 env = TfEnv(normalize(PointEnvRandGoalOracleNoise()))
 
@@ -28,18 +31,18 @@ algo = TRPO(
     env=env,
     policy=policy,
     baseline=baseline,
-    batch_size=100*100,
+    batch_size=400*100,
+    batch_size_expert_traj=40*100,
     max_path_length=100,
-    start_itr=-400,
-    n_itr=101,
+    start_itr=-100,
+    n_itr=1000,
     discount=0.99,
     step_size=0.01,
     #plot=True,
     action_noise_train=0.0,
-    action_noise_test=0.01,
-    expert_traj_itrs_to_pickle=list(range(0, 101)),
-    save_expert_traj_dir="/home/rosen/maml_rl_data/saved_expert_traj/point/9_15_test10_fixedstart_noise0.01_nodone/",
-    goals_to_load='/home/rosen/maml_rl_data/saved_goals/point/saved_goals_9_6.pkl',
+    action_noise_test=0.00,
+    save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
+    goals_pool_to_load=POINT_GOALS_LOCATION[".local"],
 
 )
 
@@ -52,7 +55,7 @@ run_experiment_lite(
     # Specifies the seed for the experiment. If this is not provided, a random seed
     # will be used
     seed=1,
-    exp_prefix='PR_ET',
-    exp_name='PR_ET',
+    exp_prefix='PR_ET_E1',
+    exp_name='PR_ET_E1',
     #plot=True,
 )

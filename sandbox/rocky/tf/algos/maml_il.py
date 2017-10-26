@@ -138,11 +138,11 @@ class MAMLIL(BatchMAMLPolopt):
 
             # here we define the loss for meta-gradient
             e = expert_action_vars[i]
-            # s = dist_info_vars_i["log_std"]
+            s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
             # surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*tf.exp(s)**2+m**2-2*m*e))
-            # surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
-            surr_objs.append(tf.reduce_mean(m**2-2*m*e))
+            surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
+            # surr_objs.append(tf.reduce_mean(m**2-2*m*e))
 
         surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: do we need the input_list values over anything that's not the last grad step?

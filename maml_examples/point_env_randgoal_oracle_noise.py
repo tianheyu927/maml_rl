@@ -13,9 +13,9 @@ class PointEnvRandGoalOracleNoise(Env):
         else:
             self.set_at_init = True
         if 'noise' in kwargs:
-            self.noise = kwargs['noise']
+            self.action_noise = kwargs['noise']
         else:
-            self.noise = 0
+            self.action_noise = 0
         self.debugcounter = 0
 
     @property
@@ -31,9 +31,12 @@ class PointEnvRandGoalOracleNoise(Env):
 
     def reset(self, reset_args=None):
         if type(reset_args) is dict:
-            goal = reset_args['task']
-            if 'noise' in reset_args.keys():
-                self.noise = reset_args['noise']
+            goal = reset_args['goal']
+            noise = reset_args['noise']
+            if self.action_noise != noise:
+                print("debug, action noise changing")
+                self.action_noise = noise
+
         else:
             goal = reset_args
         if goal is not None:
@@ -41,14 +44,14 @@ class PointEnvRandGoalOracleNoise(Env):
         elif not self.set_at_init:
             self._goal = np.random.uniform(-0.5, 0.5, size=(2,))
 
-        self._state = (0, 0) #self._goal + np.random.uniform(-0.5, 0.5, size=(2,)) #(0, 0)
+        self._state = self._goal + np.random.uniform(-0.5, 0.5, size=(2,)) #(0, 0)
         observation = np.copy(self._state)
         return np.r_[observation, np.copy(self._goal)]
 
     def step(self, action):
-        action = action + np.random.normal(0., self.noise, size=action.shape)
+        action = action + np.random.normal(0., self.action_noise, size=action.shape)
     #    if self.debugcounter % 1000 == 0:
-    #        print("debug1 noise", self.noise)
+    #        print("debug1 noise", self.action_noise)
     #    self.debugcounter += 1
         self._state = self._state + action
         x, y = self._state

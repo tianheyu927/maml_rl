@@ -50,7 +50,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             beta_steps=1,
             plot=False,
             pause_for_plot=False,
-            make_video=False,
+            make_video=True,
             center_adv=True,
             positive_adv=False,
             store_paths=False,
@@ -168,14 +168,13 @@ class BatchMAMLPolopt(RLAlgorithm):
             "Not all meta-iteration numbers have idx_dict in %s" % goals_pool_to_load
         for itr in range(self.start_itr, self.n_itr):
             num_goals = len(self.goals_idxs_for_itr_dict[itr])
-            assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when %s are needed" % (
-            itr, num_goals, self.meta_batch_size)
+            assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when at least %s are needed" % (itr, num_goals, self.meta_batch_size)
             self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
 
         # we build goals_to_use_dict regardless of how we obtained goals_pool, goals_idx_for_itr_dict
         self.goals_to_use_dict = {}
         for itr in range(self.start_itr, self.n_itr):
-            self.goals_to_use_dict[itr] = [self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]]
+            self.goals_to_use_dict[itr] = np.array([self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]])
 
         # saving goals pool
         if goals_pickle_to is not None:
@@ -220,7 +219,10 @@ class BatchMAMLPolopt(RLAlgorithm):
         start = time.time()
         if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
-            offpol_trajs = {t : joblib.load(expert_trajs_dir+str(task)+".pkl") for t, task in enumerate(self.goals_idxs_for_itr_dict[itr])}
+            offpol_trajs = {}
+            for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
+                assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
+            offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
 
         # some initial rearrangement
         tasknums = offpol_trajs.keys() # tasknums is basically range(self.meta_batch_size)
@@ -312,16 +314,19 @@ class BatchMAMLPolopt(RLAlgorithm):
                             logger.log("Obtaining samples...")
 
                             if self.expert_trajs_dir is None or itr in TESTING_ITRS or (beta_step == 0 and step < self.num_grad_updates):
+                                print("debug12.1, regular sampling")
                                 paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step))
                                 if beta_step == 0 and step == 0:
                                     paths = store_agent_infos(paths)
                                     beta0_step0_paths = deepcopy(paths)
                             elif step == self.num_grad_updates:
+                                print("debug12.2, expert traj")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
                                                                          expert_trajs_dir=self.expert_trajs_dir,
                                                                          offpol_trajs=None,
                                                                          log_prefix=str(beta_step)+"_"+str(step))
                             elif beta_step > 0 and step < self.num_grad_updates:
+                                print("debug12.3, own samples")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
                                                                          expert_trajs_dir=None,
                                                                          offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0

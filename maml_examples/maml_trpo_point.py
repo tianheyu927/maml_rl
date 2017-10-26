@@ -11,6 +11,8 @@ from sandbox.rocky.tf.envs.base import TfEnv
 
 import tensorflow as tf
 import time
+from maml_examples.point_vars import POINT_GOALS_LOCATION, EXPERT_TRAJ_LOCATION_DICT
+
 
 fast_learning_rates = [0.5]  # 0.5
 baselines = ['linear']
@@ -59,7 +61,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             max_path_length=max_path_length,
                             meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                             num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                            n_itr=20, #100
+                            n_itr=100, #100
                             use_maml=use_maml,
                             step_size=meta_step_size,
                             plot=False,
@@ -67,9 +69,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             post_std_modifier_train=post_std_modifier_train,
                             post_std_modifier_test=post_std_modifier_test,
                             meta_train_on_expert_traj=False,
-                          #  goals_to_load='/home/rosen/maml_rl_data/saved_goals/point/saved_goals1.pkl',
-                            #expert_trajs_dir="/home/rosen/maml_rl_data/saved_expert_traj/9_6_test4/",
-                            goals_pickle_to=None, #'/home/rosen/maml_rl_data/saved_goals/point/saved_goals_9_6.pkl',
+                            # goals_pool_to_load=POINT_GOALS_LOCATION[".local"],
+                            goals_pickle_to=POINT_GOALS_LOCATION[".local"],
+                            goals_pool_size=1000,
                         )
                         run_experiment_lite(
                             algo.train(),
@@ -77,8 +79,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             snapshot_mode="last",
                             python_command='python3',
                             seed=1,
-                            exp_prefix='maml_trpo_point100',
-                            exp_name='trpomaml'
+                            exp_prefix='PR_TR_E1',
+                            exp_name='PR_TR_E1'
                                      + str(int(use_maml))
                                      #     +'_fbs'+str(fast_batch_size)
                                      #     +'_mbs'+str(meta_batch_size)

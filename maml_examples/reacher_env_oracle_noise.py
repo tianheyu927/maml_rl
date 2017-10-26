@@ -83,6 +83,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
         if type(reset_args) is dict:
             goal_pos = reset_args['goal']
             noise = reset_args['noise']
+            print("using goal_pos", goal_pos)
             if self.action_noise != noise:
                 print("debug action noise changing")
                 self.action_noise = noise
@@ -151,3 +152,7 @@ class ReacherEnvOracleNoise(MujocoEnv, Serializable):
             clipped_obs = path['observations'][:, :-2]
             path['observations'] = clipped_obs
         return paths_copy
+
+
+
+
