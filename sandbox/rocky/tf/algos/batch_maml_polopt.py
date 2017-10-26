@@ -140,7 +140,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
             self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']
         else:
-            # we build our own goals pool
+            # we build our own goals pool and idxs_dict
             if goals_pool_size is None:
                 self.goals_pool_size = (self.n_itr-self.start_itr)*self.meta_batch_size
             else:
@@ -151,6 +151,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             while 'sample_goals' not in dir(env):
                 env = env.wrapped_env
             self.goals_pool = env.sample_goals(self.goals_pool_size)
+            self.goals_idxs_for_itr_dict = {}
+            for itr in range(self.start_itr, self.n_itr):
+                self.goals_idxs_for_itr_dict[itr] = rd.sample(range(self.goals_pool_size), self.meta_batch_size)
 
         # inspecting the goals pool
         env = self.env
@@ -450,7 +453,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         maml_num_tasks=len(self.goals_to_use_dict[itr]))
 
 
-                    elif False and itr in PLOT_ITRS:  # swimmer or cheetah
+                    elif True and itr in PLOT_ITRS:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()

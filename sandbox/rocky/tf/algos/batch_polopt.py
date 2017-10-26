@@ -119,28 +119,14 @@ class BatchPolopt(RLAlgorithm):
         else:
             self.goals_for_ET_dict = {}
             self.expert_traj_itrs_to_pickle = []
+            assert save_expert_traj_dir is None, "can't save ETs without goals provided"
         if len(self.expert_traj_itrs_to_pickle) > 0:
             assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
             assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))), "Will not go through all itrs that need to be pickled, widen the start_itr and n_itr range"
-            assert set(self.expert_traj_itrs_to_pickle).issubset(set(self.goals_for_ET_dict.keys())), "Haven't loaded goals for all expert trajectories"
             Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=False)
             logger.log("Pickling goals pool...")
             joblib_dump_safe(dict(goals_pool=self.goals_pool, idxs_dict=self.goals_idxs_for_itr_dict), self.save_expert_traj_dir+"goals_pool.pkl")
-            # I know this was redundant, but we are doing it to make sure the goals stay with the expert trajs
-
-
-        elif save_expert_traj_dir is not None and len(self.expert_traj_itrs_to_pickle) == 0:
-            assert False, "please provide expert_traj_itrs_to_pickle"
-
-            # note, in batch_polopt, goals_to use can be a subset of all iterations/goals used,
-            # while in batch_maml_polopt, once we use goals_to_load, we enforce that all iterations
-            # and meta batch sizes are covered by those goals.
-            # The intuition is that for every task used by batch_maml_polopt, we want to have an expert policy
-            # that has covered said situation; at the same time, we want an expert policy to pre-train
-            # before performing on the set of tasks that we'll use for MAML
-
-
-
+            # We making sure the goals stay with the expert trajs
 
     def start_worker(self):
         self.sampler.start_worker()

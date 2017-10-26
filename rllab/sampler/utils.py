@@ -65,7 +65,7 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1, save_
 
 def joblib_dump_safe(val, filepath):
     # dumps an object making sure we do not overwrite
-    assert not Path(filepath).exists()
+    assert not Path(filepath).exists(), "cannot overwrite"
     Path(filepath).touch()
     joblib.dump(val, filepath, compress=False)
     return

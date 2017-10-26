@@ -1,6 +1,6 @@
 
-#EXPERT_TRAJ_LOCATION = "/home/rosen/maml_rl_data/saved_expert_traj/reacher10/test7/"
-GOALS_LOCATION = '/home/rosen/maml_rl_data/saved_goals/cheetah/goals1_individual.pkl'
+# CHEETAH_GOALS_LOCATION = '/home/rosen/maml_rl/saved_goals/cheetah/goals_pool1.pkl'
+CHEETAH_GOALS_LOCATION = '/root/code/rllab/saved_goals/cheetah/goals_pool1.pkl'
 
 ENV_OPTIONS = {
     '':'half_cheetah.xml',
@@ -10,7 +10,7 @@ ENV_OPTIONS = {
 default_cheetah_env_option = ''
 
 EXPERT_TRAJ_LOCATION_DICT = {
-    "":"/home/rosen/maml_rl_data/saved_expert_traj/cheetah/CH-ET4-individual/",
-    "debug":"/home/rosen/maml_rl_data/saved_expert_traj/cheetah/CH-ET1-debug/",
+    ".local":"/home/rosen/maml_rl/saved_expert_traj/cheetah/CH-ET4-individual/",
+    ".ec2":"/root/code/rllab/saved_expert_traj/cheetah/CH-ET4-individual/",
 }
 

@@ -9,7 +9,7 @@ from rllab.misc.instrument import stub, run_experiment_lite
 #from rllab.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.policies.maml_minimal_gauss_mlp_policy import MAMLGaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
-from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, GOALS_LOCATION, \
+from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, CHEETAH_GOALS_LOCATION, \
     default_cheetah_env_option
 import tensorflow as tf
 
@@ -44,7 +44,9 @@ class VG(VariantGenerator):
     def direc(self):  # directionenv vs. goal velocity
         return [False]
 
-
+    @variant
+    def net_size(self):
+        return [(100,100),(200,200)]
 # should also code up alternative KL thing
 
 variants = VG().variants()
@@ -66,7 +68,7 @@ for v in variants:
         env_spec=env.spec,
         grad_step_size=v['fast_lr'],
         hidden_nonlinearity=tf.nn.relu,
-        hidden_sizes=(100,100),
+        hidden_sizes=v['net_size'],
     )
 
     baseline = LinearFeatureBaseline(env_spec=env.spec)
@@ -78,18 +80,20 @@ for v in variants:
         max_path_length=max_path_length,
         meta_batch_size=v['meta_batch_size'],
         num_grad_updates=num_grad_updates,
-        n_itr=1001,
+        n_itr=801,
         use_maml=use_maml,
         step_size=v['meta_step_size'],
         plot=False,
-        goals_pickle_to=GOALS_LOCATION,
+        goals_pool_to_load=CHEETAH_GOALS_LOCATION,
+        #goals_pickle_to=CHEETAH_GOALS_LOCATION,
+        #goals_pool_size=1000,
     )
     direc = 'direc' if direc else ''
 
     run_experiment_lite(
         algo.train(),
-        exp_prefix='trpo_maml_cheetah' + direc + str(max_path_length),
-        exp_name='maml'+str(int(use_maml))+'_fbs'+str(v['fast_batch_size'])+'_mbs'+str(v['meta_batch_size'])+'_flr_' + str(v['fast_lr'])  + '_mlr' + str(v['meta_step_size']),
+        exp_prefix='CH-TR-E1' + direc + str(max_path_length),
+        exp_name='CH-TR-E1'+str(int(use_maml))+'_fbs'+str(v['fast_batch_size'])+'_mbs'+str(v['meta_batch_size'])+'_flr_' + str(v['fast_lr'])  + '_mlr' + str(v['meta_step_size']) + '_net' + str(v['net_size'][0]),
         # Number of parallel workers for sampling
         n_parallel=8,
         # Only keep the snapshot parameters for the last iteration
@@ -100,8 +104,8 @@ for v in variants:
         # Specifies the seed for the experiment. If this is not provided, a random seed
         # will be used
         seed=v["seed"],
-        #mode="local",
-        mode="local",
+        mode="ec2",
+        # mode="local",
         variant=v,
         # plot=True,
         terminate_machine=False,

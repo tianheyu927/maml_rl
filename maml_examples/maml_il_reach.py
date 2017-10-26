@@ -19,7 +19,7 @@ import tensorflow as tf
 import time
 
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
-beta_adam_steps_list = [(2,2)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_adam_steps_list = [(1,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.001]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
@@ -59,7 +59,6 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 hidden_nonlinearity=tf.nn.relu,
                                 hidden_sizes=(200, 200),
                                 std_modifier=pre_std_modifier,
-                                # output_nonlinearity=tf.nn.tanh,
                             )
                             if bas == 'zero':
                                 baseline = ZeroBaseline(env_spec=env.spec)
@@ -75,14 +74,13 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 max_path_length=max_path_length,
                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                n_itr=250, #100
+                                n_itr=2, #100
                                 use_maml=use_maml,
                                 step_size=meta_step_size,
                                 plot=False,
                                 beta_steps=beta_steps,
                                 adam_steps=adam_steps,
                                 pre_std_modifier=pre_std_modifier,
-                                l2loss_std_mult=l2loss_std_mult,
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
                                 expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode],

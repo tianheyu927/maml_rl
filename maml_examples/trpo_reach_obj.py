@@ -44,22 +44,23 @@ env_option = default_reacher_env_option
 
 def run_task(v):
     env = TfEnv(normalize(ReacherEnvOracleNoise(option='g200nfj',noise=0.0)))
-    policy = GaussianMLPPolicy(
-       name="policy",
-       env_spec=env.spec,
-       hidden_nonlinearity=tf.nn.relu,
-       hidden_sizes=(100, 100),
-    )
+    # policy = GaussianMLPPolicy(
+    #    name="policy",
+    #    env_spec=env.spec,
+    #    hidden_nonlinearity=tf.nn.relu,
+    #    hidden_sizes=(100, 100),
+    # )
     baseline = LinearFeatureBaseline(env_spec=env.spec)
     algo = TRPO(
         env=env,
-        policy=policy,
-        #load_policy='/home/rosen/maml_rl_data/data/local/rllab-fixed-reach-experts/rllab_fixed_reach_experts_2017_08_24_19_24_05_0001/itr_280.pkl',
+        #policy=policy,
+        policy=None,
+        load_policy='/home/rosen/maml_rl/data/local/RE-ET-B1/RE_ET_B1_2017_10_09_17_28_33_0001/itr_-20.pkl',
         baseline=baseline,
         batch_size=4000*50, # 100*500, # we divide this by #envs on every iteration
         batch_size_expert_traj=40 * 50,
         max_path_length=50,
-        start_itr=-1,
+        start_itr=-40,
         n_itr=1000,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.008,  # 0.01
