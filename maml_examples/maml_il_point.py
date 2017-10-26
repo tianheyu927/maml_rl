@@ -78,7 +78,7 @@ for env_option in env_options:
                                     l2loss_std_mult=l2loss_std_mult,
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
-                                  #  expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
+                                    expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
                                 )
 
                                 run_experiment_lite(
@@ -87,8 +87,8 @@ for env_option in env_options:
                                     snapshot_mode="last",
                                     python_command='python3',
                                     seed=1,
-                                    exp_prefix='PR_IL_E1_beta',
-                                    exp_name='PR_IL_E1_beta'
+                                    exp_prefix='PR_IL_E1.6_beta',
+                                    exp_name='PR_IL_E1.6_beta'
                                              +str(int(use_maml))
                                             # +'_fbs'+str(fast_batch_size)
                                             # +'_mbs'+str(meta_batch_size)
