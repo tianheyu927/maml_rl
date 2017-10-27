@@ -50,7 +50,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             beta_steps=1,
             plot=False,
             pause_for_plot=False,
-            make_video=True,
+            make_video=False,
             center_adv=True,
             positive_adv=False,
             store_paths=False,

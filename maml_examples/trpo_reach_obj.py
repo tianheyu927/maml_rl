@@ -67,7 +67,7 @@ def run_task(v):
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
-        action_noise_test=0.0,
+        action_noise_test=0.1,
         save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local"],
         goals_pool_to_load=GOALS_LOCATION,
     )

@@ -20,7 +20,7 @@ class MAMLIL(BatchMAMLPolopt):
             use_maml=True,
             beta_steps=1,
             adam_steps=1,
-            l2loss_std_mult=10.0,
+            l2loss_std_mult=1.0,
             **kwargs):
         if optimizer is None:
             if optimizer_args is None:
@@ -140,8 +140,8 @@ class MAMLIL(BatchMAMLPolopt):
             e = expert_action_vars[i]
             s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
-            # surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*tf.exp(s)**2+m**2-2*m*e))
-            surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
+            surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*(tf.exp(s)**2)+m**2-2*m*e))
+            # surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
             # surr_objs.append(tf.reduce_mean(m**2-2*m*e))
 
         surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks

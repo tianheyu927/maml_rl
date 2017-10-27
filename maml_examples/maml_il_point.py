@@ -83,7 +83,7 @@ for env_option in env_options:
 
                                 run_experiment_lite(
                                     algo.train(),
-                                    n_parallel=1,
+                                    n_parallel=10,
                                     snapshot_mode="last",
                                     python_command='python3',
                                     seed=1,

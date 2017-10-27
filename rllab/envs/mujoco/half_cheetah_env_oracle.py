@@ -30,9 +30,9 @@ class HalfCheetahEnvOracle(MujocoEnv, Serializable):
         if type(reset_args) is dict:
             goal_vel = reset_args['goal']
             noise = reset_args['noise']
-            # if self.action_noise != noise:
-            #     print("debug action noise changing")
-            #     self.action_noise = noise
+            if self.action_noise != noise:
+                print("debug action noise changing")
+                self.action_noise = noise
         else:
             goal_vel = reset_args
         if goal_vel is not None:
