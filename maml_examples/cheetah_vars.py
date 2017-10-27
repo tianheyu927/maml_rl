@@ -14,5 +14,7 @@ EXPERT_TRAJ_LOCATION_DICT = {
     ".ec2": "/root/code/rllab/saved_expert_traj/cheetah/CH-ET4-individual/",
     ".local.noise0.1": "/home/rosen/maml_rl/saved_expert_traj/cheetah/CH-ET-E1.6-noise0.1/",
     ".ec2.noise0.1": "/root/code/rllab/saved_expert_traj/cheetah/CH-ET-E1.6-noise0.1/",
+    ".local.noise0.1.small": "/home/rosen/maml_rl/saved_expert_traj/cheetah/CH-ET-E1.7-noise0.1-small/",
+    ".ec2.noise0.1.small": "/root/code/rllab/saved_expert_traj/cheetah/CH-ET-E1.7-noise0.1-small/",
 }
 

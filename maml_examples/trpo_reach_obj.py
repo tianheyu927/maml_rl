@@ -58,7 +58,7 @@ def run_task(v):
         load_policy='/home/rosen/maml_rl/data/local/RE-ET-B1/RE_ET_B1_2017_10_09_17_28_33_0001/itr_-20.pkl',
         baseline=baseline,
         batch_size=4000*50, # 100*500, # we divide this by #envs on every iteration
-        batch_size_expert_traj=200 * 50,
+        batch_size_expert_traj=20 * 50,
         max_path_length=50,
         start_itr=-1,
         n_itr=1000,  # actually last iteration number, not total iterations
@@ -68,7 +68,7 @@ def run_task(v):
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
         action_noise_test=0.1,
-        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local"],
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local.small"],
         goals_pool_to_load=GOALS_LOCATION,
     )
     algo.train()

@@ -33,12 +33,12 @@ meta_step_size = 0.01
 pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
-l2loss_std_mult_list = [10.0,100.0]
+l2loss_std_mult_list = [1.0]
 net_size_list = [(200,200)]
 use_maml = True
 
-mode="ec2"
-# mode="local"
+# mode="ec2"
+mode="local"
 
 for l2loss_std_mult in l2loss_std_mult_list:
     for post_std_modifier_train in post_std_modifier_train_list:
@@ -94,8 +94,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                     snapshot_mode="last",
                                     python_command='python3',
                                     seed=seed,
-                                    exp_prefix='RE_IL_E1.6_beta',
-                                    exp_name='RE_IL_E1.6_beta'
+                                    exp_prefix='RE_IL_E1.7_beta',
+                                    exp_name='RE_IL_E1.7_beta'
                                              + str(int(use_maml))
                                              #     +'_fbs'+str(fast_batch_size)
                                              #     +'_mbs'+str(meta_batch_size)

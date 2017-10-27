@@ -81,7 +81,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 l2loss_std_mult=l2loss_std_mult,
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
-                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+".noise0.1"],
+                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+".noise0.1.small"],
                             )
                             run_experiment_lite(
                                 algo.train(),
