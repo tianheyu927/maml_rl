@@ -458,7 +458,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         maml_num_tasks=len(self.goals_to_use_dict[itr]))
 
 
-                    elif True and itr in PLOT_ITRS:  # swimmer or cheetah
+                    elif False and itr in PLOT_ITRS:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()

@@ -18,12 +18,12 @@ from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, d
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(10,1),(200,1),(1,125),(1,5)]
+beta_adam_steps_list = [(1,25)]
 
 fast_learning_rates = [0.1]
 baselines = ['linear']
 env_option = ''
-mode = "ec2"
+mode = "local"
 
 fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
