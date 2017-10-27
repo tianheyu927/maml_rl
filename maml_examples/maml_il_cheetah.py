@@ -89,8 +89,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='CH_IL_E1.6_beta',
-                                exp_name='CH_IL_E1.6_beta'
+                                exp_prefix='CH_IL_E1.7_beta',
+                                exp_name='CH_IL_E1.7_beta'
                                          + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)
