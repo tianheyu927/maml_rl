@@ -183,7 +183,18 @@ class BatchMAMLPolopt(RLAlgorithm):
         else:  # backwards compatibility code for old-format ETs
             self.goals_to_use_dict = joblib.load(self.expert_trajs_dir+"goals.pkl")
 
-        # saving goals pool
+        assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
+
+        # chopping off unnecessary meta-iterations and goals
+        self.goals_to_use_dict = {itr:self.goals_to_use_dict[itr][:self.meta_batch_size]
+                                  for itr in range(self.start_itr,self.n_itr)}
+        # chopping off unnecess
+
+        # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere
+
+
+
+        # saving goals pool-
         if goals_pickle_to is not None:
             # logger.log("Saving goals to %s..." % goals_pickle_to)
             # joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
@@ -221,12 +232,11 @@ class BatchMAMLPolopt(RLAlgorithm):
         assert type(paths) == dict
         return paths
 
-    def obtain_agent_info_offpolicy(self, itr, expert_trajs_dir=None, offpol_trajs=None, log_prefix=''):
+    def obtain_agent_info_offpolicy(self, itr, expert_trajs_dir=None, offpol_trajs=None, treat_as_expert_traj=False, log_prefix=''):
         # TODO: add usage of meta batch size and batch size as a way of sampling desired number
         start = time.time()
         if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
-            offpol_trajs = {}
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
                     assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
@@ -234,20 +244,22 @@ class BatchMAMLPolopt(RLAlgorithm):
             else:
                 offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
 
+            offpol_trajs = {tasknum:offpol_trajs[tasknum] for tasknum in range(self.meta_batch_size)}
+
         # some initial rearrangement
-        tasknums = offpol_trajs.keys() # tasknums is basically range(self.meta_batch_size)
+        tasknums = offpol_trajs.keys() # tasknums is range(self.meta_batch_size) as can be seen above
         for t in tasknums:
             for path in offpol_trajs[t]:
-                if 'expert_actions' not in path.keys() and expert_trajs_dir is not None:
+                if 'expert_actions' not in path.keys() and treat_as_expert_traj:
                    # print("copying expert actions, you should do this only 1x per metaitr")
                     path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
 
-                if expert_trajs_dir is not None:
+                if treat_as_expert_traj:
                     path['agent_infos'] = dict(mean=[[0.0] * len(path['actions'][0])]*len(path['actions']),log_std=[[0.0] * len(path['actions'][0])]*len(path['actions']))
                 else:
                     path['agent_infos'] = [None] * len(path['rewards'])
 
-        if expert_trajs_dir is None:
+        if not treat_as_expert_traj:
             print("debug12, running offpol on own previous samples")
             running_path_idx = {t: 0 for t in tasknums}
             running_intra_path_idx = {t: 0 for t in tasknums}
@@ -282,9 +294,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                             running_path_idx[t] = -1
         total_time = time.time()-start
        # logger.record_tabular(log_prefix+"TotalExecTime", total_time)
-        #if expert_trajs_dir is not None:
-            #print("debug10.1, this came from expert trajs")
-        #print("debug10.2", offpol_trajs[0][0].keys())
         return offpol_trajs
 
     def process_samples(self, itr, paths, prefix='', log=True, fast_process=False):
@@ -316,6 +325,13 @@ class BatchMAMLPolopt(RLAlgorithm):
                     all_paths_for_plotting = []
                     beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else [0]
                     beta0_step0_paths = None
+                    if self.use_maml_il:
+                        expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
+                        expert_traj_for_metaitr = {tasknum:expert_traj_for_metaitr[tasknum] for tasknum in range(self.meta_batch_size)}
+                        for t in expert_traj_for_metaitr.keys():
+                            for path in expert_traj_for_metaitr[t]:
+                                if 'expert_actions' not in path.keys():
+                                    path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
                     for beta_step in beta_steps_range:
                         all_samples_data_for_betastep = []
                         self.policy.std_modifier = self.pre_std_modifier
@@ -333,13 +349,12 @@ class BatchMAMLPolopt(RLAlgorithm):
                             elif step == self.num_grad_updates:
                                 print("debug12.2, expert traj")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
-                                                                         expert_trajs_dir=self.expert_trajs_dir,
-                                                                         offpol_trajs=None,
+                                                                         offpol_trajs=expert_traj_for_metaitr,
+                                                                         treat_as_expert_traj=True,
                                                                          log_prefix=str(beta_step)+"_"+str(step))
                             elif beta_step > 0 and step < self.num_grad_updates:
                                 print("debug12.3, own samples")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
-                                                                         expert_trajs_dir=None,
                                                                          offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0
                                                                          log_prefix=str(beta_step) + "_" + str(step))
                             else:

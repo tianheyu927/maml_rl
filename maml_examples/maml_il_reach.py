@@ -22,7 +22,7 @@ import time
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 beta_adam_steps_list = [(200,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
-fast_learning_rates = [0.0008, 0.0012]  #1.0 seems to work best, getting to average return -42  1.5
+fast_learning_rates = [0.0012]  #1.0 seems to work best, getting to average return -42  1.5
 baselines = ['linear']
 env_option = default_reacher_env_option
 
@@ -31,7 +31,7 @@ meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly s
 max_path_length = 50  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
-pre_std_modifier_list = [1.0, 0.25,0.1]
+pre_std_modifier_list = [0.25]
 post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
@@ -39,8 +39,8 @@ net_size_list = [(200,200)]
 use_maml = True
 importance_sampling_modifier_list=['clip0.5_2.0']
 
-mode="ec2"
-# mode="local"
+# mode="ec2"
+mode="local"
 for fast_batch_size in fast_batch_size_list:
     for ism in importance_sampling_modifier_list:
         for l2loss_std_mult in l2loss_std_mult_list:
@@ -102,7 +102,7 @@ for fast_batch_size in fast_batch_size_list:
                                             exp_name='RE_IL_D5_beta'
                                                      + str(int(use_maml))
                                                          +'_fbs'+str(fast_batch_size)
-                                                     #     +'_mbs'+str(meta_batch_size)
+                                                         +'_mbs'+str(meta_batch_size)
                                                      + '_flr_' + str(fast_learning_rate)
                                                      #     +'metalr_'+str(meta_step_size)
                                                      #     +'_ngrad'+str(num_grad_updates)
