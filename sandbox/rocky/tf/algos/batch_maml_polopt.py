@@ -70,6 +70,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             expert_trajs_dir=None,
             goals_pickle_to=None,
             goals_pool_size=None,
+            use_pooled_goals=False,
 
             **kwargs
     ):
@@ -121,60 +122,66 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.meta_batch_size = meta_batch_size  # number of tasks
         self.num_grad_updates = num_grad_updates  # number of gradient steps during training
         self.use_maml_il = use_maml_il
+        print("use_maml_il", self.use_maml_il)
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
         self.post_std_modifier_test = post_std_modifier_test
         #   self.action_limiter_multiplier = action_limiter_multiplier
         self.expert_trajs_dir = expert_trajs_dir
+        self.use_pooled_goals = use_pooled_goals
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
         assert goals_to_load is None, "deprecated"
-        if expert_trajs_dir is not None:
-            assert goals_pool_to_load is None, "expert_trajs already comes with its own goals, please disable goals_pool_to_load"
-            # extra
-            self.goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['goals_pool']
-            self.goals_idxs_for_itr_dict = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['idxs_dict']
-            print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys(), len(self.goals_pool))
-        elif goals_pool_to_load is not None:
-            logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
-            self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
-            self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']
-        else:
-            # we build our own goals pool and idxs_dict
-            if goals_pool_size is None:
-                self.goals_pool_size = (self.n_itr-self.start_itr)*self.meta_batch_size
+        if self.use_pooled_goals:
+            if expert_trajs_dir is not None:
+                assert goals_pool_to_load is None, "expert_trajs already comes with its own goals, please disable goals_pool_to_load"
+                # extra
+                self.goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['goals_pool']
+                self.goals_idxs_for_itr_dict = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['idxs_dict']
+                print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys(), len(self.goals_pool))
+            elif goals_pool_to_load is not None:
+                logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
+                self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
+                self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']
             else:
-                self.goals_pool_size = goals_pool_size
+                # we build our own goals pool and idxs_dict
+                if goals_pool_size is None:
+                    self.goals_pool_size = (self.n_itr-self.start_itr)*self.meta_batch_size
+                else:
+                    self.goals_pool_size = goals_pool_size
 
-            logger.log("Sampling a pool of tasks/goals for this meta-batch...")
+                logger.log("Sampling a pool of tasks/goals for this meta-batch...")
+                env = self.env
+                while 'sample_goals' not in dir(env):
+                    env = env.wrapped_env
+                self.goals_pool = env.sample_goals(self.goals_pool_size)
+                self.goals_idxs_for_itr_dict = {}
+                for itr in range(self.start_itr, self.n_itr):
+                    self.goals_idxs_for_itr_dict[itr] = rd.sample(range(self.goals_pool_size), self.meta_batch_size)
+
+            # inspecting the goals pool
             env = self.env
             while 'sample_goals' not in dir(env):
                 env = env.wrapped_env
-            self.goals_pool = env.sample_goals(self.goals_pool_size)
-            self.goals_idxs_for_itr_dict = {}
+            reset_dimensions = env.sample_goals(1).shape[1:]
+            dimensions = np.shape(self.goals_pool[0])
+            assert reset_dimensions == dimensions, "loaded dimensions are %s, do not match with environment's %s" % (
+            dimensions, reset_dimensions)
+            # inspecting goals_idxs_for_itr_dict
+            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_idxs_for_itr_dict.keys())), \
+                "Not all meta-iteration numbers have idx_dict in %s" % goals_pool_to_load
             for itr in range(self.start_itr, self.n_itr):
-                self.goals_idxs_for_itr_dict[itr] = rd.sample(range(self.goals_pool_size), self.meta_batch_size)
+                num_goals = len(self.goals_idxs_for_itr_dict[itr])
+                assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when at least %s are needed" % (itr, num_goals, self.meta_batch_size)
+                self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
 
-        # inspecting the goals pool
-        env = self.env
-        while 'sample_goals' not in dir(env):
-            env = env.wrapped_env
-        reset_dimensions = env.sample_goals(1).shape[1:]
-        dimensions = np.shape(self.goals_pool[0])
-        assert reset_dimensions == dimensions, "loaded dimensions are %s, do not match with environment's %s" % (
-        dimensions, reset_dimensions)
-        # inspecting goals_idxs_for_itr_dict
-        assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_idxs_for_itr_dict.keys())), \
-            "Not all meta-iteration numbers have idx_dict in %s" % goals_pool_to_load
-        for itr in range(self.start_itr, self.n_itr):
-            num_goals = len(self.goals_idxs_for_itr_dict[itr])
-            assert num_goals >= self.meta_batch_size, "iteration %s contained %s goals when at least %s are needed" % (itr, num_goals, self.meta_batch_size)
-            self.goals_idxs_for_itr_dict[itr] = self.goals_idxs_for_itr_dict[itr][:self.meta_batch_size]
+            # we build goals_to_use_dict regardless of how we obtained goals_pool, goals_idx_for_itr_dict
+            self.goals_to_use_dict = {}
+            for itr in range(self.start_itr, self.n_itr):
+                self.goals_to_use_dict[itr] = np.array([self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]])
 
-        # we build goals_to_use_dict regardless of how we obtained goals_pool, goals_idx_for_itr_dict
-        self.goals_to_use_dict = {}
-        for itr in range(self.start_itr, self.n_itr):
-            self.goals_to_use_dict[itr] = np.array([self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]])
+        else:  # backwards compatibility code for old-format ETs
+            self.goals_to_use_dict = joblib.load(self.expert_trajs_dir+"goals.pkl")
 
         # saving goals pool
         if goals_pickle_to is not None:
@@ -220,15 +227,19 @@ class BatchMAMLPolopt(RLAlgorithm):
         if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
             offpol_trajs = {}
-            for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
-                assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
-            offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+            if self.use_pooled_goals:
+                for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
+                    assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
+                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+            else:
+                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
 
         # some initial rearrangement
         tasknums = offpol_trajs.keys() # tasknums is basically range(self.meta_batch_size)
         for t in tasknums:
             for path in offpol_trajs[t]:
-                if 'expert_actions' not in path.keys():
+                if 'expert_actions' not in path.keys() and expert_trajs_dir is not None:
+                   # print("copying expert actions, you should do this only 1x per metaitr")
                     path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
 
                 if expert_trajs_dir is not None:

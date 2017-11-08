@@ -178,8 +178,10 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         # extracting theta0 agent infos
         theta0_dist_info_list = []
         for i in range(num_tasks):
-            assert 'agent_infos_orig' in samples[i].keys(), "agent_infos_orig is missing--this should have been handled by process_samples"
-            agent_infos_orig = samples[i]['agent_infos_orig']
+            if 'agent_infos_orig' not in samples[i].keys():
+                assert False, "agent_infos_orig is missing--this should have been handled by process_samples"
+            else:
+                agent_infos_orig = samples[i]['agent_infos_orig']
             theta0_dist_info_list += [agent_infos_orig[k] for k in agent_infos_orig.keys()]
 
 

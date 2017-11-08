@@ -21,6 +21,7 @@ class MAMLIL(BatchMAMLPolopt):
             beta_steps=1,
             adam_steps=1,
             l2loss_std_mult=1.0,
+            importance_sampling_modifier = tf.identity,
             **kwargs):
         if optimizer is None:
             if optimizer_args is None:
@@ -31,6 +32,7 @@ class MAMLIL(BatchMAMLPolopt):
         self.use_maml = use_maml
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
+        self.ism = importance_sampling_modifier
         super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, **kwargs)
 
 
@@ -115,9 +117,11 @@ class MAMLIL(BatchMAMLPolopt):
                 new_params.append(params)
                 logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_vars_i)
                 lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
+                # lr = tf.clip_by_value(lr,0.5,2.0)
+                lr = self.ism(lr)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))
+                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr  * adv_vars[i]))
 
             input_vars_list += obs_vars + action_vars + adv_vars
             # For computing the fast update for sampling
@@ -140,7 +144,7 @@ class MAMLIL(BatchMAMLPolopt):
             e = expert_action_vars[i]
             s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
-            surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*(tf.exp(s)**2)+m**2-2*m*e))
+            surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e)))
             # surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
             # surr_objs.append(tf.reduce_mean(m**2-2*m*e))
 
