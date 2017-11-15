@@ -121,7 +121,7 @@ class MAMLIL(BatchMAMLPolopt):
                 lr = self.ism(lr)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr  * adv_vars[i]))
+                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))
 
             input_vars_list += obs_vars + action_vars + adv_vars
             # For computing the fast update for sampling

@@ -27,7 +27,7 @@ baselines = ['linear']
 env_option = default_reacher_env_option
 
 fast_batch_size_list = [5]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
-meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
+meta_batch_size = 20  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 50  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
@@ -39,8 +39,8 @@ net_size_list = [(200,200)]
 use_maml = True
 importance_sampling_modifier_list=['clip0.5_2.0']
 
-# mode="ec2"
-mode="local"
+mode="ec2"
+# mode="local"
 for fast_batch_size in fast_batch_size_list:
     for ism in importance_sampling_modifier_list:
         for l2loss_std_mult in l2loss_std_mult_list:
