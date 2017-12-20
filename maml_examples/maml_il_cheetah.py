@@ -18,7 +18,7 @@ from maml_examples.cheetah_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, d
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,25)]
+beta_adam_steps_list = [(1,125)]
 
 fast_learning_rates = [0.1]
 baselines = ['linear']
@@ -73,6 +73,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
                                 n_itr=800, #100
                                 use_maml=use_maml,
+                                use_pooled_goals=True,
                                 step_size=meta_step_size,
                                 plot=False,
                                 beta_steps=beta_steps,
@@ -89,9 +90,9 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='CH_IL_E1.7_beta',
-                                exp_name='CH_IL_E1.7_beta'
-                                         + str(int(use_maml))
+                                exp_prefix='CH_IL_E3.3',
+                                exp_name='CH_IL_E3.3'
+                                         # + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)
                                          + '_flr_' + str(fast_learning_rate)

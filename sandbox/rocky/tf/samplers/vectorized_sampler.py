@@ -12,10 +12,13 @@ from sandbox.rocky.tf.envs.vec_env_executor import VecEnvExecutor
 
 class VectorizedSampler(BaseSampler):
 
-    def __init__(self, algo, n_envs=None):
+    def __init__(self, algo, n_envs=None, batch_size=None):
         super(VectorizedSampler, self).__init__(algo)
         self.n_envs = n_envs
-
+        # if batch_size is not None:
+        #     self.batch_size = batch_size
+        # else:
+        self.batch_size = self.algo.batch_size
     def start_worker(self):
         n_envs = self.n_envs
         if n_envs is None:
@@ -60,7 +63,7 @@ class VectorizedSampler(BaseSampler):
         dones = np.asarray([True] * self.vec_env.num_envs)
         running_paths = [None] * self.vec_env.num_envs
 
-        pbar = ProgBarCounter(self.algo.batch_size)
+        pbar = ProgBarCounter(self.batch_size)
         policy_time = 0
         env_time = 0
         process_time = 0
@@ -68,8 +71,7 @@ class VectorizedSampler(BaseSampler):
         policy = self.algo.policy
         import time
 
-
-        while n_samples < self.algo.batch_size:
+        while n_samples < self.batch_size:
             t = time.time()
             policy.reset(dones)
             actions, agent_infos = policy.get_actions(obses)

@@ -61,6 +61,8 @@ class BatchMAMLPolopt(RLAlgorithm):
             force_batch_sampler=False,
             use_maml=True,
             use_maml_il=False,
+            limit_expert_traj_num=None,
+            test_goals_mult=1,
             load_policy=None,
             pre_std_modifier=1.0,
             post_std_modifier_train=1.0,
@@ -123,6 +125,8 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.num_grad_updates = num_grad_updates  # number of gradient steps during training
         self.use_maml_il = use_maml_il
         print("use_maml_il", self.use_maml_il)
+        self.limit_expert_traj_num = limit_expert_traj_num
+        self.test_goals_mult = test_goals_mult
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
         self.post_std_modifier_test = post_std_modifier_test
@@ -178,31 +182,33 @@ class BatchMAMLPolopt(RLAlgorithm):
             # we build goals_to_use_dict regardless of how we obtained goals_pool, goals_idx_for_itr_dict
             self.goals_to_use_dict = {}
             for itr in range(self.start_itr, self.n_itr):
-                self.goals_to_use_dict[itr] = np.array([self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]])
+                if itr not in TESTING_ITRS:
+                    self.goals_to_use_dict[itr] = np.array([self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]])
+
+
 
         else:  # backwards compatibility code for old-format ETs
             self.goals_to_use_dict = joblib.load(self.expert_trajs_dir+"goals.pkl")
 
-        assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
+            assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
 
         # chopping off unnecessary meta-iterations and goals
-        self.goals_to_use_dict = {itr:self.goals_to_use_dict[itr][:self.meta_batch_size]
-                                  for itr in range(self.start_itr,self.n_itr)}
-        # chopping off unnecess
-
-        # TODO: chop off any unnecessary tasks, for now we'll stick with 40 everywhere
-
+            self.goals_to_use_dict = {itr:self.goals_to_use_dict[itr][:self.meta_batch_size]
+                                      for itr in range(self.start_itr,self.n_itr)}
+        # for itr in range(self.start_itr,self.n_itr):
+        #     if itr in TESTING_ITRS:
+        #         while 'sample_goals' not in dir(env):
+        #             env = env.wrapped_env
+        #         self.goals_to_use_dict[itr] = env.sample_goals(self.test_goals)
 
 
         # saving goals pool-
+
         if goals_pickle_to is not None:
             # logger.log("Saving goals to %s..." % goals_pickle_to)
             # joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
             logger.log("Saving goals pool to %s..." % goals_pickle_to)
             joblib_dump_safe(dict(goals_pool=self.goals_pool, idxs_dict=self.goals_idxs_for_itr_dict), goals_pickle_to)
-
-
-
 
         if sampler_cls is None:
             if singleton_pool.n_parallel > 1:
@@ -216,6 +222,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         sampler_args['n_envs'] = self.meta_batch_size
         self.sampler = sampler_cls(self, **sampler_args)
 
+
     def start_worker(self):
         self.sampler.start_worker()
         if self.plot:
@@ -224,7 +231,7 @@ class BatchMAMLPolopt(RLAlgorithm):
     def shutdown_worker(self):
         self.sampler.shutdown_worker()
 
-    def obtain_samples(self, itr, reset_args=None, log_prefix=''):
+    def obtain_samples(self, itr, reset_args=None, log_prefix='',testitr=False):
         # This obtains samples using self.policy, and calling policy.get_actions(obses)
         # return_dict specifies how the samples should be returned (dict separates samples
         # by task)
@@ -296,7 +303,7 @@ class BatchMAMLPolopt(RLAlgorithm):
        # logger.record_tabular(log_prefix+"TotalExecTime", total_time)
         return offpol_trajs
 
-    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False):
+    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False):
         return self.sampler.process_samples(itr, paths, prefix=prefix, log=log, fast_process=fast_process)
 
     def train(self):
@@ -323,11 +330,17 @@ class BatchMAMLPolopt(RLAlgorithm):
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
                     all_paths_for_plotting = []
-                    beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else [0]
+                    all_postupdate_paths = []
+                    beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else range(self.test_goals_mult)
                     beta0_step0_paths = None
-                    if self.use_maml_il:
-                        expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
-                        expert_traj_for_metaitr = {tasknum:expert_traj_for_metaitr[tasknum] for tasknum in range(self.meta_batch_size)}
+                    if self.use_maml_il and itr not in TESTING_ITRS:
+                        if not self.use_pooled_goals:
+                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
+                        else:
+                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                        expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
+                        if self.limit_expert_traj_num is not None:
+                            expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_expert_traj_num] for t in expert_traj_for_metaitr.keys()}
                         for t in expert_traj_for_metaitr.keys():
                             for path in expert_traj_for_metaitr[t]:
                                 if 'expert_actions' not in path.keys():
@@ -336,15 +349,29 @@ class BatchMAMLPolopt(RLAlgorithm):
                         all_samples_data_for_betastep = []
                         self.policy.std_modifier = self.pre_std_modifier
                         self.policy.switch_to_init_dist()  # Switch to pre-update policy
+                        if itr in TESTING_ITRS:
+                            env = self.env
+                            while 'sample_goals' not in dir(env):
+                                env = env.wrapped_env
+                            goals_to_use = env.sample_goals(self.meta_batch_size)
+                            self.goals_to_use_dict[itr] = goals_to_use if beta_step==0 else np.concatenate((self.goals_to_use_dict[itr],goals_to_use))
                         for step in range(self.num_grad_updates+1): # inner loop
                             logger.log('** Betastep %s ** Step %s **' % (str(beta_step), str(step)))
                             logger.log("Obtaining samples...")
 
-                            if self.expert_trajs_dir is None or itr in TESTING_ITRS or (beta_step == 0 and step < self.num_grad_updates):
+                            if itr in TESTING_ITRS:
+                                print('debug12.0, test-time sampling')
+                                paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
+                                                                log_prefix=str(beta_step) + "_" + str(step),testitr=True)
+                                if step == 0:
+                                    paths = store_agent_infos(paths)  # agent_infos_orig is populated here
+                                if step == self.num_grad_updates:
+                                    all_postupdate_paths.extend(paths.values())
+                            elif self.expert_trajs_dir is None or (beta_step == 0 and step < self.num_grad_updates):
                                 print("debug12.1, regular sampling")
                                 paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step))
                                 if beta_step == 0 and step == 0:
-                                    paths = store_agent_infos(paths)
+                                    paths = store_agent_infos(paths)  # agent_infos_orig is populated here
                                     beta0_step0_paths = deepcopy(paths)
                             elif step == self.num_grad_updates:
                                 print("debug12.2, expert traj")
@@ -369,11 +396,15 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     fast_process = True
                                 else:
                                     fast_process = False
-                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process)
+                                if itr in TESTING_ITRS:
+                                    testitr = True
+                                else:
+                                    testitr = False
+                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process, testitr=testitr)
 
                             all_samples_data_for_betastep.append(samples_data)
                             # for logging purposes only
-                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process)
+                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process, testitr=testitr)
                             logger.log("Logging diagnostics...")
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
@@ -390,7 +421,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.
                         self.optimize_policy(itr, all_samples_data_for_betastep)
-                    
+
+                    if itr in TESTING_ITRS:
+                        self.process_samples(itr, flatten_list(all_postupdate_paths), prefix="1",log=True,fast_process=True,testitr=True)
                     logger.log("Saving snapshot...")
                     params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
                     if self.store_paths:
@@ -445,6 +478,8 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                         for ind in range(min(5, self.meta_batch_size)):
                             plt.clf()
+                            print("debug13,",itr,ind)
+                            a = self.goals_to_use_dict[itr][ind]
                             plt.plot(self.goals_to_use_dict[itr][ind][0], self.goals_to_use_dict[itr][ind][1], 'k*', markersize=10)
                             plt.hold(True)
 
@@ -481,8 +516,17 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                         reset_arg=self.goals_to_use_dict[itr][ind],
                                         use_maml=True, maml_task_index=ind,
-                                        maml_num_tasks=len(self.goals_to_use_dict[itr]))
-
+                                        maml_num_tasks=self.meta_batch_size)
+                    elif True and itr in VIDEO_ITRS:
+                        for ind in range(min(5, self.meta_batch_size)):
+                            logger.log("Saving videos...")
+                            self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                            rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                    animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                    reset_arg=self.goals_to_use_dict[itr][ind],
+                                    use_maml=True, maml_task_index=ind,
+                                    maml_num_tasks=self.meta_batch_size)
 
                     elif False and itr in PLOT_ITRS:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")

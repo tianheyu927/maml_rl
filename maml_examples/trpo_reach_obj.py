@@ -57,10 +57,10 @@ def run_task(v):
         policy=None,
         load_policy='/home/rosen/maml_rl/data/local/RE-ET-B1/RE_ET_B1_2017_10_09_17_28_33_0001/itr_-20.pkl',
         baseline=baseline,
-        batch_size=4000*50, # 100*500, # we divide this by #envs on every iteration
-        batch_size_expert_traj=20 * 50,
+        batch_size=200*50, # 100*500, # we divide this by #envs on every iteration
+        batch_size_expert_traj= 40 * 50,
         max_path_length=50,
-        start_itr=-1,
+        start_itr=-2,
         n_itr=1000,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.008,  # 0.01

@@ -22,7 +22,7 @@ env_option = default_reacher_env_option
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
 net_size = 200
 fast_learning_rates = [0.001]  # A1=0.3, A2=0.15, B1=0.01
-fast_batch_size = 20  # A1=40,  B1=20
+fast_batch_size = 5  # A1=40,  B1=20
 meta_batch_size = 40  # A1=40
 num_grad_updates = 1  # 1
 n_itr = 801  #100
@@ -79,14 +79,15 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             num_grad_updates=num_grad_updates,
                             n_itr=n_itr,
                             use_maml=use_maml,
+                            use_pooled_goals=True,
                             step_size=meta_step_size,
                             plot=False,
                             pre_std_modifier=pre_std_modifier,
                             post_std_modifier_train=post_std_modifier_train,
                             post_std_modifier_test=post_std_modifier_test,
-                            goals_pool_to_load=GOALS_LOCATION,
-                           # goals_pickle_to=GOALS_LOCATION,
-                           # goals_pool_size=1000,
+                            #goals_pool_to_load=GOALS_LOCATION,
+                            goals_pickle_to=GOALS_LOCATION,
+                            goals_pool_size=1000,
 
                         )
                         run_experiment_lite(
