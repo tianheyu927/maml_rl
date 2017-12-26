@@ -68,7 +68,7 @@ for env_option in env_options:
                                     max_path_length=max_path_length,
                                     meta_batch_size=meta_batch_size, ## number of tasks sampled for beta grad update
                                     num_grad_updates=num_grad_updates, ## number of alpha grad updates per beta update
-                                    n_itr=2, #100
+                                    n_itr=4, #100
                                     use_maml=use_maml,
                                     step_size=meta_step_size,
                                     plot=False,
