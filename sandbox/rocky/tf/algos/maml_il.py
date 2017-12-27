@@ -118,8 +118,8 @@ class MAMLIL(BatchMAMLPolopt):
                 logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_vars_i)
                 lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
                 # lr1 = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], dist_info_vars_i)
-                lr = tf.clip_by_value(lr,0.5,2.0)
-                #lr = self.ism(lr)
+                # lr = tf.clip_by_value(lr,0.5,2.0)
+                lr = self.ism(lr)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
                 inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))

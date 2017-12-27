@@ -20,10 +20,10 @@ import tensorflow as tf
 import time
 
 # beta_adam_steps_list = [(4,200),(200,1),(10,10),(25,25),(4,50)] ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
-beta_adam_steps_list = [(200,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
+beta_adam_steps_list= [(200,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.0012]  #1.0 seems to work best, getting to average return -42  1.5
-baselines = ['linear']
+baselines = ["feedforward"] # ['linear']
 env_option = default_reacher_env_option
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
@@ -80,7 +80,7 @@ for fast_batch_size in fast_batch_size_list:
                                             max_path_length=max_path_length,
                                             meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                             num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                            n_itr=800, #100
+                                            n_itr=100, #100
                                             use_maml=use_maml,
                                             use_pooled_goals=True,
                                             limit_expert_traj_num=limit_expert_traj_num,
@@ -110,7 +110,7 @@ for fast_batch_size in fast_batch_size_list:
                                                          +'_mbs'+str(meta_batch_size)
                                                      + '_flr_' + str(fast_learning_rate)
                                                      + '_letn' + str(limit_expert_traj_num)
-                                                     + '_tsg' + str(test_goals_mult)
+                                                     + '_tgm' + str(test_goals_mult)
                                                      #     +'metalr_'+str(meta_step_size)
                                                      #     +'_ngrad'+str(num_grad_updates)
                                                      + "_bs" + str(beta_steps)
