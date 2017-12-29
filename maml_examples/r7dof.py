@@ -34,10 +34,7 @@ class Reacher7DofMultitaskEnv(
         if goal_pos is not None:
             self.goal = goal_pos
         elif self.goal is None: # do not change goal between resets
-            while True:
-                self.goal =np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-                # if np.linalg.norm(self.goal) < 0.21:
-                #     break
+            self.goal =np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
 
         qpos[-7:-4] = self.goal
         qvel[-7:] = 0

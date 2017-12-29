@@ -23,7 +23,7 @@ import time
 beta_adam_steps_list= [(200,1)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [0.0012]  #1.0 seems to work best, getting to average return -42  1.5
-baselines = ["feedforward"] # ['linear']
+baselines = ["linear"] # ['linear']
 env_option = default_reacher_env_option
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
