@@ -25,7 +25,7 @@ fast_learning_rates = [1.0, 0.1, 0.01, 0.001]  #
 fast_batch_size = 20  #
 meta_batch_size = 40  #
 num_grad_updates = 1  # 1
-n_itr = 801  #100
+n_itr = 101  #801
 max_path_length = 100  # A1=100, B1=50
 meta_step_size = 0.01  # 0.01
 pre_std_modifier_list = [1.0]
@@ -88,8 +88,8 @@ for post_std_modifier_train in post_std_modifier_train_list:
                         snapshot_mode="last",
                         python_command='python3',
                         seed=seed,
-                        exp_prefix='RE_TR_E1_beta',
-                        exp_name='RE_TR_E1_beta'
+                        exp_prefix='R7_TR_E3.3',
+                        exp_name='R7_TR_E3.3'
                                  # + ".itr." + str(n_itr)
                                  # + str(int(use_maml))
                                  #     +'_fbs'+str(fast_batch_size)
