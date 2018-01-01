@@ -24,6 +24,8 @@ class Reacher7DofMultitaskEnv(
         self.viewer.cam.trackbodyid = -1
         self.viewer.cam.distance = 4.0
 
+    #test
+
     @overrides
     def reset(self, reset_args=None):
         qpos = np.copy(self.init_qpos)
