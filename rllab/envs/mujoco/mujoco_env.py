@@ -197,7 +197,6 @@ class MujocoEnv(Env):
         return action + noise
 
     def forward_dynamics(self, action):
-        #self.model.data.ctrl = action
         self.model.data.ctrl = self.inject_action_noise(action)
         for _ in range(self.frame_skip):
             self.model.step()

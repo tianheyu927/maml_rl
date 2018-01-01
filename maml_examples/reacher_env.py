@@ -70,7 +70,7 @@ class ReacherEnv(MujocoEnv, Serializable):
     """
 
     @overrides
-    def reset(self, reset_args=None):
+    def reset(self, reset_args=None, **kwargs):
         qpos = np.random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos.T[0]
 
         goal_pos = reset_args

@@ -7,7 +7,7 @@ from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.misc.instrument import stub, run_experiment_lite
 from rllab.envs.mujoco.half_cheetah_env_rand import HalfCheetahEnvRand
-from maml_examples.r7dof_oracle import Reacher7DofMultitaskEnvOracle
+from maml_examples.r7dof_env_oracle import Reacher7DofMultitaskEnvOracle
 from maml_examples.r7dof_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, R7DOF_GOALS_LOCATION, \
     default_r7dof_env_option
 import pickle
