@@ -10,8 +10,8 @@ ENV_OPTIONS = {
 default_r7dof_env_option = ''
 
 EXPERT_TRAJ_LOCATION_DICT = {
-    ".local": "/home/rosen/maml_rl_data/saved_expert_traj/R7DOF/R7-ET-individual/",
-    ".ec2": "/root/code/rllab/saved_expert_traj/R7DOF/R7-ET-individual/",
+    ".local": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
+    ".ec2": "/root/code/rllab/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
 
 }
 

@@ -44,7 +44,6 @@ class MujocoEnv(Env):
         # compile template
 
         self._seed()
-        print("debug1, ", file_path)
         if file_path is None:
             if self.__class__.FILE is None:
                 raise "Mujoco file not specified"

@@ -11,14 +11,18 @@ from rllab.core.serializable import Serializable
 class Reacher7DofMultitaskEnv(
     mujoco_env.MujocoEnv, Serializable
 ):
-    def __init__(self, distance_metric_order=None):
+    def __init__(self, distance_metric_order=None, *args, **kwargs):
         self.goal = None
-        Serializable.quick_init(self, locals())
-        mujoco_env.MujocoEnv.__init__(
-            self,
-            file_path='/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof.xml',   # You probably need to change this
-            #frame_skip = 5
-        )
+        self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
+        super().__init__()
+        Serializable.__init__(self, *args, **kwargs)
+
+        # Serializable.quick_init(self, locals())
+        # mujoco_env.MujocoEnv.__init__(
+        #     self,
+        #     file_path='r7dof_versions/reacher_7dof.xml',   # You probably need to change this
+        #     #frame_skip = 5
+        # )
      #   self._desired_xyz = np.zeros((3,1))
 
     # def viewer_setup(self):

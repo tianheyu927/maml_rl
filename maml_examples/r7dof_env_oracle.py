@@ -4,6 +4,7 @@ from rllab.misc.overrides import overrides
 from rllab.core.serializable import Serializable
 from rllab.envs.base import Step
 
+from copy import deepcopy
 
 class Reacher7DofMultitaskEnvOracle(
     mujoco_env.MujocoEnv, Serializable
@@ -14,13 +15,17 @@ class Reacher7DofMultitaskEnvOracle(
             noise = kwargs['noise']
         else:
             noise = 0.0
-        Serializable.quick_init(self, locals())
-        mujoco_env.MujocoEnv.__init__(
-            self,
-            file_path='/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof.xml',   # You probably need to change this
-            action_noise=noise,
-            #frame_skip = 5
-        )
+        self.__class__.FILE = 'r7dof_versions/recher_7dof.xml'
+        super().__init__(action_noise=noise)
+        Serializable.__init__(self, *args, **kwargs)
+
+        # Serializable.quick_init(self, locals())
+        # mujoco_env.MujocoEnv.__init__(
+        #     self,
+        #     file_path='r7dof_versions/reacher_7dof.xml',   # You probably need to change this
+        #     action_noise=noise,
+        #     #frame_skip = 5
+        # )
 
     # def viewer_setup(self):
     #     self.viewer.cam.trackbodyid = -1
@@ -87,6 +92,13 @@ class Reacher7DofMultitaskEnvOracle(
         return self.get_current_obs()
 
 
+    def clip_goal_from_obs(self, paths):
+        paths_copy = deepcopy(paths)
+        for path in paths_copy:
+            clipped_obs = path['observations'][:, :-3]
+            path['observations'] = clipped_obs
+        return paths_copy
+
 
     # def reset_model(self):
     #     qpos = np.copy(self.init_qpos)
@@ -118,3 +130,4 @@ class Reacher7DofMultitaskEnvOracle(
 
     # def log_diagnostics(self, paths):
     #     pass
+

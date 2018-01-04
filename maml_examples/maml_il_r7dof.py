@@ -20,14 +20,14 @@ import time
 
 beta_adam_steps_list = [(1,125)]
 
-fast_learning_rates = [0.1]
+fast_learning_rates = [1.0]
 baselines = ['linear']
 env_option = ''
 mode = "local"
 
 fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
-max_path_length = 200  # 100
+max_path_length = 100  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
 pre_std_modifier_list = [1.0]
@@ -47,14 +47,14 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             stub(globals())
 
                             seed = 1
-                            env = TfEnv(normalize(HalfCheetahEnvRand()))
+                            env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
 
                             policy = MAMLGaussianMLPPolicy(
                                 name="policy",
                                 env_spec=env.spec,
                                 grad_step_size=fast_learning_rate,
                                 hidden_nonlinearity=tf.nn.relu,
-                                hidden_sizes=(200, 200),
+                                hidden_sizes=(100, 100),
                                 std_modifier=pre_std_modifier,
                             )
                             if bas == 'zero':
@@ -82,7 +82,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 l2loss_std_mult=l2loss_std_mult,
                                 post_std_modifier_train=post_std_modifier_train,
                                 post_std_modifier_test=post_std_modifier_test,
-                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+".noise0.1.small"],
+                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode],
                             )
                             run_experiment_lite(
                                 algo.train(),
@@ -90,8 +90,8 @@ for l2loss_std_mult in l2loss_std_mult_list:
                                 snapshot_mode="last",
                                 python_command='python3',
                                 seed=seed,
-                                exp_prefix='CH_IL_E3.3',
-                                exp_name='CH_IL_E3.3'
+                                exp_prefix='R7_IL_E3.3',
+                                exp_name='R7_IL_E3.3'
                                          # + str(int(use_maml))
                                          #     +'_fbs'+str(fast_batch_size)
                                          #     +'_mbs'+str(meta_batch_size)
