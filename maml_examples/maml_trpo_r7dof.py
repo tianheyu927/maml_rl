@@ -21,7 +21,7 @@ baselines = ['linear']
 env_option = default_r7dof_env_option
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
 net_size = 100
-fast_learning_rates = [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]  #
+fast_learning_rates = [2.0]  #
 fast_batch_size = 20  #
 meta_batch_size = 40  #
 num_grad_updates = 1  # 1
