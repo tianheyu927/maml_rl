@@ -21,7 +21,7 @@ baselines = ['linear']
 env_option = default_r7dof_env_option
 nonlinearity_option = 'relu'  #A1=relu, A2=reluh, B1=relu
 net_size = 100
-fast_learning_rates = [2.0]  #
+fast_learning_rates = [1.5, 0.8]  #
 fast_batch_size = 20  #
 meta_batch_size = 40  #
 num_grad_updates = 1  # 1
@@ -106,6 +106,6 @@ for post_std_modifier_train in post_std_modifier_train_list:
                                  + "_" + time.strftime("%D_%H_%M").replace("/", ""),
                         plot=False,
                         sync_s3_pkl=True,
-                        mode="local",
+                        mode="ec2",
                         terminate_machine=False,
                     )
