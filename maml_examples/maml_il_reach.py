@@ -105,17 +105,17 @@ for fast_batch_size in fast_batch_size_list:
                                             seed=seed,
                                             exp_prefix='RE_IL_E3.3_beta',
                                             exp_name='RE_IL_E3.3_beta'
-                                                     + str(int(use_maml))
+                                                    # + str(int(use_maml))
                                                          +'_fbs'+str(fast_batch_size)
                                                          +'_mbs'+str(meta_batch_size)
                                                      + '_flr_' + str(fast_learning_rate)
-                                                     + '_letn' + str(limit_expert_traj_num)
-                                                     + '_tgm' + str(test_goals_mult)
+                                                     + '_demo' + str(limit_expert_traj_num)
+                                                     #+ '_tgm' + str(test_goals_mult)
                                                      #     +'metalr_'+str(meta_step_size)
                                                      #     +'_ngrad'+str(num_grad_updates)
                                                      + "_bs" + str(beta_steps)
                                                      + "_as" + str(adam_steps)
-                                                    +"_net" + str(net_size[0])
+                                                    #+"_net" + str(net_size[0])
                                             # +"_L2m" + str(l2loss_std_mult)
                                                     + "_prsm" + str(pre_std_modifier)
                                                     # + "_pstr" + str(post_std_modifier_train)
