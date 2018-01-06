@@ -13,7 +13,11 @@ from maml_examples.reacher_env import ReacherEnv
 from rllab.envs.mujoco.pusher_env import PusherEnv
 from maml_examples.r7dof_env import Reacher7DofMultitaskEnv
 from maml_examples.r7dof_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, default_r7dof_env_option
+from maml_examples.maml_experiment_vars import MOD_FUNC
+
+
 #from examples.trpo_push_obj import
+
 
 import tensorflow as tf
 import time
