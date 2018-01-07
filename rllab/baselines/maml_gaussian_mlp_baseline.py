@@ -26,8 +26,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
             output_dim=1,
             # use_trust_region=False,
-            learn_std=False,
-            init_std=0.0,
+            # learn_std=False,
+            # init_std=0.0,
             name="vf",
             # step_size=learning_rate,
             **regressor_args
