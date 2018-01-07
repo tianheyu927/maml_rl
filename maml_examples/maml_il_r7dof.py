@@ -125,7 +125,7 @@ for fast_batch_size in fast_batch_size_list:
                                                      # + "_posm" + str(post_std_modifier_test)
                                                      #  + "_l2m" + str(l2loss_std_mult)
                                                      + "_ism" + ism
-                                                     + "_bas" + baseline[0]
+                                                     + "_bas" + bas[0]
                                                      + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                             plot=False,
                                             sync_s3_pkl=True,
