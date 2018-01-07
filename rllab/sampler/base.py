@@ -212,4 +212,6 @@ class BaseSampler(Sampler):
             logger.record_tabular(prefix + 'MaxReturn', np.max(undiscounted_returns))
             logger.record_tabular(prefix + 'MinReturn', np.min(undiscounted_returns))
 
+        if hasattr(self.algo.baseline, "revert"):
+            self.algo.baseline.revert()
         return samples_data

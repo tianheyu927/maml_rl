@@ -2,6 +2,7 @@ from sandbox.rocky.tf.algos.maml_trpo import MAMLTRPO
 from sandbox.rocky.tf.algos.maml_il import MAMLIL
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.baselines.gaussian_mlp_baseline import GaussianMLPBaseline
+from rllab.baselines.maml_gaussian_mlp_baseline import MAMLGaussianMLPBaseline
 from rllab.baselines.zero_baseline import ZeroBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
@@ -22,19 +23,19 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(5,1), (20,1), (50,1)]
+beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['linear']
+baselines = ['MAMLGaussianMLP']  #['linear']
 env_option = ''
-mode = "ec2"
+mode = "local"
 
 fast_batch_size_list = [10]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
-pre_std_modifier_list = [1.0,0.25]
+pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
@@ -69,6 +70,8 @@ for fast_batch_size in fast_batch_size_list:
                                         )
                                         if bas == 'zero':
                                             baseline = ZeroBaseline(env_spec=env.spec)
+                                        elif 'MAMLGaussianMLP' in bas:
+                                            baseline = MAMLGaussianMLPBaseline(env_spec=env.spec)
                                         elif 'linear' in bas:
                                             baseline = LinearFeatureBaseline(env_spec=env.spec)
                                         else:
@@ -122,6 +125,7 @@ for fast_batch_size in fast_batch_size_list:
                                                      # + "_posm" + str(post_std_modifier_test)
                                                      #  + "_l2m" + str(l2loss_std_mult)
                                                      + "_ism" + ism
+                                                     + "_bas" + baseline[0]
                                                      + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                             plot=False,
                                             sync_s3_pkl=True,
