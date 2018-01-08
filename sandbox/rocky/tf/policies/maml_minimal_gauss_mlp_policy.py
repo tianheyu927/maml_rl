@@ -43,6 +43,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             std_parametrization='exp',
             grad_step_size=1.0,
             stop_grad=False,
+            metalearn_baseline=False,
     ):
         """
         :param env_spec:
@@ -76,6 +77,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         self.input_shape = (None, obs_dim,)
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
+        self.metalearn_baseline = metalearn_baseline
         if type(self.step_size) == list:
             raise NotImplementedError('removing this since it didnt work well')
 
@@ -190,15 +192,24 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             agent_infos = samples[i]['agent_infos']
             theta_l_dist_info_list += [agent_infos[k] for k in agent_infos.keys()]
 
-        obs_list, action_list, adv_list = [], [], []
+        obs_list, action_list, adv_list, rewards_list = [], [], [], []
         for i in range(num_tasks):
-            inputs = ext.extract(samples[i],
-                                 'observations', 'actions', 'advantages')
-            obs_list.append(inputs[0])
-            action_list.append(inputs[1])
-            adv_list.append(inputs[2])
-
-        inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + adv_list
+            if not self.metalearn_baseline:
+                inputs = ext.extract(samples[i],
+                                     'observations', 'actions', 'advantages')
+                obs_list.append(inputs[0])
+                action_list.append(inputs[1])
+                adv_list.append(inputs[2])
+            else:
+                inputs = ext.extract(samples[i],
+                                     'observations', 'actions', 'rewards')
+                obs_list.append(inputs[0])
+                action_list.append(inputs[1])
+                rewards_list.append(inputs[2])
+        if not self.metalearn_baseline:
+            inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + adv_list
+        else:
+            inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + rewards_list
 
         # To do a second update, replace self.all_params below with the params that were used to collect the policy.
         init_param_values = None

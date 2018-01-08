@@ -46,7 +46,7 @@ class BaseSampler(Sampler):
         """
         self.algo = algo
 
-    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False):
+    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False,):
         baselines = []
         returns = []
 
@@ -214,4 +214,5 @@ class BaseSampler(Sampler):
 
         if hasattr(self.algo.baseline, "revert"):
             self.algo.baseline.revert()
+
         return samples_data

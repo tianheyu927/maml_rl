@@ -6,6 +6,7 @@ from rllab.baselines.base import Baseline
 from rllab.misc.overrides import overrides
 from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 
+from rllab.optimizers.first_order_optimizer import FirstOrderOptimizer
 
 class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
@@ -25,13 +26,16 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor = GaussianMLPRegressor(
             input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
             output_dim=1,
-            # use_trust_region=False,
-            # learn_std=False,
-            # init_std=0.0,
+            optimizer=FirstOrderOptimizer(
+                # learning_rate=1e-2,
+            ),
+            use_trust_region=False,
+            learn_std=False,
+            init_std=0.0,
             name="vf",
-            # step_size=learning_rate,
             **regressor_args
         )
+        self._preupdate_params = None
 
     @overrides
     def fit(self, paths, log=True):
@@ -53,4 +57,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor.set_param_values(flattened_params, **tags)
 
     def revert(self):
+        assert self._preupdate_params is not None, "already reverted"
         self._regressor.set_param_values(self._preupdate_params)
+        self._preupdate_params = None

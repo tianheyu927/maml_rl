@@ -22,6 +22,7 @@ class MAMLIL(BatchMAMLPolopt):
             adam_steps=1,
             l2loss_std_mult=1.0,
             importance_sampling_modifier = tf.identity,
+            metalearn_baseline=False,
             **kwargs):
         if optimizer is None:
             if optimizer_args is None:
@@ -33,13 +34,14 @@ class MAMLIL(BatchMAMLPolopt):
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
         self.ism = importance_sampling_modifier
+        self.metalearn_baseline = metalearn_baseline
         super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, **kwargs)
 
 
     def make_vars(self, stepnum='0'):
         # lists over the meta_batch_size
         # We should only need the last stepnum for meta-optimization.
-        obs_vars, action_vars, adv_vars, expert_action_vars = [], [], [], []
+        obs_vars, action_vars, adv_vars, reward_vars, expert_action_vars = [], [], [], [], []
         for i in range(self.meta_batch_size):
             obs_vars.append(self.env.observation_space.new_tensor_variable(
                 'obs' + stepnum + '_' + str(i),
@@ -49,16 +51,25 @@ class MAMLIL(BatchMAMLPolopt):
                 'action' + stepnum + '_' + str(i),
                 extra_dims=1,
             ))
-            adv_vars.append(tensor_utils.new_tensor(
-                'advantage' + stepnum + '_' + str(i),
-                ndim=1, dtype=tf.float32,
-            ))
+            if not self.metalearn_baseline:
+                adv_vars.append(tensor_utils.new_tensor(
+                    'advantage' + stepnum + '_' + str(i),
+                    ndim=1, dtype=tf.float32,
+                ))
+            else:
+                reward_vars.append(tensor_utils.new_tensor(
+                    'reward' + stepnum + '_' + str(i),
+                    ndim=1, dtype=tf.float32,
+                ))
             expert_action_vars.append(self.env.action_space.new_tensor_variable(
                 name='expert_actions' + stepnum + '_' + str(i),
                 extra_dims=1,
             ))
+        if not self.metalearn_baseline:
+            return obs_vars, action_vars, adv_vars, expert_action_vars
+        else:
+            return obs_vars, action_vars, reward_vars, expert_action_vars
 
-        return obs_vars, action_vars, adv_vars, expert_action_vars
 
     @overrides
     def init_opt(self):
@@ -102,14 +113,21 @@ class MAMLIL(BatchMAMLPolopt):
         input_vars_list += tuple(theta_l_dist_info_vars_list)
 
         for grad_step in range(self.num_grad_updates):  # we are doing this for all but the last step
-            obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
+            if not self.metalearn_baseline:
+                obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
+            else:
+                obs_vars, action_vars, reward_vars, expert_action_vars = self.make_vars(str(grad_step))
+
             inner_surr_objs = []  # surrogate objectives
 
             new_params = []
             kls = []
 
             for i in range(self.meta_batch_size):  # for training task T_i
-
+                if not self.metalearn_baseline:
+                    adv = adv_vars[i]
+                else:
+                    adv = TODO, build adv from baseline and rewards
                 dist_info_vars_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
@@ -122,10 +140,13 @@ class MAMLIL(BatchMAMLPolopt):
                 lr = self.ism(lr)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv_vars[i]))
+                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv))
                 # inner_surr_objs.append(-tf.reduce_mean(lr * adv_vars[i]))
 
-            input_vars_list += obs_vars + action_vars + adv_vars
+            if not self.metalearn_baseline:
+                input_vars_list += obs_vars + action_vars + adv_vars
+            else:
+                input_vars_list += obs_vars + action_vars + reward_vars
             # For computing the fast update for sampling
             # At this point, input_vars_list is theta0 + theta_l + obs + action + adv
             self.policy.set_init_surr_obj(input_vars_list, inner_surr_objs)
@@ -157,7 +178,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         self.optimizer.update_opt(
             loss=surr_obj,
-            target=self.policy,
+            target=(self.policy, self.baseline),
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
             constraint_name="mean_kl"
@@ -190,18 +211,31 @@ class MAMLIL(BatchMAMLPolopt):
         input_vals_list += tuple(theta_l_dist_info_list)
 
         for step in range(self.num_grad_updates):
-            obs_list, action_list, adv_list, expert_action_list,  = [], [], [], []
+            obs_list, action_list, adv_list, rewards_list, expert_action_list,  = [], [], [], [], []
             for i in range(self.meta_batch_size):  # for each task
-                inputs = ext.extract(
-                    all_samples_data[step][i],
-                    "observations", "actions", "advantages", "expert_actions",
-                )
-                obs_list.append(inputs[0])
-                action_list.append(inputs[1])
-                adv_list.append(inputs[2])
-                expert_action_list.append(inputs[3])
+                if not self.metalearn_baseline:
+                    inputs = ext.extract(
+                        all_samples_data[step][i],
+                        "observations", "actions", "advantages", "expert_actions",
+                    )
+                    obs_list.append(inputs[0])
+                    action_list.append(inputs[1])
+                    adv_list.append(inputs[2])
+                    expert_action_list.append(inputs[3])
+                else:
+                    inputs = ext.extract(
+                        all_samples_data[step][i],
+                        "observations", "actions", "rewards", "expert_actions",
+                    )
+                    obs_list.append(inputs[0])
+                    action_list.append(inputs[1])
+                    rewards_list.append(inputs[2])
+                    expert_action_list.append(inputs[3])
+            if not self.metalearn_baseline:
+                input_vals_list += obs_list + action_list + adv_list + expert_action_list
+            else:
+                input_vals_list += obs_list + action_list + rewards_list + expert_action_list
 
-            input_vals_list += obs_list + action_list + adv_list + expert_action_list
 
         for step in [self.num_grad_updates]:  # last step
             obs_list, action_list, expert_action_list = [], [], []  # last step's adv_list not currently used in maml_il
