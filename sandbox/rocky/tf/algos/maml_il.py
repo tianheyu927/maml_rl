@@ -41,7 +41,7 @@ class MAMLIL(BatchMAMLPolopt):
     def make_vars(self, stepnum='0'):
         # lists over the meta_batch_size
         # We should only need the last stepnum for meta-optimization.
-        obs_vars, action_vars, adv_vars, reward_vars, expert_action_vars = [], [], [], [], []
+        obs_vars, action_vars, adv_vars, rewards_vars, returns_vars, expert_action_vars = [], [], [], [], [], []
         for i in range(self.meta_batch_size):
             obs_vars.append(self.env.observation_space.new_tensor_variable(
                 'obs' + stepnum + '_' + str(i),
@@ -57,8 +57,12 @@ class MAMLIL(BatchMAMLPolopt):
                     ndim=1, dtype=tf.float32,
                 ))
             else:
-                reward_vars.append(tensor_utils.new_tensor(
-                    'reward' + stepnum + '_' + str(i),
+                rewards_vars.append(tensor_utils.new_tensor(
+                    'rewards' + stepnum + '_' + str(i),
+                    ndim=1, dtype=tf.float32,
+                ))
+                returns_vars.append(tensor_utils.new_tensor(
+                    'returns' + stepnum + '_' + str(i),
                     ndim=1, dtype=tf.float32,
                 ))
             expert_action_vars.append(self.env.action_space.new_tensor_variable(
@@ -68,7 +72,7 @@ class MAMLIL(BatchMAMLPolopt):
         if not self.metalearn_baseline:
             return obs_vars, action_vars, adv_vars, expert_action_vars
         else:
-            return obs_vars, action_vars, reward_vars, expert_action_vars
+            return obs_vars, action_vars, rewards_vars, returns_vars, expert_action_vars
 
 
     @overrides
@@ -116,7 +120,7 @@ class MAMLIL(BatchMAMLPolopt):
             if not self.metalearn_baseline:
                 obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
             else:
-                obs_vars, action_vars, reward_vars, expert_action_vars = self.make_vars(str(grad_step))
+                obs_vars, action_vars, rewards_vars, returns_vars, expert_action_vars = self.make_vars(str(grad_step))
 
             inner_surr_objs = []  # surrogate objectives
 
@@ -127,7 +131,7 @@ class MAMLIL(BatchMAMLPolopt):
                 if not self.metalearn_baseline:
                     adv = adv_vars[i]
                 else:
-                    adv = TODO, build adv from baseline and rewards
+                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars, rewards_vars=rewards_vars, returns_vars=returns_vars)
                 dist_info_vars_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
@@ -146,12 +150,12 @@ class MAMLIL(BatchMAMLPolopt):
             if not self.metalearn_baseline:
                 input_vars_list += obs_vars + action_vars + adv_vars
             else:
-                input_vars_list += obs_vars + action_vars + reward_vars
+                input_vars_list += obs_vars + action_vars + rewards_vars + returns_vars
             # For computing the fast update for sampling
             # At this point, input_vars_list is theta0 + theta_l + obs + action + adv
             self.policy.set_init_surr_obj(input_vars_list, inner_surr_objs)
 
-            input_vars_list += expert_action_vars
+            input_vars_list += expert_action_vars # TODO: is this pre-update expert action vars? Should we kill this?
             all_surr_objs.append(inner_surr_objs)
 
         # last inner grad step
@@ -172,7 +176,7 @@ class MAMLIL(BatchMAMLPolopt):
             # surr_objs.append(tf.reduce_mean(m**2-2*m*e))
 
         surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
-        input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: do we need the input_list values over anything that's not the last grad step?
+        input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
 
         mean_kl = tf.reduce_mean(tf.concat(kls, 0))
 

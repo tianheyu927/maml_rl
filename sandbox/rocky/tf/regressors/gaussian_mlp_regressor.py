@@ -37,7 +37,15 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             normalize_inputs=True,
             normalize_outputs=True,
             subsample_factor=1.0
+
+
+
+
+
+
     ):
+
+
         """
         :param input_shape: Shape of the input data.
         :param output_dim: Dimension of output.
@@ -75,7 +83,7 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
                     output_dim=output_dim,
                     hidden_sizes=hidden_sizes,
                     hidden_nonlinearity=hidden_nonlinearity,
-                    output_nonlinearity=None,
+                    output_nonlinearity=tf.identity,
                 )
 
             l_mean = mean_network.output_layer
@@ -98,6 +106,7 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
                     name="output_log_std",
                     trainable=learn_std,
                 )
+
 
             LayersPowered.__init__(self, [l_mean, l_log_std])
 
@@ -135,6 +144,17 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             normalized_old_means_var = (old_means_var - y_mean_var) / y_std_var
             normalized_old_log_stds_var = old_log_stds_var - tf.log(y_std_var)
 
+            ## code added for symbolic prediction (allows for the parameters
+
+            normalized_means_var_sym = lambda xs, all_params: L.get_output(l_mean, {mean_network.input_layer: (xs-x_mean_var)/x_std_var, mean_network.layers: all_params })
+            # normalized_log_stds_var_sym = L.get_output(l_log_std, {mean_network.input_layer: normalized_xs_var})
+
+            means_var_sym = lambda xs, all_params: normalized_means_var_sym(xs, all_params) * y_std_var + y_mean_var
+            # log_stds_var = normalized_log_stds_var + tf.log(y_std_var)
+
+
+
+
             dist = self._dist = DiagonalGaussian(output_dim)
 
             normalized_dist_info_vars = dict(mean=normalized_means_var, log_std=normalized_log_stds_var)
@@ -150,6 +170,8 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             self._f_pdists = tensor_utils.compile_function([xs_var], [means_var, log_stds_var])
             self._l_mean = l_mean
             self._l_log_std = l_log_std
+
+            self._f_predict_sym = means_var_sym
 
             optimizer_args = dict(
                 loss=loss,
@@ -221,6 +243,13 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
         """
         return self._f_predict(xs)
 
+    def predict_sym(self, xs, all_params,):
+        """
+        Return
+        :return:
+        """
+        return self._f_predict_sym(xs, all_params)
+
     def sample_predict(self, xs):
         """
         Sample one possible output from the prediction distribution.
@@ -241,7 +270,7 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             L.get_output([self._l_mean, self._l_log_std], {self._mean_network.input_layer: normalized_xs_var})
 
         means_var = normalized_means_var * self._y_std_var + self._y_mean_var
-        log_stds_var = normalized_log_stds_var + TT.log(self._y_std_var)
+        log_stds_var = normalized_log_stds_var + tf.log(self._y_std_var)
 
         return self._dist.log_likelihood_sym(y_var, dict(mean=means_var, log_std=log_stds_var))
 
@@ -250,3 +279,4 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
 
     def set_param_values(self, flattened_params, **tags):
         LayersPowered.set_param_values(self, flattened_params, **tags)
+

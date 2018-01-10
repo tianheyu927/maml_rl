@@ -46,7 +46,7 @@ class BaseSampler(Sampler):
         """
         self.algo = algo
 
-    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False,):
+    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, metalearn_baseline=False):
         baselines = []
         returns = []
 
