@@ -72,7 +72,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             expert_trajs_dir=None,
             goals_pickle_to=None,
             goals_pool_size=None,
-            use_pooled_goals=False,
+            use_pooled_goals=True,
 
             **kwargs
     ):

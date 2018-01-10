@@ -42,7 +42,7 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list=['clip0.5_']
 limit_expert_traj_num_list = [20]
 test_goals_mult = 5
-
+bas_lr = 0.01  # baseline learning rate
 
 use_maml = True
 for fast_batch_size in fast_batch_size_list:
@@ -71,7 +71,7 @@ for fast_batch_size in fast_batch_size_list:
                                         if bas == 'zero':
                                             baseline = ZeroBaseline(env_spec=env.spec)
                                         elif 'MAMLGaussianMLP' in bas:
-                                            baseline = MAMLGaussianMLPBaseline(env_spec=env.spec)
+                                            baseline = MAMLGaussianMLPBaseline(env_spec=env.spec, learning_rate=bas_lr)
                                         elif 'linear' in bas:
                                             baseline = LinearFeatureBaseline(env_spec=env.spec)
                                         else:

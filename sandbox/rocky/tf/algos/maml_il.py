@@ -162,7 +162,7 @@ class MAMLIL(BatchMAMLPolopt):
         obs_vars, action_vars, _, expert_action_vars = self.make_vars('test')  # adv_vars was here instead of _
         surr_objs = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
-            dist_info_vars_i, _ = self.policy.updated_dist_info_sym(i, all_surr_objs[-1][i], obs_vars[i], params_dict=new_params[i])
+            dist_info_vars_i, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
                 kls.append(kl)  # we either get kl from here or from kl_constrain_step =0

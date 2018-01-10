@@ -7,6 +7,7 @@ from rllab.misc.overrides import overrides
 # from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 from sandbox.rocky.tf.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 from rllab.optimizers.first_order_optimizer import FirstOrderOptimizer
+from collections import OrderedDict
 
 import tensorflow as tf
 
@@ -19,6 +20,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             num_seq_inputs=1,
             regressor_args=None,
             learning_rate=0.01,
+            algo_discount=0.99,
     ):
         Serializable.quick_init(self, locals())
         super(MAMLGaussianMLPBaseline, self).__init__(env_spec)
@@ -38,16 +40,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             **regressor_args
         )
         self.learning_rate = learning_rate
+        self.algo_discount = algo_discount
         self._preupdate_params = None
         self.all_params = self._regressor.get_param_values()
 
-        self.all_params = self.create_MLP(  # TODO: this should not be a method of the policy! --> helper
-            name="vf",
-            input_
-        output_dim = output_dim,
-                     hidden_sizes = hidden_sizes,
-        )
-        print("debug23," type(self.all_params))
+        self.all_params = OrderedDict({x.name:x for x in self._regressor.get_params()})
+        print("debug23,", type(self.all_params))
 
     @overrides
     def fit(self, paths, log=True):
@@ -73,7 +71,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor.set_param_values(self._preupdate_params)
         self._preupdate_params = None
 
-    def updated_baseline_sym(self, baseline_pred_obj, obs_var, params_dict=None, is_training=True):
+    def updated_baseline_sym(self, baseline_pred_obj, obs_vars, params_dict=None):
         """ symbolically create post-fitting baseline params, to be used for meta-optimization"""
         old_params_dict = params_dict
 
@@ -91,21 +89,38 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         for k in no_update_param_keys:
             params_dict[k] = old_params_dict[k]
 
-        return self.predict_sym(obs_var, all_params = params_dict, is_training=is_training)
+        return self.predict_sym(obs_vars=obs_vars, all_params = params_dict)
 
-    def predict_sym(self, obs_var, all_params=None, is_training=True):
+    def predict_sym(self, obs_vars, all_params=None):
         return_params = True
         if all_params is None:
             return_params = False
             all_params = self.all_params
 
-        predicted_returns_var = self._regressor._f_predict_sym(obs_var, all_params) # TODO
+        predicted_returns_vars = self._regressor._f_predict_sym(obs_vars, all_params) # TODO
         if return_params:
-            return predicted_returns_var, all_params
+            return predicted_returns_vars, all_params
         else:
-            return predicted_returns_var
+            return predicted_returns_vars
 
-    def build_adv_sym(self,obs_vars,rewards_vars, returns_vars):
-        deltas_vars = rewards_vars + self.algo.discount * predicted_returns_vars_shifted_by_1 - predicted_returns_vars
+    def build_adv_sym(self,obs_vars,rewards_vars, returns_vars, all_params):
 
-        adv_vars = discount_cumsum_sym(deltas, self.algo.discount)
+        baseline_pred_obj = self._regressor._optimizer.loss  # baseline prediction objective
+        predicted_returns_vars = self.updated_baseline_sym(baseline_pred_obj=baseline_pred_obj, obs_vars=obs_vars, params_dict=all_params)
+        adv_vars = []
+        for i, rewards_var in enumerate(rewards_vars):
+            predicted_returns_var = predicted_returns_vars[i]
+            predicted_returns_var_ = tf.concat((predicted_returns_var[1:], tf.constant([0.0])),0)
+            deltas_var = rewards_var + self.algo_discount * predicted_returns_var_ - predicted_returns_var
+            adv_var = discount_cumsum_sym(deltas_var, self.algo_discount)
+            adv_vars.append(adv_vars)
+
+        return adv_vars
+
+def discount_cumsum_sym(var, discount):
+    # y[0] = x[0] + discount * x[1] + discount**2 * x[2] + ...
+    # y[1] = x[1] + discount * x[2] + discount**2 * x[3] + ...
+    discount = tf.cast(discount, tf.float32)
+    range_ = tf.cast(tf.range(tf.size(var)), tf.float32)
+    var_ = var * tf.pow(discount, range_)
+    return tf.cumsum(var_,reverse=True) * tf.pow(discount,-range_)
