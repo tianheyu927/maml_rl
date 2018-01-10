@@ -35,6 +35,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             env,
             policy,
             baseline,
+            metalearn_baseline=False,
             scope=None,
             n_itr=500,
             start_itr=0,
@@ -103,6 +104,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.policy = policy
         self.load_policy = load_policy
         self.baseline = baseline
+        self.metalearn_baseline = metalearn_baseline
         self.scope = scope
         self.n_itr = n_itr
         self.start_itr = start_itr
@@ -303,8 +305,8 @@ class BatchMAMLPolopt(RLAlgorithm):
        # logger.record_tabular(log_prefix+"TotalExecTime", total_time)
         return offpol_trajs
 
-    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False):
-        return self.sampler.process_samples(itr, paths, prefix=prefix, log=log, fast_process=fast_process)
+    def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False, metalearn_baseline=False):
+        return self.sampler.process_samples(itr, paths, prefix=prefix, log=log, fast_process=fast_process, metalearn_baseline=metalearn_baseline)
 
     def train(self):
         # TODO - make this a util
@@ -400,11 +402,11 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     testitr = True
                                 else:
                                     testitr = False
-                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process, testitr=testitr)
+                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process, testitr=testitr, metalearn_baseline=self.metalearn_baseline )
 
                             all_samples_data_for_betastep.append(samples_data)
                             # for logging purposes only
-                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process, testitr=testitr)
+                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
                             logger.log("Logging diagnostics...")
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
@@ -423,7 +425,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         self.optimize_policy(itr, all_samples_data_for_betastep)
 
                     if itr in TESTING_ITRS:
-                        self.process_samples(itr, flatten_list(all_postupdate_paths), prefix="1",log=True,fast_process=True,testitr=True)
+                        self.process_samples(itr, flatten_list(all_postupdate_paths), prefix="1",log=True,fast_process=True,testitr=True,metalearn_baseline=self.metalearn_baseline)
                     logger.log("Saving snapshot...")
                     params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
                     if self.store_paths:

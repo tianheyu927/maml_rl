@@ -6,7 +6,7 @@ from rllab.baselines.base import Baseline
 from rllab.misc.overrides import overrides
 # from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 from sandbox.rocky.tf.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
-from rllab.optimizers.first_order_optimizer import FirstOrderOptimizer
+from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 from collections import OrderedDict
 
 import tensorflow as tf
@@ -30,19 +30,32 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor = GaussianMLPRegressor(
             input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
             output_dim=1,
+            hidden_sizes=(1,),
+            hidden_nonlinearity=tf.identity,
             optimizer=FirstOrderOptimizer(
                 learning_rate=learning_rate,
             ),
             use_trust_region=False,
             learn_std=False,
-            init_std=0.0,
+            init_std=1.0,
             name="vf",
             **regressor_args
         )
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self._preupdate_params = None
-        self.all_params = self._regressor.get_param_values()
+        with tf.Session() as sess:
+            with tf.variable_scope("vf"):
+                # initialize uninitialized vars  (only initialize vars that were not loaded)
+                uninit_vars = []
+                for var in tf.global_variables():
+                    # note - this is hacky, may be better way to do this in newer TF.
+                    try:
+                        sess.run(var)
+                    except tf.errors.FailedPreconditionError:
+                        uninit_vars.append(var)
+                sess.run(tf.variables_initializer(uninit_vars))
+                self.all_params = self._regressor.get_param_values()
 
         self.all_params = OrderedDict({x.name:x for x in self._regressor.get_params()})
         print("debug23,", type(self.all_params))
@@ -52,7 +65,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._preupdate_params = self._regressor.get_param_values()
         observations = np.concatenate([p["observations"] for p in paths])
         returns = np.concatenate([p["returns"] for p in paths])
-        self._regressor.fit(observations, returns.reshape((-1, 1)), log=log)
+        self._regressor.fit(observations, returns.reshape((-1, 1)))
 
     @overrides
     def predict(self, path):
@@ -67,9 +80,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor.set_param_values(flattened_params, **tags)
 
     def revert(self):
-        assert self._preupdate_params is not None, "already reverted"
-        self._regressor.set_param_values(self._preupdate_params)
-        self._preupdate_params = None
+        # assert self._preupdate_params is not None, "already reverted"
+        if self._preupdate_params is None:
+            return
+        else:
+            self._regressor.set_param_values(self._preupdate_params)
+            self._preupdate_params = None
 
     def updated_baseline_sym(self, baseline_pred_obj, obs_vars, params_dict=None):
         """ symbolically create post-fitting baseline params, to be used for meta-optimization"""
@@ -97,7 +113,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             return_params = False
             all_params = self.all_params
 
-        predicted_returns_vars = self._regressor._f_predict_sym(obs_vars, all_params) # TODO
+        predicted_returns_vars = self._regressor._f_predict_sym(xs=obs_vars, params=all_params)
+        # TODO: regressor will predict the rewards, not the returns
+
         if return_params:
             return predicted_returns_vars, all_params
         else:
@@ -105,12 +123,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
     def build_adv_sym(self,obs_vars,rewards_vars, returns_vars, all_params):
 
-        baseline_pred_obj = self._regressor._optimizer.loss  # baseline prediction objective
+        baseline_pred_obj = self._regressor.loss_sym  # baseline prediction objective
         predicted_returns_vars = self.updated_baseline_sym(baseline_pred_obj=baseline_pred_obj, obs_vars=obs_vars, params_dict=all_params)
+        # TODO: predicted_returns_vars should be a list of predicted returns organized by path
         adv_vars = []
         for i, rewards_var in enumerate(rewards_vars):
             predicted_returns_var = predicted_returns_vars[i]
-            predicted_returns_var_ = tf.concat((predicted_returns_var[1:], tf.constant([0.0])),0)
+            predicted_returns_var_ = tf.concat([predicted_returns_var[1:], tf.constant([0.0])],1)
             deltas_var = rewards_var + self.algo_discount * predicted_returns_var_ - predicted_returns_var
             adv_var = discount_cumsum_sym(deltas_var, self.algo_discount)
             adv_vars.append(adv_vars)

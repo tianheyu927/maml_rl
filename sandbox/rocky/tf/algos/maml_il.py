@@ -35,7 +35,7 @@ class MAMLIL(BatchMAMLPolopt):
         self.l2loss_std_multiplier = l2loss_std_mult
         self.ism = importance_sampling_modifier
         self.metalearn_baseline = metalearn_baseline
-        super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, **kwargs)
+        super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, metalearn_baseline=metalearn_baseline, **kwargs)
 
 
     def make_vars(self, stepnum='0'):
@@ -131,7 +131,7 @@ class MAMLIL(BatchMAMLPolopt):
                 if not self.metalearn_baseline:
                     adv = adv_vars[i]
                 else:
-                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars, rewards_vars=rewards_vars, returns_vars=returns_vars)
+                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars, rewards_vars=rewards_vars, returns_vars=returns_vars,all_params=self.baseline.all_params)
                 dist_info_vars_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)

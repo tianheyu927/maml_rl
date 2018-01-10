@@ -53,29 +53,30 @@ class BaseSampler(Sampler):
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
         if not fast_process:
-            if log:
-                logger.log("fitting baseline...")
-            if hasattr(self.algo.baseline, 'fit_with_samples'):
-                self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
-            else:
-                self.algo.baseline.fit(paths, log=log)
-            if log:
-                logger.log("fitted")
+            if not metalearn_baseline:
+                if log:
+                    logger.log("fitting baseline...")
+                if hasattr(self.algo.baseline, 'fit_with_samples'):
+                    self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
+                else:
+                    self.algo.baseline.fit(paths, log=log)
+                if log:
+                    logger.log("fitted")
 
-            if hasattr(self.algo.baseline, "predict_n"):
-                all_path_baselines = self.algo.baseline.predict_n(paths)
-            else:
-                all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
+                if hasattr(self.algo.baseline, "predict_n"):
+                    all_path_baselines = self.algo.baseline.predict_n(paths)
+                else:
+                    all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
 
-        for idx, path in enumerate(paths):
-            if not fast_process:
-                path_baselines = np.append(all_path_baselines[idx], 0)
-                deltas = path["rewards"] + \
-                         self.algo.discount * path_baselines[1:] - \
-                         path_baselines[:-1]
-                path["advantages"] = special.discount_cumsum(
-                    deltas, self.algo.discount * self.algo.gae_lambda)
-                baselines.append(path_baselines[:-1])
+            for idx, path in enumerate(paths):
+                if not fast_process and not metalearn_baseline:
+                    path_baselines = np.append(all_path_baselines[idx], 0)
+                    deltas = path["rewards"] + \
+                             self.algo.discount * path_baselines[1:] - \
+                             path_baselines[:-1]
+                    path["advantages"] = special.discount_cumsum(
+                        deltas, self.algo.discount * self.algo.gae_lambda)
+                    baselines.append(path_baselines[:-1])
             returns.append(path["returns"])
             if "expert_actions" not in path.keys():
                 if "expert_actions" in path["env_infos"].keys():
@@ -85,7 +86,7 @@ class BaseSampler(Sampler):
                     path["expert_actions"] = np.array([[None]*len(path['actions'][0])] * len(path['actions']))
 
 
-        if not fast_process:
+        if not fast_process and not metalearn_baseline: # TODO: we want the ev eventually
             ev = special.explained_variance_1d(
                 np.concatenate(baselines),
                 np.concatenate(returns)
@@ -96,13 +97,13 @@ class BaseSampler(Sampler):
             actions = tensor_utils.concat_tensor_list([path["actions"] for path in paths])
             rewards = tensor_utils.concat_tensor_list([path["rewards"] for path in paths])
             returns = tensor_utils.concat_tensor_list([path["returns"] for path in paths])
-            if not fast_process:
+            if not fast_process and not metalearn_baseline:
                 advantages = tensor_utils.concat_tensor_list([path["advantages"] for path in paths])
             expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
             env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
 
-            if not fast_process:
+            if not fast_process and not metalearn_baseline:
                 if self.algo.center_adv:
                     advantages = util.center_advantages(advantages)
                 if self.algo.positive_adv:
@@ -114,7 +115,7 @@ class BaseSampler(Sampler):
             undiscounted_returns = [sum(path["rewards"]) for path in paths]
 
             # ent = np.mean(self.algo.policy.distribution.entropy(agent_infos))
-            if fast_process:
+            if fast_process or metalearn_baseline:
                 samples_data = dict(
                     observations=observations,
                     actions=actions,
@@ -203,7 +204,7 @@ class BaseSampler(Sampler):
             # logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
             logger.record_tabular(prefix + 'AverageReturn------>', np.mean(undiscounted_returns))
-            if not fast_process:
+            if not fast_process and not metalearn_baseline:
                 logger.record_tabular(prefix + 'ExplainedVariance', ev)
             logger.record_tabular(prefix + 'NumTrajs', len(paths))
             # logger.record_tabular(prefix + 'Entropy', ent)

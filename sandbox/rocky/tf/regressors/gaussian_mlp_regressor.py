@@ -146,10 +146,10 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
 
             ## code added for symbolic prediction (allows for the parameters
 
-            normalized_means_var_sym = lambda xs, all_params: L.get_output(l_mean, {mean_network.input_layer: (xs-x_mean_var)/x_std_var, mean_network.layers: all_params })
+            normalized_means_var_sym = lambda xs, params: L.get_output(layer_or_layers=l_mean, inputs=params)  #mean_network.input_layer: (xs-x_mean_var)/x_std_var,
             # normalized_log_stds_var_sym = L.get_output(l_log_std, {mean_network.input_layer: normalized_xs_var})
 
-            means_var_sym = lambda xs, all_params: normalized_means_var_sym(xs, all_params) * y_std_var + y_mean_var
+            means_var_sym = lambda xs, params: normalized_means_var_sym(xs=xs, params=params) * y_std_var + y_mean_var
             # log_stds_var = normalized_log_stds_var + tf.log(y_std_var)
 
 
@@ -172,7 +172,7 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             self._l_log_std = l_log_std
 
             self._f_predict_sym = means_var_sym
-
+            self.loss_sym = loss
             optimizer_args = dict(
                 loss=loss,
                 target=self,

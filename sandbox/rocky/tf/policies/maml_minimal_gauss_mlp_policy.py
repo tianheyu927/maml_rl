@@ -91,7 +91,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             self.input_tensor, _ = self.forward_MLP('mean_network', self.all_params,
                 reuse=None # Need to run this for batch norm
             )
-            forward_mean = lambda x, params, is_train: self.forward_MLP('mean_network', params,
+            forward_mean = lambda x, params, is_train: self.forward_MLP('mean_network', all_params=params,
                 input_tensor=x, is_training=is_train)[1]
         else:
             raise NotImplementedError('Not supported.')
