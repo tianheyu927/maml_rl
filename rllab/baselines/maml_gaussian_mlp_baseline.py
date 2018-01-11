@@ -128,31 +128,15 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         predicted_rewards_vars, _ = self.updated_baseline_sym(baseline_pred_obj=baseline_pred_obj, obs_vars=obs_vars, params_dict=all_params)
         # TODO: predicted_returns_vars should be a list of predicted returns organized by path
+        organized_rewards = tf.reshape(rewards_vars, [-1,path_lengths_vars])
         organized_pred_rewards = tf.reshape(predicted_rewards_vars, [-1,path_lengths_vars])
         organized_pred_rewards_ = tf.concat((organized_pred_rewards[:,1:], tf.zeros(tf.shape(organized_pred_rewards)[:-1])),axis=1)
-        organized_pred_returns = tf.map_fn(discount_cumsum_sym, organized_pred_rewards)
+        organized_pred_returns = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), organized_pred_rewards)
 
+        deltas = organized_rewards + self.algo_discount * organized_pred_rewards_ - organized_pred_rewards
+        adv_vars = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), deltas)
 
-
-        adv_vars = []
-
-
-
-
-
-
-        for i, path_var in enumerate(path_rewards_vars):
-            print("debug24", predicted_rewards_vars)
-            print("debug24", predicted_rewards_vars[i])
-
-            predicted_returns_var = discount_cumsum_sym(predicted_rewards_vars[i],self.algo_discount)
-            print("debug25", predicted_returns_var)
-            print("debug25", predicted_returns_var[1:])
-
-            predicted_returns_var_ = tf.concat([predicted_returns_var[1:], tf.constant([0.0])],1)
-            deltas_var = rewards_var + self.algo_discount * predicted_returns_var_ - predicted_returns_var
-            adv_var = discount_cumsum_sym(deltas_var, self.algo_discount)
-            adv_vars.append(adv_var)
+        adv_vars = tf.reshape(adv_vars, [-1])
 
         return adv_vars
 
