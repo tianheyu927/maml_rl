@@ -529,7 +529,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     reset_arg=self.goals_to_use_dict[itr][ind],
                                     use_maml=True, maml_task_index=ind,
                                     maml_num_tasks=self.meta_batch_size)
-
                     elif False and itr in PLOT_ITRS:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
