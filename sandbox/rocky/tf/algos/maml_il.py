@@ -41,7 +41,7 @@ class MAMLIL(BatchMAMLPolopt):
     def make_vars(self, stepnum='0'):
         # lists over the meta_batch_size
         # We should only need the last stepnum for meta-optimization.
-        obs_vars, action_vars, adv_vars, rewards_vars, returns_vars, path_rewards_vars, expert_action_vars = [], [], [], [], [], [], []
+        obs_vars, action_vars, adv_vars, rewards_vars, returns_vars, path_lengths_vars, expert_action_vars = [], [], [], [], [], [], []
         for i in range(self.meta_batch_size):
             obs_vars.append(self.env.observation_space.new_tensor_variable(
                 'obs' + stepnum + '_' + str(i),
@@ -65,8 +65,8 @@ class MAMLIL(BatchMAMLPolopt):
                     'returns' + stepnum + '_' + str(i),
                     ndim=1, dtype=tf.float32,
                 ))
-                path_rewards_vars.append(tensor_utils.new_tensor(
-                    'path_rewards' + stepnum + '_' + str(i),
+                path_lengths_vars.append(tensor_utils.new_tensor(
+                    'path_lengths' + stepnum + '_' + str(i),
                     ndim=1, dtype=tf.float32,
                 ))
             expert_action_vars.append(self.env.action_space.new_tensor_variable(
@@ -76,7 +76,7 @@ class MAMLIL(BatchMAMLPolopt):
         if not self.metalearn_baseline:
             return obs_vars, action_vars, adv_vars, expert_action_vars
         else:
-            return obs_vars, action_vars, rewards_vars, returns_vars, path_rewards_vars, expert_action_vars
+            return obs_vars, action_vars, rewards_vars, returns_vars, path_lengths_vars, expert_action_vars
 
 
     @overrides
@@ -124,7 +124,7 @@ class MAMLIL(BatchMAMLPolopt):
             if not self.metalearn_baseline:
                 obs_vars, action_vars, adv_vars, expert_action_vars = self.make_vars(str(grad_step))
             else:
-                obs_vars, action_vars, rewards_vars, returns_vars, path_rewards_vars, expert_action_vars = self.make_vars(str(grad_step))
+                obs_vars, action_vars, rewards_vars, returns_vars, path_lengths_vars, expert_action_vars = self.make_vars(str(grad_step))
 
             inner_surr_objs = []  # surrogate objectives
 
@@ -135,7 +135,11 @@ class MAMLIL(BatchMAMLPolopt):
                 if not self.metalearn_baseline:
                     adv = adv_vars[i]
                 else:
-                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars, rewards_vars=rewards_vars, returns_vars=returns_vars,path_rewards_vars=path_rewards_vars,self.baseline.all_params)
+                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars,
+                                                      rewards_vars=rewards_vars,
+                                                      returns_vars=returns_vars,
+                                                      path_lengths_vars=path_lengths_vars,
+                                                      all_params=self.baseline.all_params)
                 dist_info_vars_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
@@ -154,7 +158,7 @@ class MAMLIL(BatchMAMLPolopt):
             if not self.metalearn_baseline:
                 input_vars_list += obs_vars + action_vars + adv_vars
             else:
-                input_vars_list += obs_vars + action_vars + rewards_vars + returns_vars + path_rewards_vars
+                input_vars_list += obs_vars + action_vars + rewards_vars + returns_vars + path_lengths_vars
             # For computing the fast update for sampling
             # At this point, input_vars_list is theta0 + theta_l + obs + action + adv
             self.policy.set_init_surr_obj(input_vars_list, inner_surr_objs)
@@ -222,7 +226,7 @@ class MAMLIL(BatchMAMLPolopt):
         input_vals_list += tuple(theta_l_dist_info_list)
 
         for step in range(self.num_grad_updates):
-            obs_list, action_list, adv_list, rewards_list, returns_list, path_rewards_list, expert_action_list = [], [], [], [], [], [], []
+            obs_list, action_list, adv_list, rewards_list, returns_list, path_lengths_list, expert_action_list = [], [], [], [], [], [], []
             for i in range(self.meta_batch_size):  # for each task
                 if not self.metalearn_baseline:
                     inputs = ext.extract(
@@ -243,11 +247,11 @@ class MAMLIL(BatchMAMLPolopt):
                     rewards_list.append(inputs[2])
                     returns_list.append(inputs[3])
                     expert_action_list.append(inputs[4])
-                    path_rewards_list.append([p['rewards'] for p in inputs[5]])
+                    path_lengths_list.append([len(p['rewards']) for p in inputs[5]])
             if not self.metalearn_baseline:
                 input_vals_list += obs_list + action_list + adv_list + expert_action_list
             else:
-                input_vals_list += obs_list + action_list + rewards_list + returns_list + expert_action_list + path_rewards_list
+                input_vals_list += obs_list + action_list + rewards_list + returns_list + path_lengths_list + expert_action_list
 
 
         for step in [self.num_grad_updates]:  # last step

@@ -52,31 +52,30 @@ class BaseSampler(Sampler):
 
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
-        if not fast_process:
-            if not metalearn_baseline:
-                if log:
-                    logger.log("fitting baseline...")
-                if hasattr(self.algo.baseline, 'fit_with_samples'):
-                    self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
-                else:
-                    self.algo.baseline.fit(paths, log=log)
-                if log:
-                    logger.log("fitted")
+        if not fast_process and not metalearn_baseline:
+            if log:
+                logger.log("fitting baseline...")
+            if hasattr(self.algo.baseline, 'fit_with_samples'):
+                self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
+            else:
+                self.algo.baseline.fit(paths, log=log)
+            if log:
+                logger.log("fitted")
 
-                if hasattr(self.algo.baseline, "predict_n"):
-                    all_path_baselines = self.algo.baseline.predict_n(paths)
-                else:
-                    all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
+            if hasattr(self.algo.baseline, "predict_n"):
+                all_path_baselines = self.algo.baseline.predict_n(paths)
+            else:
+                all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
 
-            for idx, path in enumerate(paths):
-                if not fast_process and not metalearn_baseline:
-                    path_baselines = np.append(all_path_baselines[idx], 0)
-                    deltas = path["rewards"] + \
-                             self.algo.discount * path_baselines[1:] - \
-                             path_baselines[:-1]
-                    path["advantages"] = special.discount_cumsum(
-                        deltas, self.algo.discount * self.algo.gae_lambda)
-                    baselines.append(path_baselines[:-1])
+        for idx, path in enumerate(paths):
+            if not fast_process and not metalearn_baseline:
+                path_baselines = np.append(all_path_baselines[idx], 0)
+                deltas = path["rewards"] + \
+                         self.algo.discount * path_baselines[1:] - \
+                         path_baselines[:-1]
+                path["advantages"] = special.discount_cumsum(
+                    deltas, self.algo.discount * self.algo.gae_lambda)
+                baselines.append(path_baselines[:-1])
             returns.append(path["returns"])
             if "expert_actions" not in path.keys():
                 if "expert_actions" in path["env_infos"].keys():
@@ -115,7 +114,7 @@ class BaseSampler(Sampler):
             undiscounted_returns = [sum(path["rewards"]) for path in paths]
 
             # ent = np.mean(self.algo.policy.distribution.entropy(agent_infos))
-            if fast_process or metalearn_baseline:
+            if fast_process:
                 samples_data = dict(
                     observations=observations,
                     actions=actions,
@@ -126,6 +125,20 @@ class BaseSampler(Sampler):
                     paths=paths,
                     expert_actions=expert_actions,
                 )
+            elif metalearn_baseline:
+                samples_data = dict(
+                    observations=observations,
+                    actions=actions,
+                    rewards=rewards,
+                    returns=returns,
+                    env_infos=env_infos,
+                    agent_infos=agent_infos,
+                    paths=paths,
+                    expert_actions=expert_actions,
+                )
+                if 'agent_infos_orig' in paths[0].keys():
+                    agent_infos_orig = tensor_utils.concat_tensor_dict_list([path["agent_infos_orig"] for path in paths])
+                    samples_data["agent_infos_orig"] = agent_infos_orig
             else:
                 samples_data = dict(
                     observations=observations,

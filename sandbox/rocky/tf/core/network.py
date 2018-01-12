@@ -18,7 +18,7 @@ class MLP(LayersPowered, Serializable):
 
         with tf.variable_scope(name):
             if input_layer is None:
-                l_in = L.InputLayer(shape=(None,) + input_shape, input_var=input_var, name="input")
+                l_in = L.InputLayer(shape=(None,) + input_shape, input_var=input_var, name="input_layer")
             else:
                 l_in = input_layer
             self._layers = [l_in]

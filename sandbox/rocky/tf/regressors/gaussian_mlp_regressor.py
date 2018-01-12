@@ -10,6 +10,7 @@ from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian
 from rllab.core.serializable import Serializable
 from rllab.misc import logger
 import tensorflow as tf
+from collections import OrderedDict
 
 
 class GaussianMLPRegressor(LayersPowered, Serializable):
@@ -145,8 +146,17 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             normalized_old_log_stds_var = old_log_stds_var - tf.log(y_std_var)
 
             ## code added for symbolic prediction (allows for the parameters
+            print("debug4", xs_var)
+            print("debug4", mean_network.input_layer)
+            print("debug4", mean_network.layers)
 
-            normalized_means_var_sym = lambda xs, params: L.get_output(layer_or_layers=l_mean, inputs=params)  #mean_network.input_layer: (xs-x_mean_var)/x_std_var,
+            def normalized_means_var_sym(xs,params):
+                inputs = OrderedDict({mean_network.input_layer:xs})
+                inputs.update(params)
+                return L.get_output(layer_or_layers=l_mean, inputs=inputs)
+
+
+            # normalized_means_var_sym = lambda xs, params: L.get_output(layer_or_layers=l_mean, inputs=OrderedDict({mean_network.input_layer:xs}.)  #mean_network.input_layer: (xs-x_mean_var)/x_std_var,
             # normalized_log_stds_var_sym = L.get_output(l_log_std, {mean_network.input_layer: normalized_xs_var})
 
             means_var_sym = lambda xs, params: normalized_means_var_sym(xs=xs, params=params) * y_std_var + y_mean_var

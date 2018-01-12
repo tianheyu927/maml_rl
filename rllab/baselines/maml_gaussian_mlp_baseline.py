@@ -30,7 +30,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor = GaussianMLPRegressor(
             input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
             output_dim=1,
-            hidden_sizes=(1,),
+            hidden_sizes=(33,31),
             hidden_nonlinearity=tf.identity,
             optimizer=FirstOrderOptimizer(
                 learning_rate=learning_rate,
@@ -58,7 +58,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                 self.all_params = self._regressor.get_param_values()
 
         self.all_params = OrderedDict({x.name:x for x in self._regressor.get_params()})
-        print("debug23,", type(self.all_params))
+        print("debug23,", self.all_params.keys())
+        print("debug23,", self.all_params)
 
     @overrides
     def fit(self, paths, log=True):
@@ -113,6 +114,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if all_params is None:
             return_params = False
             all_params = self.all_params
+            if self.all_params is None:
+                assert False, "too damn bad"
 
         predicted_rewards_vars = self._regressor._f_predict_sym(xs=obs_vars, params=all_params)
         # TODO: regressor will predict the rewards, not the returns
@@ -128,9 +131,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         predicted_rewards_vars, _ = self.updated_baseline_sym(baseline_pred_obj=baseline_pred_obj, obs_vars=obs_vars, params_dict=all_params)
         # TODO: predicted_returns_vars should be a list of predicted returns organized by path
-        organized_rewards = tf.reshape(rewards_vars, [-1,path_lengths_vars])
-        organized_pred_rewards = tf.reshape(predicted_rewards_vars, [-1,path_lengths_vars])
-        organized_pred_rewards_ = tf.concat((organized_pred_rewards[:,1:], tf.zeros(tf.shape(organized_pred_rewards)[:-1])),axis=1)
+        organized_rewards = tf.reshape(rewards_vars, [-1,100])
+        organized_pred_rewards = tf.reshape(predicted_rewards_vars, [-1,100])
+        organized_pred_rewards_ = tf.concat((organized_pred_rewards[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_rewards[:,0])),[-1,1])),axis=1)
         organized_pred_returns = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), organized_pred_rewards)
 
         deltas = organized_rewards + self.algo_discount * organized_pred_rewards_ - organized_pred_rewards

@@ -393,11 +393,14 @@ class DenseLayer(Layer):
     def get_output_shape_for(self, input_shape):
         return (input_shape[0], self.num_units)
 
-    def get_output_for(self, input, **kwargs):
-        if input.get_shape().ndims > 2:
+    def get_output_for(self, input, metalearn=False, **kwargs ):
+        if input.get_shape().ndims > 2 and flatten:
             # if the input has more than two dimensions, flatten it into a
             # batch of feature vectors.
-            input = tf.reshape(input, tf.pack([tf.shape(input)[0], -1]))
+            if not metalearn:
+                input = tf.reshape(input, tf.stack([tf.shape(input)[0], -1]))
+            else:
+                input = tf.reshape(input, tf.stack([-1, tf.shape(input)[-1]]))
         activation = tf.matmul(input, self.W)
         if self.b is not None:
             activation = activation + tf.expand_dims(self.b, 0)
@@ -1832,6 +1835,8 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
         for input_layer in all_outputs:
             all_outputs[input_layer] = tf.convert_to_tensor(inputs)
     # update layer-to-expression mapping by propagating the inputs
+    print("debug6", all_outputs)
+
     for layer in all_layers:
         if layer not in all_outputs:
             try:
@@ -1847,7 +1852,9 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
                                  "layer %r. Please call it with a dictionary "
                                  "mapping this layer to an input expression."
                                  % layer)
-            all_outputs[layer] = layer.get_output_for(layer_inputs, **kwargs)
+            print("debug7", layer.name)
+            print("debug7", layer)
+            all_outputs[layer] = layer.get_output_for(layer_inputs, metalearn=True, **kwargs)
             try:
                 names, _, _, defaults = getargspec(layer.get_output_for)
             except TypeError:
