@@ -145,25 +145,15 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             normalized_old_means_var = (old_means_var - y_mean_var) / y_std_var
             normalized_old_log_stds_var = old_log_stds_var - tf.log(y_std_var)
 
-            ## code added for symbolic prediction (allows for the parameters
-            print("debug4", xs_var)
-            print("debug4", mean_network.input_layer)
-            print("debug4", mean_network.layers)
-
+            ## code added for symbolic prediction, used in constructing the meta-learning objective
             def normalized_means_var_sym(xs,params):
                 inputs = OrderedDict({mean_network.input_layer:xs})
                 inputs.update(params)
                 return L.get_output(layer_or_layers=l_mean, inputs=inputs)
-
-
             # normalized_means_var_sym = lambda xs, params: L.get_output(layer_or_layers=l_mean, inputs=OrderedDict({mean_network.input_layer:xs}.)  #mean_network.input_layer: (xs-x_mean_var)/x_std_var,
             # normalized_log_stds_var_sym = L.get_output(l_log_std, {mean_network.input_layer: normalized_xs_var})
-
             means_var_sym = lambda xs, params: normalized_means_var_sym(xs=xs, params=params) * y_std_var + y_mean_var
             # log_stds_var = normalized_log_stds_var + tf.log(y_std_var)
-
-
-
 
             dist = self._dist = DiagonalGaussian(output_dim)
 
@@ -174,8 +164,8 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
                 normalized_dist_info_vars,
             ))
 
-            loss = - tf.reduce_mean(dist.log_likelihood_sym(normalized_ys_var, normalized_dist_info_vars))
-
+            # loss = - tf.reduce_mean(dist.log_likelihood_sym(normalized_ys_var, normalized_dist_info_vars))
+            loss = tf.nn.l2_loss(normalized_ys_var-normalized_means_var) + tf.nn.l2_loss(normalized_log_stds_var)
             self._f_predict = tensor_utils.compile_function([xs_var], means_var)
             self._f_pdists = tensor_utils.compile_function([xs_var], [means_var, log_stds_var])
             self._l_mean = l_mean

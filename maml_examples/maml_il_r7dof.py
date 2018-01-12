@@ -23,7 +23,7 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,1),]
+beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
 baselines = ['MAMLGaussianMLP']  #['linear']
@@ -41,7 +41,7 @@ post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list=['clip0.5_']
 limit_expert_traj_num_list = [40]
-test_goals_mult = 5
+test_goals_mult = 1
 bas_lr = 0.01  # baseline learning rate
 
 use_maml = True
@@ -107,8 +107,8 @@ for fast_batch_size in fast_batch_size_list:
                                             snapshot_mode="last",
                                             python_command='python3',
                                             seed=seed,
-                                            exp_prefix='R7_IL_E3.3',
-                                            exp_name='R7_IL_E3.3'
+                                            exp_prefix='R7_IL_D0.1',
+                                            exp_name='R7_IL_D0.1'
                                                      # + str(int(use_maml))
                                                          +'_fbs'+str(fast_batch_size)
                                                          +'_mbs'+str(meta_batch_size)

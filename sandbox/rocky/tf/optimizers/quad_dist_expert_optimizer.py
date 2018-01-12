@@ -74,6 +74,8 @@ class QuadDistExpertOptimizer(Serializable):
         # initialize Adam variables
         uninit_vars = []
         sess = tf.get_default_session()
+        if sess is None:
+            sess = tf.Session()
         for var in tf.global_variables():
             # note - this is hacky, may be better way to do this in newer TF.
             try:

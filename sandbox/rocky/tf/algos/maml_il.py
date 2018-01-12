@@ -27,7 +27,7 @@ class MAMLIL(BatchMAMLPolopt):
         if optimizer is None:
             if optimizer_args is None:
                 optimizer_args = dict(min_penalty=1e-8)
-            optimizer = QuadDistExpertOptimizer("name1", adam_steps=adam_steps)  #  **optimizer_args)
+            optimizer = QuadDistExpertOptimizer("main_optimizer", adam_steps=adam_steps)  #  **optimizer_args)
         self.optimizer = optimizer
         self.step_size = step_size
         self.use_maml = use_maml
@@ -135,11 +135,12 @@ class MAMLIL(BatchMAMLPolopt):
                 if not self.metalearn_baseline:
                     adv = adv_vars[i]
                 else:
-                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars,
-                                                      rewards_vars=rewards_vars,
-                                                      returns_vars=returns_vars,
-                                                      path_lengths_vars=path_lengths_vars,
+                    adv = self.baseline.build_adv_sym(obs_vars=obs_vars[i],
+                                                      rewards_vars=rewards_vars[i],
+                                                      returns_vars=returns_vars[i],
+                                                      path_lengths_vars=path_lengths_vars[i],
                                                       all_params=self.baseline.all_params)
+
                 dist_info_vars_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
@@ -152,7 +153,7 @@ class MAMLIL(BatchMAMLPolopt):
                 lr = self.ism(lr)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                inner_surr_objs.append(-tf.reduce_mean(logli_i * lr * adv))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr,"debug2"), adv, "debug3")))
                 # inner_surr_objs.append(-tf.reduce_mean(lr * adv_vars[i]))
 
             if not self.metalearn_baseline:

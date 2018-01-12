@@ -1835,7 +1835,6 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
         for input_layer in all_outputs:
             all_outputs[input_layer] = tf.convert_to_tensor(inputs)
     # update layer-to-expression mapping by propagating the inputs
-    print("debug6", all_outputs)
 
     for layer in all_layers:
         if layer not in all_outputs:
@@ -1852,8 +1851,6 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
                                  "layer %r. Please call it with a dictionary "
                                  "mapping this layer to an input expression."
                                  % layer)
-            print("debug7", layer.name)
-            print("debug7", layer)
             all_outputs[layer] = layer.get_output_for(layer_inputs, metalearn=True, **kwargs)
             try:
                 names, _, _, defaults = getargspec(layer.get_output_for)

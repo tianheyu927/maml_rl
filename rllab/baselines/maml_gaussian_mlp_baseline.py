@@ -7,6 +7,8 @@ from rllab.misc.overrides import overrides
 # from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 from sandbox.rocky.tf.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
+from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
+
 from collections import OrderedDict
 
 import tensorflow as tf
@@ -30,14 +32,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor = GaussianMLPRegressor(
             input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
             output_dim=1,
-            hidden_sizes=(33,31),
-            hidden_nonlinearity=tf.identity,
-            optimizer=FirstOrderOptimizer(
-                learning_rate=learning_rate,
-            ),
-            use_trust_region=False,
+            hidden_sizes=(32,32),
+            hidden_nonlinearity=tf.nn.tanh,
+            optimizer=QuadDistExpertOptimizer(name="bas_optimizer", adam_steps=1),
+            # use_trust_region=False,
             learn_std=False,
-            init_std=1.0,
+            init_std=0.1,
             name="vf",
             **regressor_args
         )
@@ -115,28 +115,28 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             return_params = False
             all_params = self.all_params
             if self.all_params is None:
-                assert False, "too damn bad"
+                assert False, "too bad"
 
-        predicted_rewards_vars = self._regressor._f_predict_sym(xs=obs_vars, params=all_params)
+        predicted_returns_vars = self._regressor._f_predict_sym(xs=obs_vars, params=all_params)
         # TODO: regressor will predict the rewards, not the returns
 
         if return_params:
-            return predicted_rewards_vars, all_params
+            return predicted_returns_vars, all_params
         else:
-            return predicted_rewards_vars
+            return predicted_returns_vars
 
     def build_adv_sym(self,obs_vars,rewards_vars, returns_vars, path_lengths_vars, all_params):
 
         baseline_pred_obj = self._regressor.loss_sym  # baseline prediction objective
 
-        predicted_rewards_vars, _ = self.updated_baseline_sym(baseline_pred_obj=baseline_pred_obj, obs_vars=obs_vars, params_dict=all_params)
+        predicted_returns_vars, _ = self.updated_baseline_sym(baseline_pred_obj=baseline_pred_obj, obs_vars=obs_vars, params_dict=all_params)
         # TODO: predicted_returns_vars should be a list of predicted returns organized by path
         organized_rewards = tf.reshape(rewards_vars, [-1,100])
-        organized_pred_rewards = tf.reshape(predicted_rewards_vars, [-1,100])
-        organized_pred_rewards_ = tf.concat((organized_pred_rewards[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_rewards[:,0])),[-1,1])),axis=1)
-        organized_pred_returns = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), organized_pred_rewards)
+        organized_pred_returns = tf.reshape(predicted_returns_vars, [-1,100])
+        organized_pred_returns_ = tf.concat((organized_pred_returns[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_returns[:,0])),[-1,1])),axis=1)
+        # organized_pred_returns = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), organized_pred_rewards)
 
-        deltas = organized_rewards + self.algo_discount * organized_pred_rewards_ - organized_pred_rewards
+        deltas = organized_rewards + self.algo_discount * organized_pred_returns_ - organized_pred_returns
         adv_vars = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), deltas)
 
         adv_vars = tf.reshape(adv_vars, [-1])

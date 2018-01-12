@@ -306,7 +306,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         return offpol_trajs
 
     def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False, metalearn_baseline=False):
-        return self.sampler.process_samples(itr, paths, prefix=prefix, log=log, fast_process=fast_process, metalearn_baseline=metalearn_baseline)
+        return self.sampler.process_samples(itr, paths, prefix=prefix, log=log, fast_process=fast_process, testitr=testitr, metalearn_baseline=metalearn_baseline)
 
     def train(self):
         # TODO - make this a util
@@ -402,7 +402,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     testitr = True
                                 else:
                                     testitr = False
-                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process, testitr=testitr, metalearn_baseline=self.metalearn_baseline )
+                                samples_data[tasknum] = self.process_samples(itr, paths[tasknum], log=False, fast_process=fast_process, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
 
                             all_samples_data_for_betastep.append(samples_data)
                             # for logging purposes only
