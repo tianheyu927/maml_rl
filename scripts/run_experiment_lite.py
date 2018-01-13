@@ -45,6 +45,8 @@ def run_experiment(argv):
                         help='Gap between snapshot iterations.')
     parser.add_argument('--tabular_log_file', type=str, default='progress.csv',
                         help='Name of the tabular log file (in csv).')
+    parser.add_argument('--tabular_log_file2', type=str, default=None,
+                        help='Second tabular log file (in csv).')
     parser.add_argument('--text_log_file', type=str, default='debug.log',
                         help='Name of the text log file (in pure text).')
     parser.add_argument('--params_log_file', type=str, default='params.json',
@@ -85,6 +87,7 @@ def run_experiment(argv):
     else:
         log_dir = args.log_dir
     tabular_log_file = osp.join(log_dir, args.tabular_log_file)
+    tabular_log_file2 = osp.join(log_dir, args.tabular_log_file2) if args.tabular_log_file2 is not None else osp.join(log_dir,"progress %s.csv" %args.exp_name)
     text_log_file = osp.join(log_dir, args.text_log_file)
     params_log_file = osp.join(log_dir, args.params_log_file)
 
@@ -100,6 +103,7 @@ def run_experiment(argv):
 
     logger.add_text_output(text_log_file)
     logger.add_tabular_output(tabular_log_file)
+    logger.add_tabular_output(tabular_log_file2)
     prev_snapshot_dir = logger.get_snapshot_dir()
     prev_mode = logger.get_snapshot_mode()
     logger.set_snapshot_dir(log_dir)
@@ -129,6 +133,7 @@ def run_experiment(argv):
     logger.set_snapshot_mode(prev_mode)
     logger.set_snapshot_dir(prev_snapshot_dir)
     logger.remove_tabular_output(tabular_log_file)
+    logger.remove_tabular_output(tabular_log_file2)
     logger.remove_text_output(text_log_file)
     logger.pop_prefix()
 

@@ -4,7 +4,8 @@ from rllab.core.serializable import Serializable
 from rllab.core.parameterized import Parameterized
 from rllab.baselines.base import Baseline
 from rllab.misc.overrides import overrides
-from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
+# from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
+from sandbox.rocky.tf.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 
 
 class GaussianMLPBaseline(Baseline, Parameterized, Serializable):

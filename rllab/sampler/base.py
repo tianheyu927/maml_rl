@@ -72,6 +72,8 @@ class BaseSampler(Sampler):
             else:
                 all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
 
+
+
         for idx, path in enumerate(paths):
             if not fast_process and not metalearn_baseline:
                 path_baselines = np.append(all_path_baselines[idx], 0)

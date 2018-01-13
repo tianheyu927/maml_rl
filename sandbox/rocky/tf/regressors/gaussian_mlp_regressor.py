@@ -198,7 +198,7 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             self._y_mean_var = y_mean_var
             self._y_std_var = y_std_var
 
-    def fit(self, xs, ys):
+    def fit(self, xs, ys, log):
         if self._subsample_factor < 1:
             num_samples_tot = xs.shape[0]
             idx = np.random.randint(0, num_samples_tot, int(num_samples_tot * self._subsample_factor))

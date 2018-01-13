@@ -32,8 +32,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._regressor = GaussianMLPRegressor(
             input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
             output_dim=1,
-            hidden_sizes=(32,32),
-            hidden_nonlinearity=tf.nn.tanh,
+            hidden_sizes=(1,),
+            hidden_nonlinearity=tf.identity,
             optimizer=QuadDistExpertOptimizer(name="bas_optimizer", adam_steps=1),
             # use_trust_region=False,
             learn_std=False,
@@ -66,7 +66,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._preupdate_params = self._regressor.get_param_values()
         observations = np.concatenate([p["observations"] for p in paths])
         returns = np.concatenate([p["returns"] for p in paths])
-        self._regressor.fit(observations, returns.reshape((-1, 1)))
+        self._regressor.fit(observations, returns.reshape((-1, 1)), log=log)
 
     @overrides
     def predict(self, path):
@@ -87,6 +87,23 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         else:
             self._regressor.set_param_values(self._preupdate_params)
             self._preupdate_params = None
+
+    def compute_updated_baseline(self, samples):
+        """ Compute fast gradients once per iteration and pull them out of tensorflow for sampling with the post-update policy.
+        """
+        num_tasks = len(samples)
+        param_keys = self.all_params.keys()
+        update_param_keys = param_keys
+        no_update_param_keys = []
+
+        sess = tf.get_default_session()
+
+
+
+        for i in range(num_tasks):
+
+
+        self._cur_f_dist = tensor_utils.compile_function
 
     def updated_baseline_sym(self, baseline_pred_obj, obs_vars, params_dict=None):
         """ symbolically create post-fitting baseline params, to be used for meta-optimization.
