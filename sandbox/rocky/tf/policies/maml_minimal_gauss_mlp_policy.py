@@ -43,7 +43,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             std_parametrization='exp',
             grad_step_size=1.0,
             stop_grad=False,
-            metalearn_baseline=False,
+            # metalearn_baseline=False,
     ):
         """
         :param env_spec:
@@ -77,7 +77,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         self.input_shape = (None, obs_dim,)
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
-        self.metalearn_baseline = metalearn_baseline
+        # self.metalearn_baseline = metalearn_baseline
         if type(self.step_size) == list:
             raise NotImplementedError('removing this since it didnt work well')
 

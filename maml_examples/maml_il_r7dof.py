@@ -8,6 +8,7 @@ from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
 from sandbox.rocky.tf.policies.maml_minimal_gauss_mlp_policy import MAMLGaussianMLPPolicy
 from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
+from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
 
 from sandbox.rocky.tf.envs.base import TfEnv
 # import lasagne.nonlinearities as NL
@@ -29,7 +30,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  #['linear'] Gaussian MAMLGaussianMLP
+baselines = ['GaussianMLP']  #['linear'] GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -46,9 +47,9 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list=['clip0.5_']
 limit_expert_traj_num_list = [40]
 test_goals_mult = 1
-bas_lr = 0.0  # baseline learning rate
-basnl = tf.nn.relu
-baslayers_list = [(32,32), ]
+bas_lr = 0.01  # baseline learning rate
+basnl = tf.identity
+baslayers_list = [(1,), ]
 basas = 200 # baseline adam steps
 
 use_maml = True
@@ -75,32 +76,54 @@ for baslayers in baslayers_list:
                                                 hidden_nonlinearity=tf.nn.relu,
                                                 hidden_sizes=(100, 100),
                                                 std_modifier=pre_std_modifier,
-                                                metalearn_baseline=(bas == "MAMLGaussianMLP"),
+                                                # metalearn_baseline=(bas == "MAMLGaussianMLP"),
                                             )
                                             if bas == 'zero':
                                                 baseline = ZeroBaseline(env_spec=env.spec)
                                             elif 'MAMLGaussianMLP' in bas:
                                                 baseline = MAMLGaussianMLPBaseline(env_spec=env.spec,
-                                                                                   learning_rate=bas_lr,
                                                                                    regressor_args=dict(
-                                                                                       hidden_sizes=baslayers,
-                                                                                       hidden_nonlinearity=basnl,
-                                                                                       learn_std=False,
-                                                                                       optimizer=QuadDistExpertOptimizer(
-                                                                                           name="bas_optimizer",
-                                                                                           adam_steps=basas))
-                                                                                   )
-                                            elif 'linear' in bas:
-                                                baseline = LinearFeatureBaseline(env_spec=env.spec)
-                                            else:
-                                                baseline = GaussianMLPBaseline(env_spec=env.spec,
-                                                                               regressor_args=dict(
                                                                                    hidden_sizes=baslayers,
                                                                                    hidden_nonlinearity=basnl,
                                                                                    learn_std=False,
-                                                                               optimizer=QuadDistExpertOptimizer(
-                                                                                   name="bas_optimizer",
-                                                                                   adam_steps=basas)))
+                                                                                   use_trust_region=False,
+                                                                                   normalize_inputs=False,
+                                                                                   normalize_outputs=False,
+                                                                                   optimizer=FirstOrderOptimizer(
+                                                                                        name="bas_optimizer",
+                                                                                        # tf_optimizer_cls=tf.train.GradientDescentOptimizer,
+                                                                                        # tf_optimizer_args=dict(
+                                                                                        #     learning_rate=bas_lr,
+                                                                                        # ),
+                                                                                       tf_optimizer_cls=tf.train.AdamOptimizer,
+                                                                                       max_epochs=200,
+                                                                                       batch_size=None,
+                                                                                        # adam_steps=basas
+                                                                                       ))
+                                                                                   )
+                                            elif 'linear' in bas:
+                                                baseline = LinearFeatureBaseline(env_spec=env.spec)
+                                            elif "GaussianMLP" in bas:
+                                                baseline = GaussianMLPBaseline(env_spec=env.spec,
+                                                                                   regressor_args=dict(
+                                                                                   hidden_sizes=baslayers,
+                                                                                   hidden_nonlinearity=basnl,
+                                                                                   learn_std=False,
+                                                                                   # use_trust_region=False,
+                                                                                   # normalize_inputs=False,
+                                                                                   # normalize_outputs=False,
+                                                                                   optimizer=QuadDistExpertOptimizer(
+                                                                                        name="bas_optimizer",
+                                                                                       #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
+                                                                                       #  tf_optimizer_args=dict(
+                                                                                       #      learning_rate=bas_lr,
+                                                                                       #  ),
+                                                                                       # # tf_optimizer_cls=tf.train.AdamOptimizer,
+                                                                                       # max_epochs=200,
+                                                                                       # batch_size=None,
+                                                                                        adam_steps=basas
+                                                                                       ))
+                                                                                   )
                                             algo = MAMLIL(
                                                 env=env,
                                                 policy=policy,

@@ -49,9 +49,9 @@ class BaseSampler(Sampler):
     def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False, metalearn_baseline=False):
         baselines = []
         returns = []
-        # if testitr:
-        #     metalearn_baseline = False
-        #     # print("debug31, we're testing")
+        if testitr:
+            metalearn_baseline = False
+            # print("debug31, we're testing")
 
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)

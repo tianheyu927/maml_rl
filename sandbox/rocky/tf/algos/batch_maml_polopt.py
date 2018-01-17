@@ -522,7 +522,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         use_maml=True, maml_task_index=ind,
                                         maml_num_tasks=self.meta_batch_size)
                     elif self.make_video and itr in VIDEO_ITRS:
-                        for ind in range(min(10, self.meta_batch_size)):
+                        for ind in range(min(2, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
@@ -531,6 +531,18 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     reset_arg=self.goals_to_use_dict[itr][ind],
                                     use_maml=True, maml_task_index=ind,
                                     maml_num_tasks=self.meta_batch_size)
+                        self.policy.switch_to_init_dist()
+                        for ind in range(min(2, self.meta_batch_size)):
+                            logger.log("Saving videos...")
+                            self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'pre_path_%s_%s.mp4' % (ind, itr))
+                            rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                    animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                    reset_arg=self.goals_to_use_dict[itr][ind],
+                                    use_maml=False,
+                                    # maml_task_index=ind,
+                                    # maml_num_tasks=self.meta_batch_size
+                                    )
                     elif False and itr in PLOT_ITRS:  # swimmer or cheetah
                         logger.log("Saving visualization of paths")
                         for ind in range(min(5, self.meta_batch_size)):
