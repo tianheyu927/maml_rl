@@ -49,13 +49,13 @@ class BaseSampler(Sampler):
     def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False, metalearn_baseline=False):
         baselines = []
         returns = []
-        if testitr:
-            metalearn_baseline = False
+        # if testitr:
+        #     metalearn_baseline = False
+        #     # print("debug31, we're testing")
 
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
         if not fast_process and not metalearn_baseline:
-
             if log:
                 logger.log("fitting baseline...")
             if hasattr(self.algo.baseline, 'fit_with_samples'):
@@ -64,15 +64,11 @@ class BaseSampler(Sampler):
                 self.algo.baseline.fit(paths, log=log)
             if log:
                 logger.log("fitted")
-            logger.log("debug fitted")
-
 
             if hasattr(self.algo.baseline, "predict_n"):
                 all_path_baselines = self.algo.baseline.predict_n(paths)
             else:
                 all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
-
-
 
         for idx, path in enumerate(paths):
             if not fast_process and not metalearn_baseline:
@@ -233,7 +229,9 @@ class BaseSampler(Sampler):
             logger.record_tabular(prefix + 'MaxReturn', np.max(undiscounted_returns))
             logger.record_tabular(prefix + 'MinReturn', np.min(undiscounted_returns))
 
-        if hasattr(self.algo.baseline, "revert"):
-            self.algo.baseline.revert()
+
+        # if metalearn_baseline:
+        #     if hasattr(self.algo.baseline, "revert"):
+        #         self.algo.baseline.revert()
 
         return samples_data

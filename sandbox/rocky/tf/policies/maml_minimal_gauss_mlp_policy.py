@@ -168,6 +168,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
     def compute_updated_dists(self, samples):
         """ Compute fast gradients once per iteration and pull them out of tensorflow for sampling with the post-update policy.
+        With MAML_IL, this is only done during the testing iterations
         """
         start = time.time()
         num_tasks = len(samples)
@@ -194,23 +195,23 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
         obs_list, action_list, adv_list, rewards_list, returns_list = [], [], [], [], []
         for i in range(num_tasks):
-            if not self.metalearn_baseline:
+            if True: #not self.metalearn_baseline:
                 inputs = ext.extract(samples[i],
                                      'observations', 'actions', 'advantages')
                 obs_list.append(inputs[0])
                 action_list.append(inputs[1])
                 adv_list.append(inputs[2])
-            else:
-                inputs = ext.extract(samples[i],
-                                     'observations', 'actions', 'rewards', "returns")
-                obs_list.append(inputs[0])
-                action_list.append(inputs[1])
-                rewards_list.append(inputs[2])
-                returns_list.append(inputs[3])
-        if not self.metalearn_baseline:
+            # else:
+            #     inputs = ext.extract(samples[i],
+            #                          'observations', 'actions', 'rewards', "returns")
+            #     obs_list.append(inputs[0])
+            #     action_list.append(inputs[1])
+            #     rewards_list.append(inputs[2])
+            #     returns_list.append(inputs[3])
+        if True:  # not self.metalearn_baseline:
             inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + adv_list
-        else:
-            inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + rewards_list + returns_list
+        # else:
+        #     inputs = theta0_dist_info_list + theta_l_dist_info_list + obs_list + action_list + rewards_list + returns_list
 
         # To do a second update, replace self.all_params below with the params that were used to collect the policy.
         init_param_values = None

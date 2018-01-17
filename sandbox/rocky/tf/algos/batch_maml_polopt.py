@@ -313,6 +313,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         flatten_list = lambda l: [item for sublist in l for item in sublist]
 
         with tf.Session() as sess:
+
             # Code for loading a previous policy. Somewhat hacky because needs to be in sess.
             if self.load_policy is not None:
                 self.policy = joblib.load(self.load_policy)['policy']
@@ -329,6 +330,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
+                # file_writer = tf.summary.FileWriter("/home/rosen/temp12/", sess.graph)
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
                     all_paths_for_plotting = []
@@ -418,7 +420,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 if (itr in TESTING_ITRS or not self.use_maml_il or step<self.num_grad_updates-1) and step < self.num_grad_updates:
                                     # do not update on last grad step, and do not update on second to last step when training MAMLIL
                                     logger.log("Computing policy updates...")
-                                    self.policy.compute_updated_dists(samples_data)
+                                    self.policy.compute_updated_dists(samples=samples_data)
 
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.
@@ -520,7 +522,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         use_maml=True, maml_task_index=ind,
                                         maml_num_tasks=self.meta_batch_size)
                     elif self.make_video and itr in VIDEO_ITRS:
-                        for ind in range(min(5, self.meta_batch_size)):
+                        for ind in range(min(10, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))

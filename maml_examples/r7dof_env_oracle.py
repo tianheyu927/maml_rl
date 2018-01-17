@@ -27,9 +27,12 @@ class Reacher7DofMultitaskEnvOracle(
         #     #frame_skip = 5
         # )
 
-    # def viewer_setup(self):
-    #     self.viewer.cam.trackbodyid = -1
-    #     self.viewer.cam.distance = 4.0
+    def viewer_setup(self):
+        if self.viewer is None:
+            self.start_viewer()
+        self.viewer.cam.trackbodyid = -1
+        self.viewer.cam.distance = 3.5
+        self.viewer.azimuth = -30
 
     def get_current_obs(self):
         return np.concatenate([

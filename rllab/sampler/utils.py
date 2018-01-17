@@ -19,6 +19,11 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1, save_
     agent.reset()
     path_length = 0
     if animated:
+        env1=env
+        while hasattr(env1, "wrapped_env"):
+            env1 = env1.wrapped_env
+        if hasattr(env1, "viewer_setup"):
+            env1.viewer_setup()
         env.render()
     while path_length < max_path_length:
         if not use_maml:

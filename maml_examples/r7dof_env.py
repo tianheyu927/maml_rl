@@ -25,9 +25,12 @@ class Reacher7DofMultitaskEnv(
         # )
      #   self._desired_xyz = np.zeros((3,1))
 
-    # def viewer_setup(self):
-    #     self.viewer.cam.trackbodyid = -1
-    #     self.viewer.cam.distance = 4.0
+    def viewer_setup(self):
+        if self.viewer is None:
+            self.start_viewer()
+        self.viewer.cam.trackbodyid = -1
+        self.viewer.cam.distance = 3.5
+        self.viewer.cam.azimuth = -30
 
     def get_current_obs(self):
         return np.concatenate([
@@ -42,6 +45,7 @@ class Reacher7DofMultitaskEnv(
             self.get_body_com("tips_arm") - self.get_body_com("goal")
         )
         reward = - distance
+        # reward = 1.0 if distance < 0.2 else 0.0
         self.forward_dynamics(action)
         # self.do_simulation(action, self.frame_skip)
         next_obs = self.get_current_obs()
@@ -58,6 +62,9 @@ class Reacher7DofMultitaskEnv(
 
     @overrides
     def reset(self, reset_args=None, **kwargs):
+
+
+
         qpos = np.copy(self.init_qpos)
         qvel = np.copy(self.init_qvel) + self.np_random.uniform(
             low=-0.005, high=0.005, size=self.model.nv
