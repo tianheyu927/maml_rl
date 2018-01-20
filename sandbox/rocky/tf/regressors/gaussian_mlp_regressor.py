@@ -26,6 +26,8 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             mean_network=None,
             hidden_sizes=(32, 32),
             hidden_nonlinearity=tf.nn.tanh,
+            output_nonlinearity=lambda x: x*0.0 + tf.Variable(initial_value=-1.0,dtype=tf.float32),
+            # output_nonlinearity=tf.identity,
             optimizer=None,
             use_trust_region=True,
             step_size=0.01,
@@ -78,16 +80,34 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             self._subsample_factor = subsample_factor
 
             if mean_network is None:
-                mean_network = MLP(
+                print("Debug2, mean network is defined ehre")
+                mean_network = L.ParamLayer(
+                    incoming=L.InputLayer(
+                        shape=(None,) + input_shape,
+                        name="input_layer"),
+                    num_units=1,
+                    param=tf.constant_initializer(-200.0),
                     name="mean_network",
-                    input_shape=input_shape,
-                    output_dim=output_dim,
-                    hidden_sizes=hidden_sizes,
-                    hidden_nonlinearity=hidden_nonlinearity,
-                    output_nonlinearity=tf.identity,
-                )
+                    trainable=True,
+                ),
+                print(mean_network.input_layer)
+            print("debug4", isinstance(L.InputLayer(
+                        shape=(None,) + input_shape,
+                        name="input_layer"), tuple))
 
-            l_mean = mean_network.output_layer
+            l_mean = mean_network
+
+
+                # mean_network = MLP(
+            #         name="mean_network",
+            #         input_shape=input_shape,
+            #         output_dim=output_dim,
+            #         hidden_sizes=hidden_sizes,
+            #         hidden_nonlinearity=hidden_nonlinearity,
+            #         output_nonlinearity=output_nonlinearity,
+            #     )
+            #
+            # l_mean = mean_network.output_layer
 
             if adaptive_std:
                 l_log_std = MLP(

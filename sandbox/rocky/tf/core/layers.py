@@ -128,7 +128,7 @@ class Layer(object):
         self.name = name
         self.variable_reuse = variable_reuse
         self.get_output_kwargs = []
-
+        print("debug3", self.input_shape)
         if any(d is not None and d <= 0 for d in self.input_shape):
             raise ValueError((
                                  "Cannot create Layer with a non-positive input_shape "

@@ -10,6 +10,7 @@ from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimize
 from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
 
 from collections import OrderedDict
+from sandbox.rocky.tf.misc import tensor_utils
 
 import tensorflow as tf
 
@@ -55,12 +56,16 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         print("debug23,", self.all_params.keys())
         print("debug23,", self.all_params)
 
+        self.all_param_vals = None
+
     @overrides
     def fit(self, paths, log=True):
         # self._preupdate_params = self._regressor.get_param_values()
         observations = np.concatenate([p["observations"] for p in paths])
         returns = np.concatenate([p["returns"] for p in paths])
         self._regressor.fit(observations, returns.reshape((-1, 1)), log=log)
+
+
 
     @overrides
     def predict(self, path):
@@ -116,6 +121,43 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             return predicted_returns_vars, all_params
         else:
             return predicted_returns_vars
+
+    # @overrides
+    # def fit(self, paths, log=True):  # aka compute updated baseline
+    #     # self._preupdate_params = self._regressor.get_param_values()
+    #
+    #     param_keys = self.all_params.keys()
+    #     update_param_keys = param_keys
+    #     no_update_param_keys = []
+    #     sess = tf.get_default_session()
+    #
+    #     observations = np.concatenate([p["observations"] for p in paths])
+    #     returns = np.concatenate([p["returns"] for p in paths])
+    #
+    #     inputs = observations + returns
+    #
+    #
+    #     learning_rate = self.learning_rate
+    #     if self.all_param_vals is not None:
+    #         self.assign_params(self.all_params, self.all_param_vals)
+    #
+    #     if "fit_tensor" not in dir(self):
+    #         gradients = dict(zip(update_param_keys, tf.gradients(self._regressor.loss_sym, [self.all_params[key] for key in update_param_keys])))
+    #         self.fit_tensor = OrderedDict(zip(update_param_keys,
+    #                                              [self.all_params[key] - learning_rate * gradients[key] for key in
+    #                                               update_param_keys]))
+    #         for k in no_update_param_keys:
+    #             self.fit_tensor[k] = self.all_params[k]
+    #
+    #     self.all_param_vals = sess.run(self.fit_tensor, feed_dict = dict(list(zip(self.input_list_for_grad, inputs))))
+    #
+    #
+    #     inputs = self.input_tensor
+    #     task_inp = inputs
+    #     output = self.predict_sym(task_inp, dict(),all_params=self.all_param_vals, is_training=False)
+    #
+    #
+    #     self._regressor._f_predict = tensor_utils.compile_function(inputs=[self.input_tensor], outputs=output)
 
 
     def updated_predict_sym(self, baseline_pred_obj, obs_vars, params_dict=None):

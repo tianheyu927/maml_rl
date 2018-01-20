@@ -197,7 +197,8 @@ class MAMLIL(BatchMAMLPolopt):
 
         self.optimizer.update_opt(
             loss=surr_obj,
-            target=(self.policy, self.baseline),
+            target=None,
+            # target=(self.policy, self.baseline),
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
             constraint_name="mean_kl"

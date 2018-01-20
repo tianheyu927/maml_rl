@@ -93,6 +93,7 @@ class BaseSampler(Sampler):
                 np.concatenate(baselines),
                 np.concatenate(returns)
             )
+            l2 = np.linalg.norm(np.array(baselines)-np.array(returns))
 
         if not self.algo.policy.recurrent:
             observations = tensor_utils.concat_tensor_list([path["observations"] for path in paths])
@@ -222,6 +223,8 @@ class BaseSampler(Sampler):
             logger.record_tabular(prefix + 'AverageReturn------>', np.mean(undiscounted_returns))
             if not fast_process and not metalearn_baseline:
                 logger.record_tabular(prefix + 'ExplainedVariance', ev)
+                logger.record_tabular(prefix + 'BaselinePredLoss', l2)
+
             logger.record_tabular(prefix + 'NumTrajs', len(paths))
             # logger.record_tabular(prefix + 'Entropy', ent)
             # logger.record_tabular(prefix + 'Perplexity', np.exp(ent))

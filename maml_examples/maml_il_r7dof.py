@@ -12,6 +12,7 @@ from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimize
 
 from sandbox.rocky.tf.envs.base import TfEnv
 # import lasagne.nonlinearities as NL
+import sandbox.rocky.tf.core.layers as L
 
 from rllab.envs.gym_env import GymEnv
 from maml_examples.reacher_env import ReacherEnv
@@ -30,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['GaussianMLP']  #['linear'] GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  #['linear'] GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -47,10 +48,16 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list=['clip0.5_']
 limit_expert_traj_num_list = [40]
 test_goals_mult = 1
-bas_lr = 0.01  # baseline learning rate
-basnl = tf.identity
-baslayers_list = [(1,), ]
+bas_lr = 0.00  # baseline learning rate
+bas_hnl = tf.nn.relu
+# bas_onl = lambda x: tf.constant(-200.0)
+def bas_onl(x):
+    return tf.constant(-200.0)
+baslayers_list = [(32,32), ]
 basas = 200 # baseline adam steps
+
+
+
 
 use_maml = True
 for baslayers in baslayers_list:
@@ -82,23 +89,22 @@ for baslayers in baslayers_list:
                                                 baseline = ZeroBaseline(env_spec=env.spec)
                                             elif 'MAMLGaussianMLP' in bas:
                                                 baseline = MAMLGaussianMLPBaseline(env_spec=env.spec,
+                                                                                   learning_rate=bas_lr,
                                                                                    regressor_args=dict(
                                                                                    hidden_sizes=baslayers,
-                                                                                   hidden_nonlinearity=basnl,
+                                                                                   hidden_nonlinearity=bas_hnl,
                                                                                    learn_std=False,
-                                                                                   use_trust_region=False,
-                                                                                   normalize_inputs=False,
-                                                                                   normalize_outputs=False,
-                                                                                   optimizer=FirstOrderOptimizer(
+                                                                                   # use_trust_region=False,
+                                                                                   optimizer=QuadDistExpertOptimizer(
                                                                                         name="bas_optimizer",
-                                                                                        # tf_optimizer_cls=tf.train.GradientDescentOptimizer,
-                                                                                        # tf_optimizer_args=dict(
-                                                                                        #     learning_rate=bas_lr,
-                                                                                        # ),
-                                                                                       tf_optimizer_cls=tf.train.AdamOptimizer,
-                                                                                       max_epochs=200,
-                                                                                       batch_size=None,
-                                                                                        # adam_steps=basas
+                                                                                       #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
+                                                                                       #  tf_optimizer_args=dict(
+                                                                                       #      learning_rate=bas_lr,
+                                                                                       #  ),
+                                                                                       # # tf_optimizer_cls=tf.train.AdamOptimizer,
+                                                                                       # max_epochs=200,
+                                                                                       # batch_size=None,
+                                                                                        adam_steps=basas
                                                                                        ))
                                                                                    )
                                             elif 'linear' in bas:
@@ -107,7 +113,7 @@ for baslayers in baslayers_list:
                                                 baseline = GaussianMLPBaseline(env_spec=env.spec,
                                                                                    regressor_args=dict(
                                                                                    hidden_sizes=baslayers,
-                                                                                   hidden_nonlinearity=basnl,
+                                                                                   hidden_nonlinearity=bas_hnl,
                                                                                    learn_std=False,
                                                                                    # use_trust_region=False,
                                                                                    # normalize_inputs=False,
@@ -156,8 +162,8 @@ for baslayers in baslayers_list:
                                                 snapshot_mode="last",
                                                 python_command='python3',
                                                 seed=seed,
-                                                exp_prefix='R7_IL_D0.2',
-                                                exp_name='R7_IL_D0.2'
+                                                exp_prefix='R7_IL_D0.3_sparse0.1',
+                                                exp_name='R7_IL_D0.3_sparse0.1'
                                                          # + str(int(use_maml))
                                                              +'_fbs'+str(fast_batch_size)
                                                              +'_mbs'+str(meta_batch_size)
@@ -178,8 +184,8 @@ for baslayers in baslayers_list:
                                                          + "_bas" + bas[0]
                                                         +"_tfbe" # TF backend for baseline
                                                         +"_qdo" # quad dist optimizer
-                                                        +("_bi" if basnl==tf.identity else ("_brel" if basnl==tf.nn.relu else "_bth")) # identity or relu or tanh for baseline
-                                                        +"_" + str(baslayers) #size
+                                                        +("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
+                                                         +"_" + str(baslayers) #size
                                                         +"_basas" + str(basas) #baseline adam steps
                                                          + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                                 plot=False,

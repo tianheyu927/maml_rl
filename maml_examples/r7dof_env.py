@@ -44,8 +44,8 @@ class Reacher7DofMultitaskEnv(
         distance = np.linalg.norm(
             self.get_body_com("tips_arm") - self.get_body_com("goal")
         )
-        reward = - distance
-        # reward = 1.0 if distance < 0.2 else 0.0
+        # reward = - distance
+        reward = 1.0 if distance < 0.1 else 0.0
         self.forward_dynamics(action)
         # self.do_simulation(action, self.frame_skip)
         next_obs = self.get_current_obs()
