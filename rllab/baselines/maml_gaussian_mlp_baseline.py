@@ -73,9 +73,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         super(MAMLGaussianMLPBaseline, self).__init__(env_spec)
 
-        dist_info_sym = self.dist_info_sym(self.input_tensor)
-        mean_var = dist_info_sym['mean']
-        log_std_var = dist_info_sym['log_std']
+        predict_sym = self.predict_sym(self.input_tensor)
+        mean_var = predict_sym['mean']
+        log_std_var = predict_sym['log_std']
 
         self._init_f_dist = tensor_utils.compile_function(
             inputs=[self.input_tensor],
