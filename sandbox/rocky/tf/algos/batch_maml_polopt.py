@@ -522,7 +522,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                         use_maml=True, maml_task_index=ind,
                                         maml_num_tasks=self.meta_batch_size)
                     elif self.make_video and itr in VIDEO_ITRS:
-                        for ind in range(min(2, self.meta_batch_size)):
+                        for ind in range(min(5, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
@@ -532,7 +532,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     use_maml=True, maml_task_index=ind,
                                     maml_num_tasks=self.meta_batch_size)
                         self.policy.switch_to_init_dist()
-                        for ind in range(min(2, self.meta_batch_size)):
+                        for ind in range(min(5, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
                             video_filename = osp.join(logger.get_snapshot_dir(), 'pre_path_%s_%s.mp4' % (ind, itr))

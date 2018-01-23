@@ -8,12 +8,12 @@ from rllab.envs.base import Step
 from rllab.core.serializable import Serializable
 
 
-class Reacher7DofMultitaskEnv(
+class Reacher7DofMultitaskEnvSparse(
     mujoco_env.MujocoEnv, Serializable
 ):
     def __init__(self, distance_metric_order=None, *args, **kwargs):
         self.goal = None
-        self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
+        self.__class__.FILE = 'r7dof_versions/reacher_7dof_sparse0.2.xml'
         super().__init__()
         Serializable.__init__(self, *args, **kwargs)
 
@@ -44,8 +44,8 @@ class Reacher7DofMultitaskEnv(
         distance = np.linalg.norm(
             self.get_body_com("tips_arm") - self.get_body_com("goal")
         )
-        reward = - distance
-        # reward = 1.0 if distance < 0.1 else 0.0
+        # reward = - distance
+        reward = 1.0 if distance < 0.2 else 0.0
         self.forward_dynamics(action)
         # self.do_simulation(action, self.frame_skip)
         next_obs = self.get_current_obs()

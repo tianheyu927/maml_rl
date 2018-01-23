@@ -2,7 +2,7 @@ from sandbox.rocky.tf.algos.maml_trpo import MAMLTRPO
 from sandbox.rocky.tf.algos.maml_il import MAMLIL
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from rllab.baselines.gaussian_mlp_baseline import GaussianMLPBaseline
-from rllab.baselines.maml_gaussian_mlp_baseline import MAMLGaussianMLPBaseline
+# from rllab.baselines.maml_gaussian_mlp_baseline import MAMLGaussianMLPBaseline
 from rllab.baselines.zero_baseline import ZeroBaseline
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
@@ -14,10 +14,7 @@ from sandbox.rocky.tf.envs.base import TfEnv
 # import lasagne.nonlinearities as NL
 import sandbox.rocky.tf.core.layers as L
 
-from rllab.envs.gym_env import GymEnv
-from maml_examples.reacher_env import ReacherEnv
-from rllab.envs.mujoco.pusher_env import PusherEnv
-from maml_examples.r7dof_env import Reacher7DofMultitaskEnv
+from maml_examples.r7dof_env_sparse import Reacher7DofMultitaskEnvSparse
 from maml_examples.r7dof_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, default_r7dof_env_option
 from maml_examples.maml_experiment_vars import MOD_FUNC
 
@@ -41,13 +38,13 @@ meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly s
 max_path_length = 100  # 100
 num_grad_updates = 1
 meta_step_size = 0.01
-pre_std_modifier_list = [1.0]
+pre_std_modifier_list = [3.0]
 post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list=['clip0.5_']
 limit_expert_traj_num_list = [40]
-test_goals_mult = 1
+test_goals_mult = 5
 bas_lr = 0.00  # baseline learning rate
 bas_hnl = tf.nn.relu
 # bas_onl = lambda x: tf.constant(-200.0)
@@ -72,7 +69,7 @@ for baslayers in baslayers_list:
                                             stub(globals())
 
                                             seed = 1
-                                            env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
+                                            env = TfEnv(normalize(Reacher7DofMultitaskEnvSparse()))
 
                                             policy = MAMLGaussianMLPPolicy(
                                                 name="policy",
@@ -160,8 +157,8 @@ for baslayers in baslayers_list:
                                                 snapshot_mode="last",
                                                 python_command='python3',
                                                 seed=seed,
-                                                exp_prefix='R7_IL_D0.2',
-                                                exp_name='R7_IL_D0.2'
+                                                exp_prefix='R7_IL_D0.3_sparse0.2',
+                                                exp_name='R7_IL_D0.3_sparse0.2'
                                                          # + str(int(use_maml))
                                                              +'_fbs'+str(fast_batch_size)
                                                              +'_mbs'+str(meta_batch_size)
@@ -179,12 +176,12 @@ for baslayers in baslayers_list:
                                                          # + "_posm" + str(post_std_modifier_test)
                                                          #  + "_l2m" + str(l2loss_std_mult)
                                                          + "_ism" + ism
-                                                         + "_bas" + bas[0]
-                                                        +"_tfbe" # TF backend for baseline
-                                                        +"_qdo" # quad dist optimizer
-                                                        +("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
-                                                         +"_" + str(baslayers) #size
-                                                        +"_basas" + str(basas) #baseline adam steps
+                                                         # + "_bas" + bas[0]
+                                                        # +"_tfbe" # TF backend for baseline
+                                                        # +"_qdo" # quad dist optimizer
+                                                        # +("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
+                                                        #  +"_" + str(baslayers) #size
+                                                        # +"_basas" + str(basas) #baseline adam steps
                                                          + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                                 plot=False,
                                                 sync_s3_pkl=True,

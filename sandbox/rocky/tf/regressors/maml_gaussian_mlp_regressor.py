@@ -12,8 +12,10 @@ from rllab.misc import logger
 import tensorflow as tf
 from collections import OrderedDict
 
+from sandbox.rocky.tf.core.utils import make_input, make_dense_layer, forward_dense_layer, make_param_layer, \
+    forward_param_layer
 
-class GaussianMLPRegressor(LayersPowered, Serializable):
+class MAMLGaussianMLPRegressor(LayersPowered, Serializable):
     """
     A class for performing regression by fitting a Gaussian distribution to the outputs.
     """
@@ -80,7 +82,21 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             self._subsample_factor = subsample_factor
 
             if mean_network is None:
-            #     print("Debug2, mean network is defined ehre")
+
+                mean_network = create_MLP(
+                    name="mean_network",
+                    output_dim=1,
+                    hidden_sizes=hidden_sizes,
+                    hidden_nonlinearity=hidden_nonlinearity,
+                    output_nonlinearity=output_nonlinearity,
+                )
+                forward_mean = lambda x, params, is_train : self.forward_MLP('mean_network', all_params=params, input_tensor=x, is_training=is_train)[1]
+            else:
+                raise NotImplementedError('Not supported.')
+
+
+
+            #     print("Debug2, mean network is defined here")
             #     mean_network = L.ParamLayer(
             #         incoming=L.InputLayer(
             #             shape=(None,) + input_shape,
@@ -98,35 +114,44 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             # l_mean = mean_network
 
 
-                mean_network = MLP(
-                    name="mean_network",
-                    input_shape=input_shape,
-                    output_dim=output_dim,
-                    hidden_sizes=hidden_sizes,
-                    hidden_nonlinearity=hidden_nonlinearity,
-                    output_nonlinearity=output_nonlinearity,
-                )
-
-            l_mean = mean_network.output_layer
+                # mean_network = MLP(
+            #         name="mean_network",
+            #         input_shape=input_shape,
+            #         output_dim=output_dim,
+            #         hidden_sizes=hidden_sizes,
+            #         hidden_nonlinearity=hidden_nonlinearity,
+            #         output_nonlinearity=output_nonlinearity,
+            #     )
+            #
+            # l_mean = mean_network.output_layer
 
             if adaptive_std:
-                l_log_std = MLP(
-                    name="log_std_network",
-                    input_shape=input_shape,
-                    input_var=mean_network.input_layer.input_var,
-                    output_dim=output_dim,
-                    hidden_sizes=std_hidden_sizes,
-                    hidden_nonlinearity=std_nonlinearity,
-                    output_nonlinearity=None,
-                ).output_layer
+                # l_log_std = MLP(
+                #     name="log_std_network",
+                #     input_shape=input_shape,
+                #     input_var=mean_network.input_layer.input_var,
+                #     output_dim=output_dim,
+                #     hidden_sizes=std_hidden_sizes,
+                #     hidden_nonlinearity=std_nonlinearity,
+                #     output_nonlinearity=None,
+                # ).output_layer
+                raise NotImplementedError('Not supported.')
             else:
-                l_log_std = L.ParamLayer(
-                    mean_network.input_layer,
-                    num_units=output_dim,
-                    param=tf.constant_initializer(np.log(init_std)),
-                    name="output_log_std",
+                # l_log_std = L.ParamLayer(
+                #     mean_network.input_layer,
+                #     num_units=output_dim,
+                #     param=tf.constant_initializer(np.log(init_std)),
+                #     name="output_log_std",
+                #     trainable=learn_std,
+                # )
+                self.all_params['std_param'] = make_param_layer(
+                    num_units=1,
+                    param=tf.constant_initializer(init_std),
+                    name="output_std_param",
                     trainable=learn_std,
                 )
+                forward_std = lambda x, params: forward_param_layer(x, params['std_param'])
+            self.all_param_vals = None
 
 
             LayersPowered.__init__(self, [l_mean, l_log_std])
