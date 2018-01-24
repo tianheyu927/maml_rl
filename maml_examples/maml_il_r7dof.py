@@ -49,9 +49,9 @@ importance_sampling_modifier_list = ['clip0.5_']
 limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.00  # baseline learning rate
-bas_hnl = tf.identity
+bas_hnl = tf.nn.tanh
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
-baslayers_list = [(1,), ]
+baslayers_list = [(200,200), ]
 basas = 200 # baseline adam steps
 
 
@@ -136,9 +136,8 @@ for baslayers in baslayers_list:
                                                 max_path_length=max_path_length,
                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                n_itr=100, #100
+                                                n_itr=20, #100
                                                 make_video=True,
-                                                center_adv=True,  #TODO: want to get rid of this
                                                 use_maml=use_maml,
                                                 use_pooled_goals=True,
                                                 metalearn_baseline=(bas=="MAMLGaussianMLP"),

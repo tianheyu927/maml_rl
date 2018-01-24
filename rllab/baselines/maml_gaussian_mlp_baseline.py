@@ -31,7 +31,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             hidden_sizes=(32,32),
             hidden_nonlinearity=tf.nn.relu,
             output_nonlinearity=tf.identity,
-            init_std=1.0,
+            init_std=1.01,
 
     ):
         Serializable.quick_init(self, locals())
@@ -111,16 +111,15 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
     @overrides
     def predict(self, path):
-        flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
-        result = self._cur_f_dist(flat_obs)
+        # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
+        obs = path['observations']
+        result = self._cur_f_dist(obs)
         if len(result) == 2:
             means, log_stds = result
         else:
             raise NotImplementedError('Not supported.')
-        # print("debug42", np.shape(log_stds))
-        # return log_stds
+        return np.reshape(means, [-1])
 
-        return -0.0 * np.ones_like(path['rewards'])  #, dict(mean=means, log_std=log_stds)
 
     @property
     def distribution(self):
@@ -255,32 +254,23 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate * gradients[key] for key in update_param_keys]))
         for k in no_update_param_keys:
             params_dict[k] = old_params_dict[k]
-        return self.predict_sym(obs_vars=obs_vars, all_params = params_dict)
+        return self.predict_sym(obs_vars=obs_vars, all_params=params_dict)
 
     def build_adv_sym(self,obs_vars,rewards_vars, returns_vars, baseline_pred_loss, all_params):  # path_lengths_vars was before all_params
 
 
-        # predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, obs_vars=obs_vars, params_dict=all_params)
+        predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, obs_vars=obs_vars, params_dict=all_params)
 
 
         organized_rewards = tf.reshape(rewards_vars, [-1,100])
-        joke_pred_returns = -0.0 * tf.ones_like(organized_rewards)
-        # organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] * 0.0 + predicted_returns_vars['log_std'], [-1,100])
-        # organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] * 0.0 + 0.0 * predicted_returns_vars['log_std'], [-1,100])
-        # organized_pred_returns = -5.0 * tf.ones_like(organized_pred_returns)
-
-        organized_pred_returns = joke_pred_returns
+        organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] + 0.0 * predicted_returns_vars['log_std'], [-1,100])
         organized_pred_returns_ = tf.concat((organized_pred_returns[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_returns[:,0])),[-1,1])),axis=1)
-        # organized_pred_returns = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), organized_pred_rewards)
-
-
 
         deltas = organized_rewards + self.algo_discount * organized_pred_returns_ - organized_pred_returns
         adv_vars = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), deltas)
 
         adv_vars = tf.reshape(adv_vars, [-1])
-
-        adv_vars = (adv_vars - tf.reduce_mean(adv_vars))/tf.sqrt(tf.reduce_mean(adv_vars**2))
+        adv_vars = (adv_vars - tf.reduce_mean(adv_vars))/tf.sqrt(tf.reduce_mean(adv_vars**2))  # centering advantages
 
         return adv_vars
 
