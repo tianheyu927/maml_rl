@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  #['linear'] GaussianMLP MAMLGaussianMLP zero
+baselines = ['zero']  #['linear'] GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -45,12 +45,12 @@ pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
-importance_sampling_modifier_list=['clip0.5_']
-limit_expert_traj_num_list = [40]
+importance_sampling_modifier_list = ['clip0.5_']
+limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.00  # baseline learning rate
-bas_hnl = tf.nn.relu
-# bas_onl = lambda x: tf.constant(-200.0)
+bas_hnl = tf.identity
+# bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(1,), ]
 basas = 200 # baseline adam steps
 
@@ -88,23 +88,23 @@ for baslayers in baslayers_list:
                                             elif 'MAMLGaussianMLP' in bas:
                                                 baseline = MAMLGaussianMLPBaseline(env_spec=env.spec,
                                                                                    learning_rate=bas_lr,
-                                                                                   regressor_args=dict(
                                                                                    hidden_sizes=baslayers,
                                                                                    hidden_nonlinearity=bas_hnl,
-                                                                                   learn_std=False,
+                                                                                   # learn_std=False,
                                                                                    # use_trust_region=False,
-                                                                                   optimizer=QuadDistExpertOptimizer(
-                                                                                        name="bas_optimizer",
-                                                                                       #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
-                                                                                       #  tf_optimizer_args=dict(
-                                                                                       #      learning_rate=bas_lr,
-                                                                                       #  ),
-                                                                                       # # tf_optimizer_cls=tf.train.AdamOptimizer,
-                                                                                       # max_epochs=200,
-                                                                                       # batch_size=None,
-                                                                                        adam_steps=basas
-                                                                                       ))
+                                                                                   # optimizer=QuadDistExpertOptimizer(
+                                                                                   #      name="bas_optimizer",
+                                                                                   #     #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
+                                                                                   #     #  tf_optimizer_args=dict(
+                                                                                   #     #      learning_rate=bas_lr,
+                                                                                   #     #  ),
+                                                                                   #     # # tf_optimizer_cls=tf.train.AdamOptimizer,
+                                                                                   #     # max_epochs=200,
+                                                                                   #     # batch_size=None,
+                                                                                   #      adam_steps=basas
+                                                                                   #     )
                                                                                    )
+
                                             elif 'linear' in bas:
                                                 baseline = LinearFeatureBaseline(env_spec=env.spec)
                                             elif "GaussianMLP" in bas:

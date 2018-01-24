@@ -133,9 +133,14 @@ class MAMLIL(BatchMAMLPolopt):
             for i in range(self.meta_batch_size):  # for training task T_i
                 adv = adv_vars[i]
                 if self.metalearn_baseline:
+                    predicted_returns_sym, _ = self.baseline.predict_sym(obs_vars=obs_vars[i], all_params=self.baseline.all_params)
+                    predicted_returns_means_sym = predicted_returns_sym['mean']
+                    predicted_returns_log_std_sym = predicted_returns_sym['log_std']
+                    baseline_pred_loss = - tf.nn.l2_loss(predicted_returns_means_sym-returns_vars[i]) - 0.0 * tf.nn.l2_loss(tf.exp(predicted_returns_log_std_sym))
                     adv_sym = self.baseline.build_adv_sym(obs_vars=obs_vars[i],
                                                       rewards_vars=rewards_vars[i],
                                                       returns_vars=returns_vars[i],
+                                                      baseline_pred_loss=baseline_pred_loss,
                                                       # path_lengths_vars=path_lengths_vars[i],
                                                       all_params=self.baseline.all_params)
 
