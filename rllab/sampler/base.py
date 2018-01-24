@@ -72,6 +72,8 @@ class BaseSampler(Sampler):
 
         for idx, path in enumerate(paths):
             if not fast_process and not metalearn_baseline:
+                if idx==0:
+                    print("debug22", all_path_baselines[idx])
                 path_baselines = np.append(all_path_baselines[idx], 0)
                 deltas = path["rewards"] + \
                          self.algo.discount * path_baselines[1:] - \

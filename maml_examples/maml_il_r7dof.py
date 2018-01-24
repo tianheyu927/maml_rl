@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['zero']  #['linear'] GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  #['linear'] GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -85,7 +85,7 @@ for baslayers in baslayers_list:
                                             )
                                             if bas == 'zero':
                                                 baseline = ZeroBaseline(env_spec=env.spec)
-                                            elif 'MAMLGaussianMLP' in bas:
+                                            elif bas == 'MAMLGaussianMLP':
                                                 baseline = MAMLGaussianMLPBaseline(env_spec=env.spec,
                                                                                    learning_rate=bas_lr,
                                                                                    hidden_sizes=baslayers,
@@ -105,7 +105,7 @@ for baslayers in baslayers_list:
                                                                                    #     )
                                                                                    )
 
-                                            elif 'linear' in bas:
+                                            elif bas == 'linear':
                                                 baseline = LinearFeatureBaseline(env_spec=env.spec)
                                             elif "GaussianMLP" in bas:
                                                 baseline = GaussianMLPBaseline(env_spec=env.spec,
@@ -138,9 +138,10 @@ for baslayers in baslayers_list:
                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
                                                 n_itr=100, #100
                                                 make_video=True,
+                                                center_adv=True,  #TODO: want to get rid of this
                                                 use_maml=use_maml,
                                                 use_pooled_goals=True,
-                                                metalearn_baseline=(bas == "MAMLGaussianMLP"),
+                                                metalearn_baseline=(bas=="MAMLGaussianMLP"),
                                                 limit_expert_traj_num=limit_expert_traj_num,
                                                 test_goals_mult=test_goals_mult,
                                                 step_size=meta_step_size,

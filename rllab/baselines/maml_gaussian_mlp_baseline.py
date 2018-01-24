@@ -91,23 +91,23 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
     @overrides
     def fit(self, paths, log=True):
-        # return True
+        return True
         # # self._preupdate_params = self._regressor.get_param_values()
         # observations = np.concatenate([p["observations"] for p in paths])
         # returns = np.concatenate([p["returns"] for p in paths])
         # TODO self.fit(observations, returns.reshape((-1, 1)), log=log)
 
-        """Equivalent of compute_updated_dists"""
-        param_keys = self.all_params.keys()
-        update_param_keys = param_keys
-        no_update_param_keys = []
-
-        sess = tf.get_default_session()
-
-        observations = np.concatenate([p["observations"] for p in paths])
-        returns = np.concatenate([p["returns"] for p in paths])
-
-
+        # """Equivalent of compute_updated_dists"""
+        # param_keys = self.all_params.keys()
+        # update_param_keys = param_keys
+        # no_update_param_keys = []
+        #
+        # sess = tf.get_default_session()
+        #
+        # observations = np.concatenate([p["observations"] for p in paths])
+        # returns = np.concatenate([p["returns"] for p in paths])
+        #
+        #
 
     @overrides
     def predict(self, path):
@@ -117,8 +117,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             means, log_stds = result
         else:
             raise NotImplementedError('Not supported.')
+        # print("debug42", np.shape(log_stds))
+        # return log_stds
 
-        return -5.0 * np.ones_like(path['rewards'])  #, dict(mean=means, log_std=log_stds)
+        return -0.0 * np.ones_like(path['rewards'])  #, dict(mean=means, log_std=log_stds)
 
     @property
     def distribution(self):
@@ -258,12 +260,16 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     def build_adv_sym(self,obs_vars,rewards_vars, returns_vars, baseline_pred_loss, all_params):  # path_lengths_vars was before all_params
 
 
-        predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, obs_vars=obs_vars, params_dict=all_params)
-        # TODO: predicted_returns_vars should be a list of predicted returns organized by path
-        organized_rewards = tf.reshape(rewards_vars, [-1,100])
-        organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] + 0.0 * predicted_returns_vars['log_std'], [-1,100])
-        organized_pred_returns = -5.0 * tf.ones_like(organized_pred_returns)
+        # predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, obs_vars=obs_vars, params_dict=all_params)
 
+
+        organized_rewards = tf.reshape(rewards_vars, [-1,100])
+        joke_pred_returns = -0.0 * tf.ones_like(organized_rewards)
+        # organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] * 0.0 + predicted_returns_vars['log_std'], [-1,100])
+        # organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] * 0.0 + 0.0 * predicted_returns_vars['log_std'], [-1,100])
+        # organized_pred_returns = -5.0 * tf.ones_like(organized_pred_returns)
+
+        organized_pred_returns = joke_pred_returns
         organized_pred_returns_ = tf.concat((organized_pred_returns[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_returns[:,0])),[-1,1])),axis=1)
         # organized_pred_returns = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), organized_pred_rewards)
 
@@ -273,6 +279,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         adv_vars = tf.map_fn(lambda x: discount_cumsum_sym(x, self.algo_discount), deltas)
 
         adv_vars = tf.reshape(adv_vars, [-1])
+
+        adv_vars = (adv_vars - tf.reduce_mean(adv_vars))/tf.sqrt(tf.reduce_mean(adv_vars**2))
 
         return adv_vars
 

@@ -21,7 +21,7 @@ class MAMLIL(BatchMAMLPolopt):
             beta_steps=1,
             adam_steps=1,
             l2loss_std_mult=1.0,
-            importance_sampling_modifier = tf.identity,
+            importance_sampling_modifier=tf.identity,
             metalearn_baseline=False,
             **kwargs):
         if optimizer is None:
@@ -133,14 +133,15 @@ class MAMLIL(BatchMAMLPolopt):
             for i in range(self.meta_batch_size):  # for training task T_i
                 adv = adv_vars[i]
                 if self.metalearn_baseline:
-                    predicted_returns_sym, _ = self.baseline.predict_sym(obs_vars=obs_vars[i], all_params=self.baseline.all_params)
-                    predicted_returns_means_sym = predicted_returns_sym['mean']
-                    predicted_returns_log_std_sym = predicted_returns_sym['log_std']
-                    baseline_pred_loss = - tf.nn.l2_loss(predicted_returns_means_sym-returns_vars[i]) - 0.0 * tf.nn.l2_loss(tf.exp(predicted_returns_log_std_sym))
+                    # predicted_returns_sym, _ = self.baseline.predict_sym(obs_vars=obs_vars[i], all_params=self.baseline.all_params)
+                    # predicted_returns_means_sym = predicted_returns_sym['mean']
+                    # predicted_returns_log_std_sym = predicted_returns_sym['log_std']
+                    # baseline_pred_loss_i = tf.nn.l2_loss(predicted_returns_means_sym-returns_vars[i]) - 0.0 * tf.nn.l2_loss(tf.exp(predicted_returns_log_std_sym))
+                    baseline_pred_loss_i = None
                     adv_sym = self.baseline.build_adv_sym(obs_vars=obs_vars[i],
                                                       rewards_vars=rewards_vars[i],
                                                       returns_vars=returns_vars[i],
-                                                      baseline_pred_loss=baseline_pred_loss,
+                                                      baseline_pred_loss=baseline_pred_loss_i,
                                                       # path_lengths_vars=path_lengths_vars[i],
                                                       all_params=self.baseline.all_params)
 
@@ -166,7 +167,7 @@ class MAMLIL(BatchMAMLPolopt):
             else:
                 input_vars_list += obs_vars + action_vars + rewards_vars + returns_vars  # + path_lengths_vars
             # For computing the fast update for sampling
-            # At this point, input_vars_list is theta0 + theta_l + obs + action + adv
+            # At this point, inner_input_vars_list is theta0 + theta_l + obs + action + adv
             self.policy.set_init_surr_obj(inner_input_vars_list, inner_surr_objs)
 
             input_vars_list += expert_action_vars # TODO: is this pre-update expert action vars? Should we kill this?
