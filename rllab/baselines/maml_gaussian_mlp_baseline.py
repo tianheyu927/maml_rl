@@ -89,25 +89,97 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     def vectorized(self):
         return True
 
+
+    def set_init_surr_obj(self, input_list, surr_obj_tensor):
+        """ Set the surrogate objectives used the update the policy
+        """
+        self.input_list_for_grad = input_list
+        self.surr_obj = surr_obj_tensor
+
     @overrides
     def fit(self, paths, log=True):
-        return True
+        # return True
+
+        if 'surr_obj' not in dir(self):
+            assert False, "why didn't we define it already"
+
+
+        """Equivalent of compute_updated_dists"""
+        param_keys = self.all_params.keys()
+        update_param_keys = param_keys
+        no_update_param_keys = []
+
+        sess = tf.get_default_session()
+
+        obs = np.concatenate([p["observations"] for p in paths])
+        print("debug43", np.shape(obs))
+        returns = np.concatenate([p["returns"] for p in paths])
+
+        inputs = obs + returns
+
+        init_param_values = None
+        if self.all_param_vals is not None:
+            init_param_values = self.get_variable_values(self.all_params)
+
+        learning_rate = self.learning_rate
+        self.assign_params(self.all_params,self.all_param_vals)
+
+
+
+        if 'all_fast_params_tensor' not in dir(self):
+            # make computation graph once
+            self.all_fast_params_tensor = []
+            gradients = dict(zip(update_param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
+            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - learning_rate*gradients[key] for key in update_param_keys]))
+            for k in no_update_param_keys:
+                fast_params_tensor[k] = self.all_params[k]
+            self.all_fast_params_tensor.append(fast_params_tensor)
+
+            # pull new param vals out of tensorflow, so gradient computation only done once
+            # first is the vars, second the values
+            # these are the updated values of the params after the gradient step
+        self.all_param_vals = sess.run(self.all_fast_params_tensor,
+                                           feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
+
+        if init_param_values is not None:
+            self.assign_params(self.all_params, init_param_values)
+
+        inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
+        task_inp = inputs
+        info, _ = self.predict_sym(obs_vars=task_inp, all_params=self.all_param_vals,is_training=False)
+
+        outputs = [info['mean'], info['log_std']]
+
+        self._cur_f_dist = tensor_utils.compile_function(
+            inputs=[self.input_tensor],
+            outputs=outputs,
+        )
+        #  logger.record_tabular("ComputeUpdatedDistTime", total_time)
+
         # # self._preupdate_params = self._regressor.get_param_values()
         # observations = np.concatenate([p["observations"] for p in paths])
         # returns = np.concatenate([p["returns"] for p in paths])
         # TODO self.fit(observations, returns.reshape((-1, 1)), log=log)
 
-        # """Equivalent of compute_updated_dists"""
-        # param_keys = self.all_params.keys()
-        # update_param_keys = param_keys
-        # no_update_param_keys = []
-        #
-        # sess = tf.get_default_session()
-        #
-        # observations = np.concatenate([p["observations"] for p in paths])
-        # returns = np.concatenate([p["returns"] for p in paths])
-        #
-        #
+
+
+    def get_variable_values(self, tensor_dict):
+        sess = tf.get_default_session()
+        result = sess.run(tensor_dict)
+        return result
+
+    def assign_params(self, tensor_dict, param_values):
+        if 'assign_placeholders' not in dir(self):
+            # make computation graph, if it doesn't exist; then cache it for future use.
+            self.assign_placeholders = {}
+            self.assign_ops = {}
+            for key in tensor_dict.keys():
+                self.assign_placeholders[key] = tf.placeholder(tf.float32)
+                self.assign_ops[key] = tf.assign(tensor_dict[key], self.assign_placeholders[key])
+
+        feed_dict = {self.assign_placeholders[key]:param_values[key] for key in tensor_dict.keys()}
+        sess = tf.get_default_session()
+        sess.run(self.assign_ops, feed_dict)
 
     @overrides
     def predict(self, path):
@@ -216,7 +288,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     def switch_to_init_dist(self):
         # switch cur baseline distribution to pre-update baseline
         self._cur_f_dist = self._init_f_dist
-        self._cur_f_dist_i = None
         self.all_param_vals = None
 
     def predict_sym(self, obs_vars, all_params=None, is_training=True):
