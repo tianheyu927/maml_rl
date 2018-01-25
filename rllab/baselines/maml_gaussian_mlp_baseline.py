@@ -146,7 +146,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             self.assign_params(self.all_params, init_param_values)
 
         inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
-        task_inp = inputs
+        task_inp = inputs[0]
         info, _ = self.predict_sym(obs_vars=task_inp, all_params=self.all_param_vals[0],is_training=False)
 
         outputs = [info['mean'], info['log_std']]
@@ -320,10 +320,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         param_keys = self.all_params.keys()
 
         update_param_keys = param_keys
-        print("debug11", param_keys)
         no_update_param_keys = []
         grads = tf.gradients(baseline_pred_loss, [old_params_dict[key] for key in update_param_keys])
-        print("debug12", grads)
         gradients = dict(zip(update_param_keys, grads))
         params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate * gradients[key] for key in update_param_keys]))
         for k in no_update_param_keys:
