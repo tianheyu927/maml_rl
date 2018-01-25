@@ -121,7 +121,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if self.all_param_vals is not None:
             init_param_values = self.get_variable_values(self.all_params)
 
-        learning_rate = self.learning_rate
         self.assign_params(self.all_params,self.all_param_vals)
 
 
@@ -130,7 +129,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             # make computation graph once
             self.all_fast_params_tensor = []
             gradients = dict(zip(update_param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
-            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - learning_rate*gradients[key] for key in update_param_keys]))
+            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - self.learning_rate*gradients[key] for key in update_param_keys]))
             for k in no_update_param_keys:
                 fast_params_tensor[k] = self.all_params[k]
             self.all_fast_params_tensor.append(fast_params_tensor)

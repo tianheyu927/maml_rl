@@ -56,14 +56,14 @@ class BaseSampler(Sampler):
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
         if not fast_process and not metalearn_baseline:
-            # if log:
-            #     logger.log("fitting baseline...")
-            # if hasattr(self.algo.baseline, 'fit_with_samples'):
-            #     self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
-            # else:
-            #     self.algo.baseline.fit(paths, log=log)
-            # if log:
-            #     logger.log("fitted")
+            if log:
+                logger.log("fitting baseline...")
+            if hasattr(self.algo.baseline, 'fit_with_samples'):
+                self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
+            else:
+                self.algo.baseline.fit(paths, log=log)
+            if log:
+                logger.log("fitted")
 
             if hasattr(self.algo.baseline, "predict_n"):
                 all_path_baselines = self.algo.baseline.predict_n(paths)
