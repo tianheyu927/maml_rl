@@ -70,6 +70,9 @@ class BaseSampler(Sampler):
             else:
                 all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
 
+        if 'switch_to_init_dist' in dir(self.algo.baseline):
+            self.algo.baseline.switch_to_init_dist()
+
         for idx, path in enumerate(paths):
             if not fast_process and not metalearn_baseline:
                 if idx==0:
