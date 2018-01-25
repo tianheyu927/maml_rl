@@ -52,6 +52,7 @@ bas_lr = 0.0  # baseline learning rate
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(1,), ]
+
 basas = 200 # baseline adam steps
 
 
