@@ -147,7 +147,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
         task_inp = inputs
-        info, _ = self.predict_sym(obs_vars=dict(), all_params=self.all_param_vals,is_training=False)
+        info, _ = self.predict_sym(obs_vars=task_inp, all_params=self.all_param_vals[0],is_training=False)
 
         outputs = [info['mean'], info['log_std']]
 
