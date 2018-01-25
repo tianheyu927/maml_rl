@@ -115,7 +115,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
 
-        inputs = obs + returns
+        inputs = [obs] + [returns]
 
         init_param_values = None
         if self.all_param_vals is not None:
