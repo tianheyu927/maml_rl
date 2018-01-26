@@ -170,8 +170,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         return result
 
     def assign_params(self, tensor_dict, param_values):
-        print("debug44", type(tensor_dict))
-        print("debug45", type(param_values))
+        # print("debug44", type(tensor_dict))
+        # print("debug45", type(param_values))
         if 'assign_placeholders' not in dir(self):
             # make computation graph, if it doesn't exist; then cache it for future use.
             self.assign_placeholders = {}
