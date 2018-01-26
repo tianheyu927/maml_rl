@@ -112,7 +112,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         sess = tf.get_default_session()
 
         obs = np.concatenate([p["observations"] for p in paths])
-        print("debug43", np.shape(obs))
+        # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
 
         inputs = [obs] + [returns]
@@ -140,7 +140,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             # these are the updated values of the params after the gradient step
         self.all_param_vals = sess.run(self.all_fast_params_tensor,
                                            feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
-        print("debug57", type(self.all_param_vals[0]))
+        # print("debug57", type(self.all_param_vals[0]))
 
         if init_param_values is not None:
             self.assign_params(self.all_params, init_param_values)
