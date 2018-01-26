@@ -122,7 +122,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             init_param_values = self.get_variable_values(self.all_params)
 
         if self.all_param_vals is not None:
-            self.assign_params(self.all_params,self.all_param_vals)
+            self.assign_params(self.all_params,self.all_param_vals[0])
 
 
 
