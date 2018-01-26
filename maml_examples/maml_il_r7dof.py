@@ -48,7 +48,7 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['clip0.5_']
 limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
-bas_lr = 1.0  # baseline learning rate
+bas_lr = 0.0  # baseline learning rate
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(1,), ]
@@ -181,11 +181,12 @@ for baslayers in baslayers_list:
                                                          #  + "_l2m" + str(l2loss_std_mult)
                                                          + "_ism" + ism
                                                          + "_bas" + bas[0]
-                                                        +"_tfbe" # TF backend for baseline
-                                                        +"_qdo" # quad dist optimizer
+                                                        # +"_tfbe" # TF backend for baseline
+                                                        # +"_qdo" # quad dist optimizer
                                                         +("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
                                                          +"_" + str(baslayers) #size
-                                                        +"_basas" + str(basas) #baseline adam steps
+                                                        +"_baslr" + str(bas_lr)
+                                                        # +"_basas" + str(basas) #baseline adam steps
                                                          + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                                 plot=False,
                                                 sync_s3_pkl=True,
