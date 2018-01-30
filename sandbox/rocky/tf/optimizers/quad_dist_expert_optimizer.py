@@ -122,7 +122,7 @@ class QuadDistExpertOptimizer(Serializable):
 
     def optimize(self, input_vals_list, correction_term=None):
         if correction_term is None:
-            correction_term = self.correction_term
+            correction_term = self._correction_term
         sess = tf.get_default_session()
         for _ in range(self._adam_steps):
             # sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
