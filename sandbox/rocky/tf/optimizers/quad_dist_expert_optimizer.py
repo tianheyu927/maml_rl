@@ -46,6 +46,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._max_constraint_val = None
         self._constraint_name = None
         self._adam_steps = adam_steps
+        self._correction_term = 0
 
 
     def update_opt(self, loss, target, leq_constraint, inputs, constraint_name="constraint", *args, **kwargs):
@@ -119,9 +120,15 @@ class QuadDistExpertOptimizer(Serializable):
     def constraint_val(self, inputs):
         return self._opt_fun["f_constraint"](*inputs)
 
-    def optimize(self, input_vals_list):
+    def optimize(self, input_vals_list, correction_term=None):
+        if correction_term is None:
+            correction_term = self.correction_term
         sess = tf.get_default_session()
         for _ in range(self._adam_steps):
-            sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
+            # sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
+            grad = self._adam.compute_gradients(self._loss)
+            grad = grad + correction_term
+            self._adam.apply_gradients(grad)
+            sess.run(self., feed_dict=dict(list(zip(self._inputs, input_vals_list))))
 
 
