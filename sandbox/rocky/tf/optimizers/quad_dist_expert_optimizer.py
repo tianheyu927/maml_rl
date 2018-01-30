@@ -128,7 +128,7 @@ class QuadDistExpertOptimizer(Serializable):
             # sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
             grad = self._adam.compute_gradients(self._loss)
             grad = grad + correction_term
-            self._adam.apply_gradients(grad)
-            sess.run(self., feed_dict=dict(list(zip(self._inputs, input_vals_list))))
+            # self._adam.apply_gradients(grad)
+            sess.run(self._adam.apply_gradients(grad), feed_dict=dict(list(zip(self._inputs, input_vals_list))))
 
 
