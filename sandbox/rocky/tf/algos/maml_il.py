@@ -213,8 +213,8 @@ class MAMLIL(BatchMAMLPolopt):
             inputs=input_vars_list,
             constraint_name="mean_kl"
         )
-        grad1
-        self.optimizer._correction_term = surr_objs * grad1 * grad2
+        # grad1
+        self.optimizer._correction_term = 0 #surr_objs * grad1 * grad2
         return dict()
 
 
