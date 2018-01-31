@@ -213,8 +213,10 @@ class MAMLIL(BatchMAMLPolopt):
             inputs=input_vars_list,
             constraint_name="mean_kl"
         )
-        # grad1
-        self.optimizer._correction_term = 0 #surr_objs * grad1 * grad2
+        term0 = tf.gradients(dist_info)
+        term1 = tf.gradients(tf.reduce_sum(log likelihood))
+        term2 = tf.transpose(tf.gradients(tf.reduce_sum(log_likelihood)))
+        self.optimizer._correction_term = surr_objs * self.policy.grad_step_size * tf.matmul(tf.matmul(term0, term1), term2)
         return dict()
 
 
