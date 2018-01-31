@@ -205,7 +205,7 @@ class MAMLIL(BatchMAMLPolopt):
             # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
             term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
 
-            term1 = tf.gradients(tf.reduce_sum(dist.log_likelihood_sym(expert_action_vars[i], old_dist_info_vars_i)), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            term1 = tf.gradients(tf.reduce_sum(dist.log_likelihood_sym(action_vars[i], old_dist_info_vars_i)), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
 
             # term2 = tf.reduce_sum((m-e)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
             term2 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
