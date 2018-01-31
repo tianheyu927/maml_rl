@@ -237,7 +237,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         # these are the updated values of the params after the gradient step
         self.all_param_vals = sess.run(self.all_fast_params_tensor, feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
 
-        print("debug58", type(self.all_param_vals))
+        # print("debug58", type(self.all_param_vals))
 
 
         if init_param_values is not None:
