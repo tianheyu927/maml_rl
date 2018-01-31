@@ -185,8 +185,10 @@ class MAMLIL(BatchMAMLPolopt):
             obs_vars, action_vars, _, expert_action_vars = self.make_vars('test')  # adv_vars was here instead of _
         else:
             obs_vars, action_vars, _, _, _, expert_action_vars = self.make_vars('test')
-        surr_objs = []
+        outer_surr_objs = []
+        corr_terms =[]
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
+            old_dist_info_vars_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
             dist_info_vars_i, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
@@ -196,27 +198,31 @@ class MAMLIL(BatchMAMLPolopt):
             e = expert_action_vars[i]
             s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
-            surr_objs.append(tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e)))
+            print("debug32", m) # shape ?, 7
+            outer_surr_obj = tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e))
+            outer_surr_objs.append(outer_surr_obj)
+            term0 = tf.gradients(dist_info_vars_i["mean"], [new_params[i][key] for key in new_params[i].keys()])
+            term1 = tf.gradients(tf.reduce_sum(dist.log_likelihood_sym(expert_action_vars[i], old_dist_info_vars_i)), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # corr_terms.append((m-e)*self.policy.step_size*tf.tensordot(tf.matmul(term0,term1),term1))
+
             # surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
             # surr_objs.append(tf.reduce_mean(m**2-2*m*e))
 
-        surr_obj = tf.reduce_mean(tf.stack(surr_objs, 0))  # mean over all the different tasks
+        outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
 
         mean_kl = tf.reduce_mean(tf.concat(kls, 0))
 
         self.optimizer.update_opt(
-            loss=surr_obj,
+            loss=outer_surr_obj,
             target=None,
             # target=(self.policy, self.baseline),
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
-            constraint_name="mean_kl"
+            constraint_name="mean_kl",
+            # correction_term=corr_term
         )
-        term0 = tf.gradients(dist_info)
-        term1 = tf.gradients(tf.reduce_sum(log likelihood))
-        term2 = tf.transpose(tf.gradients(tf.reduce_sum(log_likelihood)))
-        self.optimizer._correction_term = surr_objs * self.policy.grad_step_size * tf.matmul(tf.matmul(term0, term1), term2)
+
         return dict()
 
 

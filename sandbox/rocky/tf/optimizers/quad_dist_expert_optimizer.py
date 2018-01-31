@@ -70,7 +70,20 @@ class QuadDistExpertOptimizer(Serializable):
         self._inputs = inputs
         self._loss = loss
         self._adam = tf.train.AdamOptimizer()
-        self._train_step = self._adam.minimize(self._loss)
+        # self._train_step = self._adam.minimize(self._loss)
+
+        if "correction_term" in kwargs:
+            self._correction_term = kwargs["correction_term"]
+        else:
+            self._correction_term = None
+
+
+        grad = self._adam.compute_gradients(self._loss)
+        if self._correction_term is not None:
+            grad = grad + self._correction_term
+        print("debug35", grad)
+        self._train_step = self._adam.apply_gradients(grad)
+
 
         # initialize Adam variables
         uninit_vars = []
@@ -120,15 +133,9 @@ class QuadDistExpertOptimizer(Serializable):
     def constraint_val(self, inputs):
         return self._opt_fun["f_constraint"](*inputs)
 
-    def optimize(self, input_vals_list, correction_term=None):
-        if correction_term is None:
-            correction_term = self._correction_term
+    def optimize(self, input_vals_list,):
         sess = tf.get_default_session()
         for _ in range(self._adam_steps):
-            # sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
-            grad = self._adam.compute_gradients(self._loss)
-  #          grad = grad + correction_term
-            # self._adam.apply_gradients(grad)
-            sess.run(self._adam.apply_gradients(grad), feed_dict=dict(list(zip(self._inputs, input_vals_list))))
+            sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
 
 
