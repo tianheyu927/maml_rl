@@ -219,8 +219,8 @@ class MAMLIL(BatchMAMLPolopt):
             # term2 = tf.reduce_sum((m-e)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
             term01 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
 
-            corr_term = [self.policy.step_size*term01*t for t in term2]
-            corr_terms.append(corr_term)
+            corr_term_i = [self.policy.step_size*term01*t for t in term2]
+            corr_terms.append(corr_term_i)
             print("debug36", term0)
             print("debug37", term1)
             print("debug38", term01)
