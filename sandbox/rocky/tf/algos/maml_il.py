@@ -210,7 +210,8 @@ class MAMLIL(BatchMAMLPolopt):
             # term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
             print("debug41", new_params[i])
             print("debug42", updated_params_i)
-            term0 = tf.gradients(tf.nn.l2_loss(m-e+0.0*s), [updated_params_i[key] for key in updated_params_i.keys()])
+            # term0 = tf.gradients(tf.nn.l2_loss(m-e+0.0*s), [updated_params_i[key] for key in updated_params_i.keys()])
+            term0 = tf.gradients(outer_surr_obj, [updated_params_i[key] for key in updated_params_i.keys()])
             print("debug36", term0)
 
             term1 = tf.gradients(tf.reduce_sum(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
