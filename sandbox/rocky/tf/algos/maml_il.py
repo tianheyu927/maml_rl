@@ -215,15 +215,16 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug36", term0)
 
             # term1 = tf.gradients(tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-            term1 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            term1 = tf.gradients(old_logli_sym[0][i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # term2 = tf.reduce_sum((m-e)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
-            term2 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
+            term3 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
 
-            corr_term = [self.policy.step_size*term2*t for t in term1]
+            corr_term = [self.policy.step_size*term3*t for t in term2]
             corr_terms.append(corr_term)
             print("debug36", term0)
             print("debug37", term1)
-            print("debug38", term2)
+            print("debug38", term3)
 
             print()
 
