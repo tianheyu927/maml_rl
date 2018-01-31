@@ -199,8 +199,8 @@ class MAMLIL(BatchMAMLPolopt):
             s = dist_info_vars_i["log_std"]
             m = dist_info_vars_i["mean"]
             print("debug32", m) # shape ?, 7
-            # outer_surr_obj = tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e))
-            outer_surr_obj = tf.nn.l2_loss(m-e+0.0*s)
+            outer_surr_obj = tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e))
+            # outer_surr_obj = tf.nn.l2_loss(m-e+0.0*s)
             outer_surr_objs.append(outer_surr_obj)
             # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
             term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])

@@ -80,13 +80,14 @@ class QuadDistExpertOptimizer(Serializable):
 
         gradients = self._adam.compute_gradients(self._loss)
         print("debug35", gradients)
+        self._train_step = self._adam.apply_gradients(gradients)
 
         if self._correction_term is not None:
             new_gradients = []
             for ((grad, var), corr) in zip(gradients, self._correction_term):
                 new_gradients.append((grad + corr, var))
             self._train_step = self._adam.apply_gradients(new_gradients)
-        self._train_step = self._adam.apply_gradients(gradients)
+
 
 
 
