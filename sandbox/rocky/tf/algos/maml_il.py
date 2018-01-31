@@ -85,7 +85,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         dist = self.policy.distribution
 
-        old_dist_info_vars, old_dist_info_vars_list = [], []  # TODO: I think this should be in the make_vars function
+        old_dist_info_vars, old_dist_info_vars_list = [], []
         for i in range(self.meta_batch_size):
             old_dist_info_vars.append({
                 k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='old_%s_%s' % (i, k))
@@ -114,8 +114,9 @@ class MAMLIL(BatchMAMLPolopt):
 
         all_surr_objs, input_vars_list, inner_input_vars_list = [], [], []
         new_params = []
-
-
+        old_logli_sym = []
+        # old_action_vars = []
+        old_dist_info_sym = []
         input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
         inner_input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
 
@@ -129,6 +130,8 @@ class MAMLIL(BatchMAMLPolopt):
 
             new_params = []
             kls = []
+            old_logli_sym.append([])
+            # old_action_vars.append(action_vars)
 
             for i in range(self.meta_batch_size):  # for training task T_i
                 adv = adv_vars[i]
@@ -149,13 +152,14 @@ class MAMLIL(BatchMAMLPolopt):
                                                       # path_lengths_vars=path_lengths_vars[i],
                                                       all_params=self.baseline.all_params)
 
-                dist_info_vars_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
+                dist_info_sym_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
-                    kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
+                    kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
                     kls.append(kl)
                 new_params.append(params)
-                logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_vars_i)
+                logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i)
                 lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
+                old_logli_sym[-1].append(logli_i)
                 # lr1 = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], dist_info_vars_i)
                 # lr = tf.clip_by_value(lr,0.5,2.0)
                 lr = self.ism(lr)
@@ -180,7 +184,7 @@ class MAMLIL(BatchMAMLPolopt):
             else:
                 all_surr_objs.append(inner_surr_objs_sym)
 
-        # last inner grad step
+        # LAST INNER GRAD STEP
         if not self.metalearn_baseline:
             obs_vars, action_vars, _, expert_action_vars = self.make_vars('test')  # adv_vars was here instead of _
         else:
@@ -188,25 +192,23 @@ class MAMLIL(BatchMAMLPolopt):
         outer_surr_objs = []
         corr_terms =[]
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
-            old_dist_info_vars_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
-            dist_info_vars_i, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
+            # old_dist_info_sym_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
+            dist_info_sym_i, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
-                kl = dist.kl_sym(old_dist_info_vars[i], dist_info_vars_i)
+                kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
                 kls.append(kl)  # we either get kl from here or from kl_constrain_step =0
 
             # here we define the loss for meta-gradient
             e = expert_action_vars[i]
-            s = dist_info_vars_i["log_std"]
-            m = dist_info_vars_i["mean"]
+            s = dist_info_sym_i["log_std"]
+            m = dist_info_sym_i["mean"]
             print("debug32", m) # shape ?, 7
             outer_surr_obj = tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e))
             # outer_surr_obj = tf.nn.l2_loss(m-e+0.0*s)
             outer_surr_objs.append(outer_surr_obj)
             # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
             term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
-
-            term1 = tf.gradients(tf.reduce_sum(dist.log_likelihood_sym(action_vars[i], old_dist_info_vars_i)), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-
+            term1 = tf.gradients(tf.reduce_sum(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # term2 = tf.reduce_sum((m-e)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
             term2 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
 
