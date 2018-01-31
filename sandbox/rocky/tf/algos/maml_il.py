@@ -116,7 +116,7 @@ class MAMLIL(BatchMAMLPolopt):
         new_params = []
         old_logli_sym = []
         # old_action_vars = []
-        old_dist_info_sym = []
+        # old_dist_info_sym = []
         input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
         inner_input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
 
@@ -193,7 +193,7 @@ class MAMLIL(BatchMAMLPolopt):
         corr_terms =[]
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             # old_dist_info_sym_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
-            dist_info_sym_i, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
+            dist_info_sym_i, updated_params_i = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
                 kls.append(kl)  # we either get kl from here or from kl_constrain_step =0
@@ -207,7 +207,12 @@ class MAMLIL(BatchMAMLPolopt):
             # outer_surr_obj = tf.nn.l2_loss(m-e+0.0*s)
             outer_surr_objs.append(outer_surr_obj)
             # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
-            term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
+            # term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
+            print("debug41", new_params[i])
+            print("debug42", updated_params_i)
+            term0 = tf.gradients(tf.nn.l2_loss(m-e+0.0*s), [updated_params_i[key] for key in updated_params_i.keys()])
+            print("debug36", term0)
+
             term1 = tf.gradients(tf.reduce_sum(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # term2 = tf.reduce_sum((m-e)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
             term2 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
@@ -217,13 +222,13 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug36", term0)
             print("debug37", term1)
             print("debug38", term2)
-            print("debug39", corr_term)
 
             print()
 
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
         corr_term = [tf.reduce_mean([c[y] for c in corr_terms],0) for y in range(len(corr_terms[0]))]
+        print("debug39", corr_term)
 
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
 

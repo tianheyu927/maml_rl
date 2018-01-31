@@ -334,11 +334,11 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             grads = [tf.stop_gradient(grad) for grad in grads]
 
         gradients = dict(zip(update_param_keys, grads))
-        params_dict = dict(zip(update_param_keys, [old_params_dict[key] - step_size*gradients[key] for key in update_param_keys]))
+        updated_params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - step_size*gradients[key] for key in update_param_keys]))
         for k in no_update_param_keys:
-            params_dict[k] = old_params_dict[k]
+            updated_params_dict[k] = old_params_dict[k]
 
-        return self.dist_info_sym(new_obs_var, all_params=params_dict, is_training=is_training)
+        return self.dist_info_sym(new_obs_var, all_params=updated_params_dict, is_training=is_training)
 
 
     @overrides
