@@ -201,14 +201,26 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug32", m) # shape ?, 7
             outer_surr_obj = tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,e))
             outer_surr_objs.append(outer_surr_obj)
-            term0 = tf.gradients(dist_info_vars_i["mean"], [new_params[i][key] for key in new_params[i].keys()])
-            term1 = tf.gradients(tf.reduce_sum(dist.log_likelihood_sym(expert_action_vars[i], old_dist_info_vars_i)), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-            # corr_terms.append((m-e)*self.policy.step_size*tf.tensordot(tf.matmul(term0,term1),term1))
+            # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
+            term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
 
-            # surr_objs.append(tf.reduce_mean(tf.exp(s)**2+m**2-2*m*e))
-            # surr_objs.append(tf.reduce_mean(m**2-2*m*e))
+            term1 = tf.gradients(tf.reduce_sum(dist.log_likelihood_sym(expert_action_vars[i], old_dist_info_vars_i)), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+
+            # term2 = tf.reduce_sum((m-e)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
+            term2 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
+
+            corr_term = [term2*t for t in term1]
+            corr_terms.append(corr_term)
+            print("debug36", term0)
+            print("debug37", term1)
+            print("debug38", term2)
+            print("debug39", corr_term)
+
+            print()
+
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
+        corr_term = tf.reduce_mean(tf.stack(corr_terms, 0))
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
 
         mean_kl = tf.reduce_mean(tf.concat(kls, 0))
@@ -220,7 +232,7 @@ class MAMLIL(BatchMAMLPolopt):
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
             constraint_name="mean_kl",
-            # correction_term=corr_term
+            correction_term=corr_term
         )
 
         return dict()
