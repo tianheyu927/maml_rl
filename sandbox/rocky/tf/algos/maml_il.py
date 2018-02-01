@@ -9,6 +9,7 @@ from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOpti
 from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
 from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import ConjugateGradientOptimizer
 from maml_examples.maml_experiment_vars import TESTING_ITRS
+from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
 
 class MAMLIL(BatchMAMLPolopt):
 
@@ -115,6 +116,7 @@ class MAMLIL(BatchMAMLPolopt):
         all_surr_objs, input_vars_list, inner_input_vars_list = [], [], []
         new_params = []
         old_logli_sym = []
+        old_adv = []
         # old_action_vars = []
         # old_dist_info_sym = []
         input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
@@ -131,6 +133,7 @@ class MAMLIL(BatchMAMLPolopt):
             new_params = []
             kls = []
             old_logli_sym.append([])
+            old_adv.append([])
             # old_action_vars.append(action_vars)
 
             for i in range(self.meta_batch_size):  # for training task T_i
@@ -160,6 +163,7 @@ class MAMLIL(BatchMAMLPolopt):
                 logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i)
                 lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
                 old_logli_sym[-1].append(logli_i)
+                old_adv[-1].append(adv)
                 # lr1 = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], dist_info_vars_i)
                 # lr = tf.clip_by_value(lr,0.5,2.0)
                 lr = self.ism(lr)
@@ -214,6 +218,39 @@ class MAMLIL(BatchMAMLPolopt):
             term0 = tf.gradients(outer_surr_obj, [updated_params_i[key] for key in updated_params_i.keys()])
             print("debug36", term0)
             print("debug51", old_logli_sym[0][i])
+
+            temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
+            temp2 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i]*old_adv[0][i],[self.max_path_length,-1]),0)
+
+            print("debug60", temp1)
+            print("debug61", temp2)
+
+            # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # temp1_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
+            # temp2_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
+            flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
+            # temp1_1 = [tf.gradients(temp1[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+            # temp2_1 = [tf.gradients(temp2[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+            temp1_1 = [tf.gradients(temp1[j],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+            temp2_1 = [tf.gradients(temp2[j],[self.policy.all_params[key] for key in self.policy.all_params.keys()])  for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+
+            print("debug62", temp1_1[19])
+            print("debug63", temp2_1[19])
+
+            def add_grads(grad1,grad2):
+                output=[]
+                for (grad1_,var1),(grad2_,var2) in zip(grad1,grad2):
+                    assert var1 == var2
+                    output.append((grad1+grad2,var1))
+                return output
+            # temp3 = tf.reduce_mean( [add_grads(t1_1,t2_1) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
+            temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
+
+            print("debug62", temp1_1)
+            print("debug63", temp2_1)
+            print("debug64", temp3)
+
+
 
             term1 = tf.gradients(0.5*tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
