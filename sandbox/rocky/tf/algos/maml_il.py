@@ -225,14 +225,16 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug60", temp1)
             print("debug61", temp2)
 
+
+            paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
             # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # temp1_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
             # temp2_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
             flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
             # temp1_1 = [tf.gradients(temp1[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
             # temp2_1 = [tf.gradients(temp2[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
-            temp1_1 = [tf.gradients(temp1[j],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
-            temp2_1 = [tf.gradients(temp2[j],[self.policy.all_params[key] for key in self.policy.all_params.keys()])  for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+            temp1_1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
+            temp2_1 = [tf.gradients(temp2[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
 
             print("debug62", temp1_1[19])
             print("debug63", temp2_1[19])
@@ -258,7 +260,13 @@ class MAMLIL(BatchMAMLPolopt):
             term01 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
 
             corr_term_i = [self.policy.step_size*term01*t for t in term2]
-            corr_terms.append(corr_term_i)
+
+            corr_term_i_v2_per_path_list = [self.policy.step_size*tf.reduce_sum(mult_grads(term0,term1[p])) * term2[p]) for p in paths_range ]
+
+            corr_term_i_v2 = tf.reduce_mean(corr_term_i_v2_per_path_list,0)
+
+            corr_terms.append(corr_term_i_v1)
+            corr_terms.append(corr_term_i_v2)
             print("debug36", term0)
             print("debug37", term1)
             print("debug38", term01)
