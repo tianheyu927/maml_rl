@@ -230,7 +230,7 @@ class MAMLIL(BatchMAMLPolopt):
             # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # temp1_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
             # temp2_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
-            flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
+            # flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
             # temp1_1 = [tf.gradients(temp1[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
             # temp2_1 = [tf.gradients(temp2[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
             temp1_1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
@@ -239,39 +239,40 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug62", temp1_1[19])
             print("debug63", temp2_1[19])
 
-            def add_grads(grad1,grad2):
-                output=[]
-                for (grad1_,var1),(grad2_,var2) in zip(grad1,grad2):
-                    assert var1 == var2
-                    output.append((grad1+grad2,var1))
-                return output
-            # temp3 = tf.reduce_mean( [add_grads(t1_1,t2_1) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
-            temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
+
+            # temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
 
             print("debug62", temp1_1)
             print("debug63", temp2_1)
-            print("debug64", temp3)
+            # print("debug64", temp3)
 
 
 
-            term1 = tf.gradients(0.5*tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-            term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # term1 = tf.gradients(0.5*tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # term2 = tf.reduce_sum((m-a_star)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
-            term01 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
+            # term01 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
 
-            corr_term_i = [self.policy.step_size*term01*t for t in term2]
+            # corr_term_i = [self.policy.step_size*term01*t for t in term2]
 
-            corr_term_i_v2_per_path_list = [self.policy.step_size*tf.reduce_sum(mult_grads(term0,term1[p])) * term2[p]) for p in paths_range ]
+            def grads_dotprod(A,B):
+                # multiplies gradients because tf is too stupid
+                return tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(A,B)])
 
-            corr_term_i_v2 = tf.reduce_mean(corr_term_i_v2_per_path_list,0)
+            def mult_grad_by_number(num, grad_list):
+                return [num * grad for grad in grad_list]
+            corr_term_i_v2_per_path_list = [mult_grad_by_number(self.policy.step_size*grads_dotprod(term0,temp1_1[p]), temp2_1[p]) for p in paths_range]
 
-            corr_terms.append(corr_term_i_v1)
+            # corr_term_i_v2 = tf.reduce_mean(tf.stack(corr_term_i_v2_per_path_list),0)
+            corr_term_i_v2 = [tf.reduce_mean([c[y] for c in corr_term_i_v2_per_path_list],0) for y in range(len(corr_term_i_v2_per_path_list[0]))]
+
+            # corr_terms.append(corr_term_i_v1)
             corr_terms.append(corr_term_i_v2)
             print("debug36", term0)
-            print("debug37", term1)
-            print("debug38", term01)
+            # print("debug37", term1)
+            # print("debug38", term01)
 
-            print("debug52", corr_term_i)
+            print("debug52", corr_term_i_v2)
 
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
