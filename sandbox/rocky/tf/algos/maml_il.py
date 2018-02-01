@@ -218,6 +218,7 @@ class MAMLIL(BatchMAMLPolopt):
             term0 = tf.gradients(outer_surr_obj, [updated_params_i[key] for key in updated_params_i.keys()])
             # print("debug36", term0)
             # print("debug51", old_logli_sym[0][i])
+            paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
 
             temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
             term1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
@@ -228,7 +229,6 @@ class MAMLIL(BatchMAMLPolopt):
             # print("debug60", temp1)
             # print("debug61", temp2)
 
-            paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
             # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # temp1_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
             # temp2_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
