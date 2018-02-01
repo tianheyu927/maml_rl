@@ -219,12 +219,14 @@ class MAMLIL(BatchMAMLPolopt):
             # print("debug36", term0)
             # print("debug51", old_logli_sym[0][i])
 
-            temp1 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
+            temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
+            term1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
+
             temp2 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i]*old_adv[0][i],[self.max_path_length,-1]),0)
+            term2 = [tf.gradients(temp2[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
 
             # print("debug60", temp1)
             # print("debug61", temp2)
-
 
             paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
             # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
@@ -233,20 +235,15 @@ class MAMLIL(BatchMAMLPolopt):
             # flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
             # temp1_1 = [tf.gradients(temp1[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
             # temp2_1 = [tf.gradients(temp2[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
-            temp1_1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
-            temp2_1 = [tf.gradients(temp2[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
 
             # print("debug62", temp1_1[19])
             # print("debug63", temp2_1[19])
-
 
             # temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
 
             # print("debug62", temp1_1)
             # print("debug63", temp2_1)
             # print("debug64", temp3)
-
-
 
             # term1 = tf.gradients(0.5*tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
             # term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
@@ -261,7 +258,7 @@ class MAMLIL(BatchMAMLPolopt):
 
             def mult_grad_by_number(num, grad_list):
                 return [num * grad for grad in grad_list]
-            corr_term_i_v2_per_path_list = [mult_grad_by_number(self.policy.step_size*grads_dotprod(term0,temp1_1[p]), temp2_1[p]) for p in paths_range]
+            corr_term_i_v2_per_path_list = [mult_grad_by_number(self.policy.step_size*grads_dotprod(term0,term2[p]), term1[p]) for p in paths_range]
 
             # corr_term_i_v2 = tf.reduce_mean(tf.stack(corr_term_i_v2_per_path_list),0)
             corr_term_i_v2 = [tf.reduce_mean([c[y] for c in corr_term_i_v2_per_path_list],0) for y in range(len(corr_term_i_v2_per_path_list[0]))]
