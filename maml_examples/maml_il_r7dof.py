@@ -137,7 +137,7 @@ for baslayers in baslayers_list:
                                                 max_path_length=max_path_length,
                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                n_itr=20, #100
+                                                n_itr=100, #100
                                                 make_video=True,
                                                 use_maml=use_maml,
                                                 use_pooled_goals=True,
