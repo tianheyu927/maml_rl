@@ -219,7 +219,7 @@ class MAMLIL(BatchMAMLPolopt):
             # print("debug36", term0)
             # print("debug51", old_logli_sym[0][i])
 
-            temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
+            temp1 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
             temp2 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i]*old_adv[0][i],[self.max_path_length,-1]),0)
 
             # print("debug60", temp1)
