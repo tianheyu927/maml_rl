@@ -216,14 +216,14 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug42", updated_params_i)
             # term0 = tf.gradients(tf.nn.l2_loss(m-e+0.0*s), [updated_params_i[key] for key in updated_params_i.keys()])
             term0 = tf.gradients(outer_surr_obj, [updated_params_i[key] for key in updated_params_i.keys()])
-            print("debug36", term0)
-            print("debug51", old_logli_sym[0][i])
+            # print("debug36", term0)
+            # print("debug51", old_logli_sym[0][i])
 
             temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
             temp2 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i]*old_adv[0][i],[self.max_path_length,-1]),0)
 
-            print("debug60", temp1)
-            print("debug61", temp2)
+            # print("debug60", temp1)
+            # print("debug61", temp2)
 
 
             paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
@@ -236,14 +236,14 @@ class MAMLIL(BatchMAMLPolopt):
             temp1_1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
             temp2_1 = [tf.gradients(temp2[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
 
-            print("debug62", temp1_1[19])
-            print("debug63", temp2_1[19])
+            # print("debug62", temp1_1[19])
+            # print("debug63", temp2_1[19])
 
 
             # temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
 
-            print("debug62", temp1_1)
-            print("debug63", temp2_1)
+            # print("debug62", temp1_1)
+            # print("debug63", temp2_1)
             # print("debug64", temp3)
 
 
