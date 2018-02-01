@@ -221,7 +221,7 @@ class MAMLIL(BatchMAMLPolopt):
             paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
             print("debug45", len(paths_range))
 
-            temp1 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
+            temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
             term1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
 
             temp2 =tf.reduce_mean(tf.reshape(old_logli_sym[0][i]*old_adv[0][i],[self.max_path_length,-1]),0)
