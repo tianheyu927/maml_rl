@@ -109,8 +109,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         sess = tf.get_default_session()
 
-        obs = np.concatenate([p["observations"] for p in paths])
-        obs2 = np.concatenate([np.square(p["observations"]) for p in paths])
+        obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
+        obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
@@ -190,7 +190,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     @overrides
     def predict(self, path):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
-        obs = path['observations']
+        obs = np.clip(path['observations'],-10,10)
         obs2 = np.square(obs)
         al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
         al2 = al**2
