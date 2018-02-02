@@ -15,7 +15,7 @@ OUTPUT_NONLINEARITY = {
     'reluh':tf.nn.tanh,
 }
 
-TESTING_ITRS = [1,3,5,7,9,11,13,15,17,19] + [8*x-1 for x in range(1000)]
+TESTING_ITRS = [0,1,3,5,7,9,11,13,15,17,19] + [8*x-1 for x in range(1000)]
 
 PLOT_ITRS = [0,2,4,6,8,10] + [100*x for x in range(80)] + [1,3,5,7,9,11,13,] + [8*x-1 for x in range(500)]
 
