@@ -219,7 +219,7 @@ class MAMLIL(BatchMAMLPolopt):
             # print("debug36", term0)
             # print("debug51", old_logli_sym[0][i])
             paths_range = range(int(self.batch_size/self.max_path_length/self.meta_batch_size))
-            print("debug45", len(paths_range))
+ #           print("debug45", len(paths_range))
 
             temp1 =tf.reduce_sum(tf.reshape(old_logli_sym[0][i],[self.max_path_length,-1]),0)
             term1 = [tf.gradients(temp1[p],[self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
@@ -264,18 +264,17 @@ class MAMLIL(BatchMAMLPolopt):
             # corr_term_i_v2 = tf.reduce_mean(tf.stack(corr_term_i_v2_per_path_list),0)
             corr_term_i_v2 = [tf.reduce_mean([c[y] for c in corr_term_i_v2_per_path_list],0) for y in range(len(corr_term_i_v2_per_path_list[0]))]
 
-            # corr_terms.append(corr_term_i_v1)
             corr_terms.append(corr_term_i_v2)
-            print("debug36", term0)
+ #           print("debug36", term0)
             # print("debug37", term1)
             # print("debug38", term01)
 
-            print("debug52", corr_term_i_v2)
+ #           print("debug52", corr_term_i_v2)
 
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
         corr_term = [tf.reduce_mean([c[y] for c in corr_terms],0) for y in range(len(corr_terms[0]))]
-        print("debug39", corr_term)
+        # print("debug39", corr_term)
 
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
 

@@ -83,7 +83,7 @@ class QuadDistExpertOptimizer(Serializable):
         if self._correction_term is not None:
             new_gradients = []
             for ((grad, var), corr) in zip(gradients, self._correction_term):
-                new_gradients.append((grad - 0.0001*corr, var))
+                new_gradients.append((grad - 0.001*corr, var))
             self._train_step = self._adam.apply_gradients(new_gradients)
 
         # initialize Adam variables
