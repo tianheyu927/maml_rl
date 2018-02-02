@@ -120,6 +120,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # print("debug11", np.shape(obs))
         inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
         print("debug25", inputs[0])
+        print("debug25.1", np.shape(inputs[0]))
+        print("debug25.2", inputs[1])
 
 
         # inputs = [obs] + [returns]
@@ -204,6 +206,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         enh_obs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
         print("debug24", enh_obs)
+        print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
         if len(result) == 2:
             means, log_stds = result
