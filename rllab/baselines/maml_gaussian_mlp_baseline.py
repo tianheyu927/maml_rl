@@ -42,10 +42,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
-        self.input_shape = (None, obs_dim,)
+        self.input_shape = (None, 2*obs_dim+3,)
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
-
+        self.max_path_length = 100
 
 
         self.all_params = self.create_MLP(
@@ -112,10 +112,15 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         sess = tf.get_default_session()
 
         obs = np.concatenate([p["observations"] for p in paths])
+        obs2 = np.concatenate([np.square(p["observations"]) for p in paths])
+        al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
+        al2 =al**2
+        al3 = al**3
         # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
-
-        inputs = [obs] + [returns]
+        print("debug11", np.shape(obs))
+        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
+        print("debug12", np.shape(obs))
 
         init_param_values = None
         if self.all_param_vals is not None:
@@ -188,7 +193,14 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     def predict(self, path):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
         obs = path['observations']
-        result = self._cur_f_dist(obs)
+        obs2 = np.square(obs)
+        al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
+        al2 = al**2
+        al3 = al**3
+
+        inputs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
+
+        result = self._cur_f_dist(inputs)
         if len(result) == 2:
             means, log_stds = result
         else:
@@ -303,6 +315,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             if self.all_params is None:
                 assert False, "Shouldn't get here"
 
+
         mean_var, std_param_var = self._forward(obs=obs_vars, params=all_params, is_train=is_training)
 
         if return_params:
@@ -334,8 +347,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, obs_vars=obs_vars, params_dict=all_params)
 
 
-        organized_rewards = tf.reshape(rewards_vars, [-1,100])
-        organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] + 0.0 * predicted_returns_vars['log_std'], [-1,100])
+        organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])
+        organized_pred_returns = tf.reshape(predicted_returns_vars['mean'] + 0.0 * predicted_returns_vars['log_std'], [-1,self.max_path_length])
         organized_pred_returns_ = tf.concat((organized_pred_returns[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_returns[:,0])),[-1,1])),axis=1)
 
         deltas = organized_rewards + self.algo_discount * organized_pred_returns_ - organized_pred_returns
