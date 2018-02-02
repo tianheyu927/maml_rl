@@ -99,10 +99,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     @overrides
     def fit(self, paths, log=True):
         # return True
-
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
-
 
         """Equivalent of compute_updated_dists"""
         param_keys = self.all_params.keys()
@@ -118,9 +116,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al3 = al**3
         # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
-        print("debug11", np.shape(obs))
+        # print("debug11", np.shape(obs))
         inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
-        print("debug12", np.shape(obs))
+        # print("debug12", np.shape(obs))
 
         init_param_values = None
         if self.all_param_vals is not None:
