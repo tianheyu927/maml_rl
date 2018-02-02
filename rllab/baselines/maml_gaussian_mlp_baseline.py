@@ -147,8 +147,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             # these are the updated values of the params after the gradient step
         self.all_param_vals = sess.run(self.all_fast_params_tensor,
                                            feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
-        print("debug57", sess.run(tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys]),
-                                  feed_dict=dict(list(zip(self.input_list_for_grad, inputs)))))
+        # print("debug57", sess.run(tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys]),
+        #                           feed_dict=dict(list(zip(self.input_list_for_grad, inputs)))))
         # print("debug57", type(self.all_param_vals[0]))
 
         # if init_param_values is not None:
@@ -206,6 +206,25 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         else:
             raise NotImplementedError('Not supported.')
         return np.reshape(means, [-1])
+
+    def meta_predict(self, path):
+        # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
+        obs = np.clip(path['observations'],-10,10)
+        obs2 = np.square(obs)
+        # al = np.zeros(shape=(len(path["rewards"]),1))
+        al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
+        al2 = al**2
+        al3 = al**0
+
+        enh_obs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
+        print("debug24", enh_obs)
+        print("debug24.1", np.shape(enh_obs))
+        result = self._cur_f_dist(enh_obs)
+        if len(result) == 2:
+            means, log_stds = result
+        else:
+            raise NotImplementedError('Not supported.')
+        return np.reshape(log_stds, [-1])
 
 
     @property
@@ -356,6 +375,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         adv_vars = tf.reshape(adv_vars, [-1])
         adv_vars = (adv_vars - tf.reduce_mean(adv_vars))/tf.sqrt(tf.reduce_mean(adv_vars**2))  # centering advantages
+        adv_vars = adv_vars + predicted_returns_vars['log_std']
 
         return adv_vars
 

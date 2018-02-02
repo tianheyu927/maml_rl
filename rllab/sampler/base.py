@@ -122,6 +122,8 @@ class BaseSampler(Sampler):
                 if self.algo.positive_adv:
                     advantages = util.shift_advantages_to_positive(advantages)
 
+            if 'meta_predict' in dr
+
             average_discounted_return = \
                 np.mean([path["returns"][0] for path in paths])
 
