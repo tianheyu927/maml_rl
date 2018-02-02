@@ -139,6 +139,7 @@ class MAMLIL(BatchMAMLPolopt):
 
                     al_const = tf.constant(np.arange(self.max_path_length).reshape(-1, 1)/100.0)
                     al = tf.tile(al_const,(tf.cast(tf.size(obs_vars)/self.max_path_length,tf.int32),1))
+                    al = tf.cast(al,dtype=tf.float32)
                     enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 3], axis=1)
 
                     predicted_returns_sym, _ = self.baseline.predict_sym(obs_vars=enh_obs_i, all_params=self.baseline.all_params)
@@ -156,7 +157,7 @@ class MAMLIL(BatchMAMLPolopt):
                                                       # path_lengths_vars=path_lengths_vars[i],
                                                       all_params=self.baseline.all_params)
 
-                dist_info_sym_i, params = self.policy.dist_info_sym(enh_obs_i, state_info_vars, all_params=self.policy.all_params)
+                dist_info_sym_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
                     kls.append(kl)
