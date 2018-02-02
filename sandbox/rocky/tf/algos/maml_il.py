@@ -143,7 +143,7 @@ class MAMLIL(BatchMAMLPolopt):
 
 
                     # al = tf.concat([al_const]*int(self.batch_size/self.max_path_length/self.meta_batch_size),0)
-                    enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 3], axis=1)
+                    enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 0], axis=1)
 
                     predicted_returns_sym, _ = self.baseline.predict_sym(enh_obs_vars=enh_obs_i, all_params=self.baseline.all_params)
                     predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])

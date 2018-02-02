@@ -61,8 +61,10 @@ class BaseSampler(Sampler):
             if hasattr(self.algo.baseline, 'fit_with_samples'):
                 self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
             else:
-                for _ in range(4):
+                for _ in range(120):
+                    print("debug21",self.algo.baseline.predict(paths[0]))
                     self.algo.baseline.fit(paths, log=log)
+                assert False
             if log:
                 logger.log("fitted")
 

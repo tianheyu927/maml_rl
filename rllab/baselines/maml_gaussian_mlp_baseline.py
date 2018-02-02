@@ -111,10 +111,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
         obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
-        # al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
-        al = np.concatenate([np.zeros(shape=(len(p["rewards"]),1)) for p in paths])
+        al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
+        # al = np.concatenate([np.zeros(shape=(len(p["rewards"]),1)) for p in paths])
         al2 =al**2
-        al3 = al**3
+        al3 = al**0
         # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
         # print("debug11", np.shape(obs))
@@ -125,16 +125,14 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
         # inputs = [obs] + [returns]
-        print("debug12", np.shape(obs))
+        print("debug25.3", np.shape(obs))
 
-        init_param_values = None
+        # init_param_values = None
+        # if self.all_param_vals is not None:  # meaning, if we've already done one update since
+        #     init_param_values = self.get_variable_values(self.all_params)
+
         if self.all_param_vals is not None:
-            init_param_values = self.get_variable_values(self.all_params)
-
-        if self.all_param_vals is not None:
-            self.assign_params(self.all_params,self.all_param_vals[0])
-
-
+            self.assign_params(self.all_params,self.all_param_vals[-1])
 
         if 'all_fast_params_tensor' not in dir(self):
             # make computation graph once
@@ -144,20 +142,20 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             for k in no_update_param_keys:
                 fast_params_tensor[k] = self.all_params[k]
             self.all_fast_params_tensor.append(fast_params_tensor)
-
+            self._gradients = gradients.items()
             # pull new param vals out of tensorflow, so gradient computation only done once
-            # first is the vars, second the values
             # these are the updated values of the params after the gradient step
         self.all_param_vals = sess.run(self.all_fast_params_tensor,
                                            feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
+        print("debug57", sess.run(self._gradients))
         # print("debug57", type(self.all_param_vals[0]))
 
-        if init_param_values is not None:
-            self.assign_params(self.all_params, init_param_values)
+        # if init_param_values is not None:
+        #     self.assign_params(self.all_params, init_param_values)
 
         inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
         enh_obs = inputs[0]
-        info, _ = self.predict_sym(enh_obs_vars=enh_obs, all_params=self.all_param_vals[0],is_training=False)
+        info, _ = self.predict_sym(enh_obs_vars=enh_obs, all_params=self.all_param_vals[-1],is_training=False)
 
         outputs = [info['mean'], info['log_std']]
 
@@ -165,12 +163,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             inputs=[self.input_tensor],
             outputs=outputs,
         )
-        #  logger.record_tabular("ComputeUpdatedDistTime", total_time)
-
-        # # self._preupdate_params = self._regressor.get_param_values()
-        # observations = np.concatenate([p["observations"] for p in paths])
-        # returns = np.concatenate([p["returns"] for p in paths])
-        # TODO self.fit(observations, returns.reshape((-1, 1)), log=log)
 
 
 
@@ -199,10 +191,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
         obs = np.clip(path['observations'],-10,10)
         obs2 = np.square(obs)
-        al = np.zeros(shape=(len(path["rewards"]),1))
-        # al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
+        # al = np.zeros(shape=(len(path["rewards"]),1))
+        al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
         al2 = al**2
-        al3 = al**3
+        al3 = al**0
 
         enh_obs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
         print("debug24", enh_obs)
