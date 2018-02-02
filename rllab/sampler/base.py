@@ -61,7 +61,7 @@ class BaseSampler(Sampler):
             if hasattr(self.algo.baseline, 'fit_with_samples'):
                 self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
             else:
-                for _ in range(1):
+                for _ in range(20):
                     self.algo.baseline.fit(paths, log=log)
             if log:
                 logger.log("fitted")
@@ -76,7 +76,7 @@ class BaseSampler(Sampler):
 
         for idx, path in enumerate(paths):
             if not fast_process and not metalearn_baseline:
-                if idx==0 and itr in [0,1]:
+                if idx==0:
                     print("debug22", all_path_baselines[idx])
                 path_baselines = np.append(all_path_baselines[idx], 0)
                 deltas = path["rewards"] + \
