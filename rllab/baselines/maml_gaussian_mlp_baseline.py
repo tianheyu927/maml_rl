@@ -66,7 +66,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         forward_std = lambda x, params: forward_param_layer(x, params['std_param'])
         self.all_param_vals = None
 
-        self._forward = lambda obs, params, is_train: (forward_mean(obs, params, is_train), forward_std(obs, params))
+        self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
         self._dist = DiagonalGaussian(1)
 
@@ -74,7 +74,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         super(MAMLGaussianMLPBaseline, self).__init__(env_spec)
 
-        predict_sym = self.predict_sym(obs_vars=self.input_tensor)
+        predict_sym = self.predict_sym(enh_obs_vars=self.input_tensor)
         mean_var = predict_sym['mean']
         log_std_var = predict_sym['log_std']
 
@@ -111,14 +111,18 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
         obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
-        al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
+        # al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
+        al = np.concatenate([np.zeros(shape=(len(p["rewards"]),1)) for p in paths])
         al2 =al**2
         al3 = al**3
         # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
         # print("debug11", np.shape(obs))
-        # inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
-        inputs = [obs] + [returns]
+        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
+        print("debug25", inputs[0])
+
+
+        # inputs = [obs] + [returns]
         print("debug12", np.shape(obs))
 
         init_param_values = None
@@ -150,8 +154,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             self.assign_params(self.all_params, init_param_values)
 
         inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
-        task_inp = inputs[0]
-        info, _ = self.predict_sym(obs_vars=task_inp, all_params=self.all_param_vals[0],is_training=False)
+        enh_obs = inputs[0]
+        info, _ = self.predict_sym(enh_obs_vars=enh_obs, all_params=self.all_param_vals[0],is_training=False)
 
         outputs = [info['mean'], info['log_std']]
 
@@ -193,13 +197,14 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
         obs = np.clip(path['observations'],-10,10)
         obs2 = np.square(obs)
-        al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
+        al = np.zeros(shape=(len(path["rewards"]),1))
+        # al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
         al2 = al**2
         al3 = al**3
 
-        inputs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
-
-        result = self._cur_f_dist(inputs)
+        enh_obs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
+        print("debug24", enh_obs)
+        result = self._cur_f_dist(enh_obs)
         if len(result) == 2:
             means, log_stds = result
         else:
@@ -304,7 +309,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._cur_f_dist = self._init_f_dist
         self.all_param_vals = None
 
-    def predict_sym(self, obs_vars, all_params=None, is_training=True):
+    def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
         """equivalent of dist_info_sym, this function constructs the tf graph, only called
         during beginning of meta-training"""
         return_params = True
@@ -315,14 +320,14 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                 assert False, "Shouldn't get here"
 
 
-        mean_var, std_param_var = self._forward(obs=obs_vars, params=all_params, is_train=is_training)
+        mean_var, std_param_var = self._forward(enh_obs=enh_obs_vars, params=all_params, is_train=is_training)
 
         if return_params:
             return dict(mean=mean_var, log_std=std_param_var), all_params
         else:
             return dict(mean=mean_var, log_std=std_param_var)
 
-    def updated_predict_sym(self, baseline_pred_loss, obs_vars, params_dict=None):
+    def updated_predict_sym(self, baseline_pred_loss, enh_obs_vars, params_dict=None):
         """ symbolically create post-fitting baseline predict_sym, to be used for meta-optimization.
         Equivalent of updated_dist_info_sym"""
         old_params_dict = params_dict
@@ -338,12 +343,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate * gradients[key] for key in update_param_keys]))
         for k in no_update_param_keys:
             params_dict[k] = old_params_dict[k]
-        return self.predict_sym(obs_vars=obs_vars, all_params=params_dict)
+        return self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict)
 
-    def build_adv_sym(self,obs_vars,rewards_vars, returns_vars, baseline_pred_loss, all_params):  # path_lengths_vars was before all_params
+    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, baseline_pred_loss, all_params):  # path_lengths_vars was before all_params
 
 
-        predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, obs_vars=obs_vars, params_dict=all_params)
+        predicted_returns_vars, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=all_params)
 
 
         organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])
