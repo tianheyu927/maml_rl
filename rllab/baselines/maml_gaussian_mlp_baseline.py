@@ -147,7 +147,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             # these are the updated values of the params after the gradient step
         self.all_param_vals = sess.run(self.all_fast_params_tensor,
                                            feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
-        print("debug57", sess.run(tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
+        print("debug57", sess.run(tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys]),
+                                  feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
         # print("debug57", type(self.all_param_vals[0]))
 
         # if init_param_values is not None:
