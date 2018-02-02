@@ -152,7 +152,7 @@ class MAMLIL(BatchMAMLPolopt):
                     baseline_pred_loss_i = tf.reduce_mean((predicted_returns_means_sym - returns_vars[i])**2) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
                     # if 'surr_obj' not in dir(self.baseline):
                     #     assert i == 0
-                    self.baseline.set_init_surr_obj(input_list=obs_vars[i]+ [returns_vars[i]], surr_obj_tensor=baseline_pred_loss_i)
+                    self.baseline.set_init_surr_obj(input_list=[obs_vars[i]]+ [returns_vars[i]], surr_obj_tensor=baseline_pred_loss_i)
                     adv_sym = self.baseline.build_adv_sym(obs_vars=enh_obs_i,
                                                       rewards_vars=rewards_vars[i],
                                                       returns_vars=returns_vars[i],
