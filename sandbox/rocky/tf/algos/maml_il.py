@@ -133,14 +133,16 @@ class MAMLIL(BatchMAMLPolopt):
             old_logli_sym.append([])
             old_adv.append([])
 
+            al_const = tf.constant(np.arange(self.max_path_length).reshape(-1, 1) / 100.0)
+            al = tf.tile(al_const, tf.stack([tf.cast(tf.shape(obs_vars[0])[0] / self.max_path_length, tf.int32), 1]))
+            al = tf.cast(al, dtype=tf.float32)
+
             for i in range(self.meta_batch_size):  # for training task T_i
                 adv = adv_vars[i]
                 if self.metalearn_baseline:
 
-                    al_const = tf.constant(np.arange(self.max_path_length).reshape(-1, 1)/100.0)
-                    # al = tf.tile(al_const,(tf.cast(tf.size(obs_vars[i])[0]/self.max_path_length,tf.int32),1))
-                    al = tf.concat([al_const]*int(self.batch_size/self.max_path_length/self.meta_batch_size),0)
-                    al = tf.cast(al,dtype=tf.float32)
+
+                    # al = tf.concat([al_const]*int(self.batch_size/self.max_path_length/self.meta_batch_size),0)
                     enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 3], axis=1)
 
                     predicted_returns_sym, _ = self.baseline.predict_sym(obs_vars=enh_obs_i, all_params=self.baseline.all_params)
