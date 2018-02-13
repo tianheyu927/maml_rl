@@ -6,6 +6,7 @@ import rllab.misc.logger as logger
 from rllab.algos import util
 from rllab.misc import special
 from rllab.misc import tensor_utils
+from maml_examples.maml_experiment_vars import BASELINE_TRAINING_ITRS
 
 
 class Sampler(object):
@@ -52,6 +53,7 @@ class BaseSampler(Sampler):
         if testitr:
             metalearn_baseline = False
             # print("debug31, we're testing")
+        train_baseline = (itr in BASELINE_TRAINING_ITRS)
 
         for idx, path in enumerate(paths):
             path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
@@ -61,26 +63,34 @@ class BaseSampler(Sampler):
             if hasattr(self.algo.baseline, 'fit_with_samples'):
                 self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
             else:
-                for _ in range(120):
-                    print("debug21",self.algo.baseline.predict(paths[0]))
-                    self.algo.baseline.fit(paths, log=log)
-                assert False
+                print("debug21 baseline before fitting",self.algo.baseline.predict(paths[0])[0:2], "...",self.algo.baseline.predict(paths[0])[-3:-1])
+                print("debug21 returns  before fitting",paths[0]['returns'][0:2], "...",paths[0]['returns'][-3:-1])
+                print("debug21 predloss before fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
+
+                self.algo.baseline.fit(paths, log=log)
+                print("debug21.1 baseline after fitting",self.algo.baseline.predict(paths[0])[0:2], "...", self.algo.baseline.predict(paths[0])[-3:-1])
+                print("debug21 predloss after fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
             if log:
                 logger.log("fitted")
+
+            if 'switch_to_init_dist' in dir(self.algo.baseline):
+                print("debug77, switching to init")
+                self.algo.baseline.switch_to_init_dist()
+
+            if train_baseline:
+                self.algo.baseline.fit_train_baseline(paths)
 
             if hasattr(self.algo.baseline, "predict_n"):
                 all_path_baselines = self.algo.baseline.predict_n(paths)
             else:
                 all_path_baselines = [self.algo.baseline.predict(path) for path in paths]
 
-        if 'switch_to_init_dist' in dir(self.algo.baseline):
-            self.algo.baseline.switch_to_init_dist()
 
         for idx, path in enumerate(paths):
             if not fast_process and not metalearn_baseline:
-                if idx==0:
-                    print("debug22", all_path_baselines[idx])
-                    print("debug23", path['returns'])
+                # if idx==0:
+                    # print("debug22", all_path_baselines[idx])
+                    # print("debug23", path['returns'])
 
                 path_baselines = np.append(all_path_baselines[idx], 0)
                 deltas = path["rewards"] + \
@@ -112,6 +122,9 @@ class BaseSampler(Sampler):
             returns = tensor_utils.concat_tensor_list([path["returns"] for path in paths])
             if not fast_process and not metalearn_baseline:
                 advantages = tensor_utils.concat_tensor_list([path["advantages"] for path in paths])
+                # print("debug, advantages are", advantages,)
+                # print("debug, shape of advantages is", type(advantages), np.shape(advantages))
+
             expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
             env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
@@ -121,11 +134,16 @@ class BaseSampler(Sampler):
                     advantages = util.center_advantages(advantages)
                 if self.algo.positive_adv:
                     advantages = util.shift_advantages_to_positive(advantages)
+                if "meta_predict" in dir(self.algo.baseline):
+                    # print("debug, advantages are", advantages, )
+                    advantages = advantages + self.algo.baseline.meta_predict(observations)
+                    print("debug, metalearned baseline constant is", self.algo.baseline.meta_predict(observations) )
+                    # print("debug, metalearned baseline constant shape is", np.shape(self.algo.baseline.meta_predict(observations)))
+                print("debug, advantages are\n", advantages[0:30],"\n...\n", advantages[-30:-1])
+                # print("debug, advantages shape is", np.shape(advantages))
 
-            if 'meta_predict' in dr
-
-            average_discounted_return = \
-                np.mean([path["returns"][0] for path in paths])
+            # average_discounted_return = \
+            #     np.mean([path["returns"][0] for path in paths])
 
             undiscounted_returns = [sum(path["rewards"]) for path in paths]
 

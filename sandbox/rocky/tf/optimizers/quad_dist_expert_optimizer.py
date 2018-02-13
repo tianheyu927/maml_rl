@@ -70,6 +70,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._inputs = inputs
         self._loss = loss
         self._adam = tf.train.AdamOptimizer()
+        # self._adam = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.5)
         # self._train_step = self._adam.minimize(self._loss)
 
         if "correction_term" in kwargs:

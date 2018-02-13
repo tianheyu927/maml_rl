@@ -21,7 +21,7 @@ import joblib
 from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_list
 # from maml_examples.reacher_env import fingertip
 from rllab.sampler.utils import rollout, joblib_dump_safe
-from maml_examples.maml_experiment_vars import TESTING_ITRS, PLOT_ITRS, VIDEO_ITRS
+from maml_examples.maml_experiment_vars import TESTING_ITRS, PLOT_ITRS, VIDEO_ITRS, BASELINE_TRAINING_ITRS
 
 
 class BatchMAMLPolopt(RLAlgorithm):

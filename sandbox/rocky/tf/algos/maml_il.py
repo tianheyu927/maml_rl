@@ -8,7 +8,7 @@ from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
 from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
 from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import ConjugateGradientOptimizer
-from maml_examples.maml_experiment_vars import TESTING_ITRS
+from maml_examples.maml_experiment_vars import TESTING_ITRS, BASELINE_TRAINING_ITRS
 from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
 
 class MAMLIL(BatchMAMLPolopt):
@@ -143,20 +143,20 @@ class MAMLIL(BatchMAMLPolopt):
 
 
                     # al = tf.concat([al_const]*int(self.batch_size/self.max_path_length/self.meta_batch_size),0)
-                    enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 0], axis=1)
+                    # enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 3, al ** 0], axis=1)
+                    enh_obs_i = tf.concat([al, al ** 2, al ** 3, al ** 0], axis=1)
 
-                    predicted_returns_sym, _ = self.baseline.predict_sym(enh_obs_vars=enh_obs_i, all_params=self.baseline.all_params)
-                    predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
-
-                    predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
-                    baseline_pred_loss_i = tf.reduce_mean((predicted_returns_means_sym - returns_vars[i])**2) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
-                    # if 'surr_obj' not in dir(self.baseline):
-                    #     assert i == 0
-                    self.baseline.set_init_surr_obj(input_list=[enh_obs_i]+ [returns_vars[i]], surr_obj_tensor=baseline_pred_loss_i)
+                    if 'surr_obj' not in dir(self.baseline):
+                        assert i == 0
+                        predicted_returns_sym, _ = self.baseline.predict_sym(enh_obs_vars=enh_obs_i, all_params=self.baseline.all_params)
+                        predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
+                        predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
+                        baseline_pred_loss_i = tf.reduce_mean((predicted_returns_means_sym - returns_vars[i])**2) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
+                        self.baseline.set_init_surr_obj(input_list=[enh_obs_i]+ [returns_vars[i]], surr_obj_tensor=baseline_pred_loss_i)
                     adv_sym = self.baseline.build_adv_sym(enh_obs_vars=enh_obs_i,
                                                       rewards_vars=rewards_vars[i],
                                                       returns_vars=returns_vars[i],
-                                                      baseline_pred_loss=baseline_pred_loss_i,
+                                                      # baseline_pred_loss=baseline_pred_loss_i,
                                                       # path_lengths_vars=path_lengths_vars[i],
                                                       all_params=self.baseline.all_params)
 
@@ -254,8 +254,8 @@ class MAMLIL(BatchMAMLPolopt):
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
-            target=None,
-            # target=(self.policy, self.baseline),
+            # target=None,
+            target=self.policy,
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
             constraint_name="mean_kl",
@@ -315,7 +315,7 @@ class MAMLIL(BatchMAMLPolopt):
             if not self.metalearn_baseline:
                 input_vals_list += obs_list + action_list + adv_list + expert_action_list
             else:
-                input_vals_list += obs_list + action_list + rewards_list + returns_list  + expert_action_list  #+ path_lengths_list before expert action list
+                input_vals_list += obs_list + action_list + rewards_list + returns_list + expert_action_list  #+ path_lengths_list before expert action list
 
 
         for step in [self.num_grad_updates]:  # last step
