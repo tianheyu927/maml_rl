@@ -145,8 +145,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         feed_dict = dict(list(zip(self.input_list_for_grad, inputs)))
 
         for _ in range(repeat):
-            if _ in [0,1,2,3,4,5,100,9000]:
-                print("debug99", sess.run(self.learning_rate_per_param))
+            if _ in [0,repeat-1]:
+                print("debug99", sess.run(self.learning_rate_per_param).items())
             sess.run(self.lr_train_step,feed_dict=feed_dict)
 
             # self.all_param_vals, self.learning_rate_per_param_vals = sess.run(self.all_fast_params_tensor2,
@@ -171,7 +171,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
     @overrides
-    def fit(self, paths, log=True, repeat=3):  # TODO REVERT repeat=10000
+    def fit(self, paths, log=True, repeat=1):  # TODO REVERT repeat=10000
         # return True
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
@@ -457,7 +457,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             params_dict[k] = old_params_dict[k]
         return self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict)
 
-    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=3):  # path_lengths_vars was before all_params
+    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=1):  # path_lengths_vars was before all_params
         # assert baseline_pred_loss is None, "don't give me baseline pred loss"
         updated_params = all_params
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)

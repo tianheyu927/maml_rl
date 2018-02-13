@@ -139,7 +139,7 @@ class BaseSampler(Sampler):
                     advantages = advantages + self.algo.baseline.meta_predict(observations)
                     print("debug, metalearned baseline constant is", self.algo.baseline.meta_predict(observations) )
                     # print("debug, metalearned baseline constant shape is", np.shape(self.algo.baseline.meta_predict(observations)))
-                print("debug, advantages are\n", advantages[0:30],"\n...\n", advantages[-30:-1])
+                print("debug, advantages are", advantages[0:2],"...", advantages[-3:-1])
                 # print("debug, advantages shape is", np.shape(advantages))
 
             # average_discounted_return = \
