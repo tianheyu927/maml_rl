@@ -78,7 +78,7 @@ class QuadDistExpertOptimizer(Serializable):
         else:
             self._correction_term = None
 
-        gradients = self._adam.compute_gradients(self._loss)
+        gradients = self._adam.compute_gradients(loss=self._loss, var_list=[self._target.all_params[key] for key in self._target.all_params.keys()])
         self._train_step = self._adam.apply_gradients(gradients)
 
         if self._correction_term is not None:

@@ -42,7 +42,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
-        self.input_shape = (None, 0*obs_dim+4,)
+        self.input_shape = (None, 0*obs_dim+3,)
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self.max_path_length = 100
@@ -61,13 +61,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             num_units=1,
             param=tf.constant_initializer(init_log_std),
             name="output_bas_std_param",
-            trainable=True,
+            trainable=False,
         )
         forward_std = lambda x, params: forward_param_layer(x, params['std_param'])
         self.all_param_vals = None
 
         self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),
-                                                       [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key])))
+                                                       [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if key!="W0" else [[-15000.],[-19000.],[-20000.]]))
                                                                                          for key in self.all_params.keys()]))
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
@@ -103,7 +103,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.input_list_for_grad = input_list
         self.surr_obj = surr_obj_tensor
 
-    def fit_train_baseline(self, paths, repeat=30000):
+    def fit_train_baseline(self, paths, repeat=100):
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
         param_keys = self.all_params.keys()
@@ -114,9 +114,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
-        al0 = al**0
+        # al0 = al**0
         returns = np.concatenate([p["returns"] for p in paths])
-        inputs = [np.concatenate([al,al2,al3,al0],axis=1)] + [returns]
+        inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
         # inputs = [np.concatenate([obs,obs2,al,al2,al3,al0],axis=1)] + [returns]
 
         if 'lr_train_step' not in dir(self) :
@@ -155,7 +155,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             # self.assign_lr(self.learning_rate_per_param, self.learning_rate_per_param_vals)
             #
         #
-        # inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
         # enh_obs = self.input_list_for_grad[0]
         # info, _ = self.predict_sym(enh_obs_vars=enh_obs, is_training=False)
         #
@@ -171,7 +170,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
     @overrides
-    def fit(self, paths, log=True, repeat=1):  # TODO REVERT repeat=10000
+    def fit(self, paths, log=True, repeat=5):  # TODO REVERT repeat=10000
         # return True
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
@@ -192,12 +191,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
-        al0 = al**0
+        # al0 = al**0
         # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
         # print("debug11", np.shape(obs))
         # inputs = [np.concatenate([obs,obs2,al,al2,al3,al0],axis=1)] + [returns]
-        inputs = [np.concatenate([al,al2,al3,al0],axis=1)] + [returns]
+        inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
         #
         # if self.all_param_vals is not None:
         #     self.assign_params(self.all_params,self.all_param_vals)
@@ -229,8 +228,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             inputs=[self.input_tensor],
             outputs=outputs,
         )
-
-
+        if not self.initialized:
+            self.init_param_vals = sess.run(self.init_params_tensor)
+            self.initialized=True
 
     def get_variable_values(self, tensor_dict):
         sess = tf.get_default_session()
@@ -281,10 +281,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
         al2 = al**2
         al3 = al**3
-        al0 = al**0
+        # al0 = al**0
 
         # enh_obs = np.concatenate([obs, obs2, al, al2, al3, al0],axis=1)
-        enh_obs = np.concatenate([al, al2, al3, al0],axis=1)
+        enh_obs = np.concatenate([al, al2, al3],axis=1)
         # print("debug24", enh_obs)
         # print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
@@ -302,10 +302,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al = np.zeros(shape=(len(observations),1))
         al2 = al
         al3 = al
-        al0 = al
+        # al0 = al
 
         # enh_obs = np.concatenate([obs, obs2, al, al2, al3, al0],axis=1)
-        enh_obs = np.concatenate([al, al2, al3, al0],axis=1)
+        enh_obs = np.concatenate([al, al2, al3],axis=1)
         # print("debug24", enh_obs)
         # print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
@@ -409,11 +409,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         return flatten_tensors(param_values)
 
     def switch_to_init_dist(self):
-        if not self.initialized:
-            self.initialized = True
-            # self.learning_rate = 10. * self.learning_rate
-            # self.all_fast_params_tensor = None
-            return
         # switch cur baseline distribution to pre-update baseline
         self._cur_f_dist = self._init_f_dist
         self.all_param_vals = None
@@ -457,7 +452,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             params_dict[k] = old_params_dict[k]
         return self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict)
 
-    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=1):  # path_lengths_vars was before all_params
+    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=5):  # path_lengths_vars was before all_params
         # assert baseline_pred_loss is None, "don't give me baseline pred loss"
         updated_params = all_params
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
