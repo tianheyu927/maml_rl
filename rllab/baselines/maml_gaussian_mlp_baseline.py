@@ -70,7 +70,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                                                        [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if True else [[-15000.],[-19000.],[-20000.]]))
                                                                                          for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key])) for key in self.all_params.keys()]))
-        self.momentum = 0.975
+        self.momentum = 0.8
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
@@ -172,13 +172,14 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
     @overrides
-    def fit(self, paths, log=True, repeat=15):  # TODO REVERT repeat=10000
+    def fit(self, paths, log=True, repeat=20):  # TODO REVERT repeat=10000
         # return True
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
         if not self.initialized:
             # self.learning_rate = 0.1 * self.learning_rate
             repeat = 1000
+            self.lr_mult = 0.5
         """Equivalent of compute_updated_dists"""
         update_param_keys = self.all_params.keys()
         no_update_param_keys = []
@@ -206,7 +207,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if 'all_fast_params_tensor' not in dir(self) or self.all_fast_params_tensor is None:
             gradients = dict(zip(update_param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
             new_accumulation = {key:self.momentum * self.accumulation[key] + gradients[key] for key in update_param_keys}
-            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - self.learning_rate_per_param[key]*new_accumulation[key] for key in update_param_keys]))
+            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - self.lr_mult * self.learning_rate_per_param[key]*new_accumulation[key] for key in update_param_keys]))
             for k in no_update_param_keys:
                 fast_params_tensor[k] = self.all_params[k]
             self.all_fast_params_tensor = (fast_params_tensor, new_accumulation)
@@ -234,10 +235,11 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         )
         if not self.initialized:
             self.init_param_vals = sess.run(self.init_params_tensor)
+            self.all_fast_params_tensor = None
+            self.lr_mult = 1.0
             self.initialized=True
 
         self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
-        # print("debug101", sess.run(self.accumulation))
 
     def get_variable_values(self, tensor_dict):
         sess = tf.get_default_session()
@@ -473,7 +475,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             params_dict[k] = old_params_dict[k]
         return (self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict), new_accumulation_sym)
 
-    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=15):  # path_lengths_vars was before all_params
+    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=20):  # path_lengths_vars was before all_params
         # assert baseline_pred_loss is None, "don't give me baseline pred loss"
         updated_params = all_params
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
