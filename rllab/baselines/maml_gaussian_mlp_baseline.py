@@ -42,7 +42,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
-        self.input_shape = (None, 0*obs_dim+3,)
+        self.input_shape = (None, 2*obs_dim+3,)
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self.max_path_length = 100
@@ -111,15 +111,15 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         param_keys = self.all_params.keys()
 
         sess = tf.get_default_session()
-        # obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
-        # obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
+        obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
+        obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
         # al0 = al**0
         returns = np.concatenate([p["returns"] for p in paths])
-        inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
-        # inputs = [np.concatenate([obs,obs2,al,al2,al3,al0],axis=1)] + [returns]
+        # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
+        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
 
         if 'lr_train_step' not in dir(self) :
             gradients = dict(zip(param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in param_keys])))  #+[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])))
@@ -188,8 +188,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             self.init_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] for key in update_param_keys]))
         self.init_param_vals = sess.run(self.init_params_tensor)
         self.init_accumulation_vals = sess.run(self.accumulation)
-        #obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
-        #obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
+        obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
+        obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
@@ -197,8 +197,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # print("debug43", np.shape(obs))
         returns = np.concatenate([p["returns"] for p in paths])
         # print("debug11", np.shape(obs))
-        # inputs = [np.concatenate([obs,obs2,al,al2,al3,al0],axis=1)] + [returns]
-        inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
+        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
+        # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
         #
         # if self.all_param_vals is not None:
         #     self.assign_params(self.all_params,self.all_param_vals)
@@ -291,16 +291,16 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     @overrides
     def predict(self, path):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
-        # obs = np.clip(path['observations'],-10,10)
-        # obs2 = np.square(obs)
+        obs = np.clip(path['observations'],-10,10)
+        obs2 = np.square(obs)
         # al = np.zeros(shape=(len(path["rewards"]),1))
         al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
         al2 = al**2
         al3 = al**3
         # al0 = al**0
 
-        # enh_obs = np.concatenate([obs, obs2, al, al2, al3, al0],axis=1)
-        enh_obs = np.concatenate([al, al2, al3],axis=1)
+        enh_obs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
+        # enh_obs = np.concatenate([al, al2, al3],axis=1)
         # print("debug24", enh_obs)
         # print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
@@ -312,16 +312,16 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
     def meta_predict(self, observations):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
-        # obs = np.zeros(shape=np.shape(observations))
-        # obs2 = obs
+        obs = np.zeros(shape=np.shape(observations))
+        obs2 = obs
         # al = np.zeros(shape=(len(path["rewards"]),1))
         al = np.zeros(shape=(len(observations),1))
         al2 = al
         al3 = al
         # al0 = al
 
-        # enh_obs = np.concatenate([obs, obs2, al, al2, al3, al0],axis=1)
-        enh_obs = np.concatenate([al, al2, al3],axis=1)
+        enh_obs = np.concatenate([obs, obs2, al, al2, al3],axis=1)
+        # enh_obs = np.concatenate([al, al2, al3],axis=1)
         # print("debug24", enh_obs)
         # print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
