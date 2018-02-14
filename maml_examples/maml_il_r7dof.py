@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -48,12 +48,12 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['clip0.5_']
 limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
-bas_lr = 1.0# baseline learning rate, 0.001
+bas_lr = 0.0025# baseline learning rate, 0.001
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 200 # baseline adam steps
+# basas = 200 # baseline adam steps
 
 
 
@@ -142,6 +142,7 @@ for baslayers in baslayers_list:
                                                 use_maml=use_maml,
                                                 use_pooled_goals=True,
                                                 metalearn_baseline=(bas=="MAMLGaussianMLP"),
+                                                # metalearn_baseline=False,
                                                 limit_expert_traj_num=limit_expert_traj_num,
                                                 test_goals_mult=test_goals_mult,
                                                 step_size=meta_step_size,
