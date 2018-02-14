@@ -137,7 +137,7 @@ class BaseSampler(Sampler):
                 if "meta_predict" in dir(self.algo.baseline):
                     # print("debug, advantages are", advantages, )
                     advantages = advantages + self.algo.baseline.meta_predict(observations)
-                    print("debug, metalearned baseline constant is", self.algo.baseline.meta_predict(observations) )
+                    print("debug, metalearned baseline constant is", self.algo.baseline.meta_predict(observations)[0:2],"...",self.algo.baseline.meta_predict(observations)[-3:-1])
                     # print("debug, metalearned baseline constant shape is", np.shape(self.algo.baseline.meta_predict(observations)))
                 print("debug, advantages are", advantages[0:2],"...", advantages[-3:-1])
                 # print("debug, advantages shape is", np.shape(advantages))

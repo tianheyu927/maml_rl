@@ -69,6 +69,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),
                                                        [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if True else [[-15000.],[-19000.],[-20000.]]))
                                                                                          for key in self.all_params.keys()]))
+        self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key])) for key in self.all_params.keys()]))
+        self.momentum = 0.8
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
@@ -170,13 +172,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
     @overrides
-    def fit(self, paths, log=True, repeat=5):  # TODO REVERT repeat=10000
+    def fit(self, paths, log=True, repeat=30):  # TODO REVERT repeat=10000
         # return True
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
         if not self.initialized:
             # self.learning_rate = 0.1 * self.learning_rate
-            repeat = 1
+            repeat = 1000
         """Equivalent of compute_updated_dists"""
         update_param_keys = self.all_params.keys()
         no_update_param_keys = []
@@ -203,16 +205,18 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         if 'all_fast_params_tensor' not in dir(self) or self.all_fast_params_tensor is None:
             gradients = dict(zip(update_param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
-            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - self.learning_rate_per_param[key]*gradients[key] for key in update_param_keys]))
+            new_accumulation = {key:self.momentum * self.accumulation[key] + gradients[key] for key in update_param_keys}
+            fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - self.learning_rate_per_param[key]*new_accumulation[key] for key in update_param_keys]))
             for k in no_update_param_keys:
                 fast_params_tensor[k] = self.all_params[k]
-            self.all_fast_params_tensor = fast_params_tensor
+            self.all_fast_params_tensor = (fast_params_tensor, new_accumulation)
             # pull new param vals out of tensorflow, so gradient computation only done once
             # these are the updated values of the params after the gradient step
         for _ in range(repeat):
-            self.all_param_vals = sess.run(self.all_fast_params_tensor,
+            self.all_param_vals, self.accumulation_vals = sess.run(self.all_fast_params_tensor,
                                            feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
             self.assign_params(self.all_params, self.all_param_vals)
+            self.assign_accumulation(self.accumulation, self.accumulation_vals)
 
 
         # if init_param_values is not None:
@@ -263,13 +267,22 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                 self.assign_lr_placeholders[key] = tf.placeholder(tf.float32)
                 self.assign_lr_ops[key] = tf.assign(tensor_dict[key], self.assign_lr_placeholders[key])
 
-        # print("debug78,", tensor_dict.keys())
-        # print("debug79,", tensor_dict)
-        # print("debug80,", param_values)
-
         feed_dict = {self.assign_lr_placeholders[key]:param_values[key] for key in tensor_dict.keys()}
         sess = tf.get_default_session()
         sess.run(self.assign_lr_ops, feed_dict)
+
+    def assign_accumulation(self, tensor_dict, param_values):
+        if 'assign_acc_placeholders' not in dir(self):
+            # make computation graph, if it doesn't exist; then cache it for future use.
+            self.assign_acc_placeholders = {}
+            self.assign_acc_ops = {}
+            for key in tensor_dict.keys():
+                self.assign_acc_placeholders[key] = tf.placeholder(tf.float32)
+                self.assign_acc_ops[key] = tf.assign(tensor_dict[key], self.assign_acc_placeholders[key])
+
+        feed_dict = {self.assign_acc_placeholders[key]:param_values[key] for key in tensor_dict.keys()}
+        sess = tf.get_default_session()
+        sess.run(self.assign_acc_ops, feed_dict)
 
 
     @overrides
@@ -432,7 +445,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         else:
             return dict(mean=mean_var, log_std=std_param_var)
 
-    def updated_predict_sym(self, baseline_pred_loss, enh_obs_vars, params_dict=None):
+    def updated_predict_sym(self, baseline_pred_loss, enh_obs_vars, params_dict=None, accumulation_sym=None):
         """ symbolically create post-fitting baseline predict_sym, to be used for meta-optimization.
         Equivalent of updated_dist_info_sym"""
         old_params_dict = params_dict
@@ -445,25 +458,27 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         no_update_param_keys = []
         grads = tf.gradients(baseline_pred_loss, [old_params_dict[key] for key in update_param_keys])
         gradients = dict(zip(update_param_keys, grads))
-        params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * gradients[key] for key in update_param_keys]))
+        if accumulation_sym is not None:
+            new_accumulation_sym = {key:self.momentum * accumulation_sym[key] + gradients[key] for key in update_param_keys}
+            params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * new_accumulation_sym[key] for key in update_param_keys]))
+        else:
+            new_accumulation_sym = None
+            params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * gradients[key] for key in update_param_keys]))
         # for key in update_param_keys:
         #     old_params_dict[key] = params_dict[key]
         for k in no_update_param_keys:
             params_dict[k] = old_params_dict[k]
-        return self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict)
+        return (self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict), new_accumulation_sym)
 
-    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=5):  # path_lengths_vars was before all_params
+    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=3):  # path_lengths_vars was before all_params
         # assert baseline_pred_loss is None, "don't give me baseline pred loss"
         updated_params = all_params
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
         returns_vars_ = tf.reshape(returns_vars, [-1,1])
+        accumulation_sym = self.accumulation
         for _ in range(repeat):
-            # print("debug12,", predicted_returns_sym['mean'])
-            # print("debug12,", returns_vars)
-            # predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
-            # predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
             baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
-            predicted_returns_sym, _ = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params)
+            (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
 
         organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])
         organized_pred_returns = tf.reshape(predicted_returns_sym['mean'], [-1,self.max_path_length])

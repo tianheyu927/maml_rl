@@ -16,8 +16,8 @@ OUTPUT_NONLINEARITY = {
 }
 
 TESTING_ITRS = [0,1,3,5,7,9,11,13,15,17,19] + [8*x-1 for x in range(1000)]
-BASELINE_TRAINING_ITRS = [0,]
-# BASELINE_TRAINING_ITRS = []
+# BASELINE_TRAINING_ITRS = [0,]
+BASELINE_TRAINING_ITRS = []
 assert set(BASELINE_TRAINING_ITRS).issubset(set(TESTING_ITRS))
 
 PLOT_ITRS = [0,2,4,6,8,10] + [100*x for x in range(80)] + [1,3,5,7,9,11,13,] + [8*x-1 for x in range(500)]
