@@ -70,7 +70,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                                                        [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if True else [[-15000.],[-19000.],[-20000.]]))
                                                                                          for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key])) for key in self.all_params.keys()]))
-        self.momentum = 0.8
+        self.momentum = 0.75
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
@@ -172,13 +172,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
     @overrides
-    def fit(self, paths, log=True, repeat=30):  # TODO REVERT repeat=10000
+    def fit(self, paths, log=True, repeat=10):  # TODO REVERT repeat=10000
         # return True
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
         if not self.initialized:
             # self.learning_rate = 0.1 * self.learning_rate
-            repeat = 1000
+            repeat = 100
         """Equivalent of compute_updated_dists"""
         update_param_keys = self.all_params.keys()
         no_update_param_keys = []
@@ -187,7 +187,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if 'init_params_tensor' not in dir(self):
             self.init_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] for key in update_param_keys]))
         self.init_param_vals = sess.run(self.init_params_tensor)
-
+        self.init_accumulation_vals = sess.run(self.accumulation)
         #obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
         #obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
@@ -235,6 +235,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if not self.initialized:
             self.init_param_vals = sess.run(self.init_params_tensor)
             self.initialized=True
+
+        self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
+        # print("debug101", sess.run(self.accumulation))
 
     def get_variable_values(self, tensor_dict):
         sess = tf.get_default_session()
@@ -470,11 +473,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             params_dict[k] = old_params_dict[k]
         return (self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict), new_accumulation_sym)
 
-    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=3):  # path_lengths_vars was before all_params
+    def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=10):  # path_lengths_vars was before all_params
         # assert baseline_pred_loss is None, "don't give me baseline pred loss"
         updated_params = all_params
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
         returns_vars_ = tf.reshape(returns_vars, [-1,1])
+        # accumulation_sym = {key:tf.Variable(self.accumulation[key]) for key in self.accumulation.keys()}
         accumulation_sym = self.accumulation
         for _ in range(repeat):
             baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])

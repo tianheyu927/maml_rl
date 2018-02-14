@@ -64,7 +64,7 @@ class BaseSampler(Sampler):
                 self.algo.baseline.fit_with_samples(paths, samples_data)  # TODO: doesn't seem like this is ever used
             else:
                 print("debug21 baseline before fitting",self.algo.baseline.predict(paths[0])[0:2], "...",self.algo.baseline.predict(paths[0])[-3:-1])
-                print("debug21 returns  before fitting",paths[0]['returns'][0:2], "...",paths[0]['returns'][-3:-1])
+                print("debug21 returns                ",paths[0]['returns'][0:2], "...",paths[0]['returns'][-3:-1])
                 print("debug21 predloss before fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
 
                 self.algo.baseline.fit(paths, log=log)
@@ -74,7 +74,7 @@ class BaseSampler(Sampler):
                 logger.log("fitted")
 
             if 'switch_to_init_dist' in dir(self.algo.baseline):
-                print("debug77, switching to init")
+                # print("debug77, switching to init")
                 self.algo.baseline.switch_to_init_dist()
 
             if train_baseline:
