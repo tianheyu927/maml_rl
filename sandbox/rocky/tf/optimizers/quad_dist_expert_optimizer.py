@@ -82,7 +82,7 @@ class QuadDistExpertOptimizer(Serializable):
         # gradients = self._adam.compute_gradients(loss=self._loss, var_list=[self._target.all_params[key] for key in self._target.all_params.keys()])
         self._gradients = self._adam.compute_gradients(loss=self._loss)
         # self._dummy_gradients=tf.gradients(ys=self._loss,xs=[self._target.all_params[key] for key in self._target.all_params.keys()])
-        if self._correction_term is None:
+        if True: #self._correction_term is None:
             self._train_step = self._adam.apply_gradients(self._gradients)
         else:
             print("debug1", self._gradients)
@@ -148,7 +148,7 @@ class QuadDistExpertOptimizer(Serializable):
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
-            if _ in [0,1,100]:
+            if True: #_ in [0,1,100]:
                 print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
 
                 print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
