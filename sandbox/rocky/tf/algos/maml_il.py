@@ -181,7 +181,7 @@ class MAMLIL(BatchMAMLPolopt):
                 old_logli_sym[-1].append(logli_i)
                 old_lr[-1].append(lr_per_step)
                 old_adv[-1].append(adv)
-                # lr_per_step = self.ism(lr_per_step)
+                lr_per_step = self.ism(lr_per_step)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
