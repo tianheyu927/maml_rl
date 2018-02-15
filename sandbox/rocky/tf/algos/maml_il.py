@@ -168,16 +168,16 @@ class MAMLIL(BatchMAMLPolopt):
                     kls.append(kl)
                 new_params.append(params)
                 logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i)
-                lr = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
+                lr_per_step = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
                 old_logli_sym[-1].append(logli_i)
-                old_lr[-1].append(lr)
+                old_lr[-1].append(lr_per_step)
                 old_adv[-1].append(adv)
-                # lr = self.ism(lr)
+                # lr_per_step = self.ism(lr_per_step)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr), adv)))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
                 if self.metalearn_baseline:
-                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr), adv_sym)))
+                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
             inner_input_vars_list += obs_vars + action_vars + adv_vars
             if not self.metalearn_baseline:
                 input_vars_list += obs_vars + action_vars + adv_vars
@@ -311,7 +311,7 @@ class MAMLIL(BatchMAMLPolopt):
         #     constraint_name="mean_kl",
         #     correction_term=corr_term
         # )
-        #
+
 
         return dict()
 
