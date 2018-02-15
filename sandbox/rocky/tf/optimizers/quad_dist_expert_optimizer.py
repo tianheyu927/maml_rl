@@ -144,7 +144,7 @@ class QuadDistExpertOptimizer(Serializable):
     def optimize(self, input_vals_list,):
         sess = tf.get_default_session()
         feed_dict = dict(list(zip(self._inputs, input_vals_list)))
-        print("debug01", sess.run(self._gradients, feed_dict=feed_dict))
+        # print("debug01", sess.run(self._gradients, feed_dict=feed_dict))
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
