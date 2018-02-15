@@ -6,6 +6,7 @@ from rllab.core.serializable import Serializable
 from rllab.misc import ext
 from rllab.misc import logger
 from sandbox.rocky.tf.misc import tensor_utils
+from collections import OrderedDict
 
 
 
@@ -78,14 +79,19 @@ class QuadDistExpertOptimizer(Serializable):
         else:
             self._correction_term = None
 
-        gradients = self._adam.compute_gradients(loss=self._loss, var_list=[self._target.all_params[key] for key in self._target.all_params.keys()])
-        self._train_step = self._adam.apply_gradients(gradients)
-
-        if self._correction_term is not None:
-            new_gradients = []
-            for ((grad, var), corr) in zip(gradients, self._correction_term):
-                new_gradients.append((grad + corr, var))
-            self._train_step = self._adam.apply_gradients(new_gradients)
+        # gradients = self._adam.compute_gradients(loss=self._loss, var_list=[self._target.all_params[key] for key in self._target.all_params.keys()])
+        self._gradients = self._adam.compute_gradients(loss=self._loss)
+        # self._dummy_gradients=tf.gradients(ys=self._loss,xs=[self._target.all_params[key] for key in self._target.all_params.keys()])
+        if self._correction_term is None:
+            self._train_step = self._adam.apply_gradients(self._gradients)
+        else:
+            print("debug1", self._gradients)
+            print("debug2", self._correction_term)
+            self.new_gradients = []
+            for ((grad, var), corr) in zip(self._gradients, self._correction_term):
+                self.new_gradients.append((grad + corr, var))
+            print("debug3", self.new_gradients)
+            self._train_step = self._adam.apply_gradients(self.new_gradients)
 
         # initialize Adam variables
         uninit_vars = []
@@ -137,7 +143,56 @@ class QuadDistExpertOptimizer(Serializable):
 
     def optimize(self, input_vals_list,):
         sess = tf.get_default_session()
+        feed_dict = dict(list(zip(self._inputs, input_vals_list)))
+        print("debug01", sess.run(self._gradients, feed_dict=feed_dict))
+        numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
+        print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
-            sess.run(self._train_step, feed_dict=dict(list(zip(self._inputs, input_vals_list))))
+            if _ in [0,1,100]:
+                print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
+
+                # print("debug01", sess.run(self._gradients, feed_dict=feed_dict))
+                # print("debug01.1", sess.run(self._dummy_gradients, feed_dict=feed_dict))
+                # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict))
+                # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
+            sess.run(self._train_step, feed_dict=feed_dict)
 
 
+def compute_numeric_grad(loss, params, feed_dict, epsilon=1e-4):
+    sess = tf.get_default_session()
+    loss_theta = sess.run(loss, feed_dict=feed_dict)
+    output = OrderedDict({})
+    for key in params.keys():
+        shape = sess.run(tf.shape(params[key]))
+        output[key] = np.zeros(shape=shape,dtype=np.float32)
+        assert len(shape) < 3, "not supported"
+        if len(shape) == 1:
+            for i in range(len(shape)):
+                sess.run(tf.assign(params[key][i], params[key][i]+epsilon))
+                loss_thetaeps = sess.run(loss, feed_dict=feed_dict)
+                output[key][i] = (loss_thetaeps-loss_theta)/epsilon
+                sess.run(tf.assign(params[key][i], params[key][i]-epsilon))
+        if len(shape) == 2:
+            a,b = shape
+            # print("debug05",sess.run(params[key]))
+            for i in range(a*b):
+                j = i % a
+                k = int((i-j)/a)
+                sess.run(tf.assign(params[key], params[key]+eps_j_k(epsilon,a,b,j,k)))
+                loss_thetaeps = sess.run(loss, feed_dict=feed_dict)
+                output[key][j][k] = (loss_thetaeps-loss_theta)/epsilon
+                if key == "W0" and j ==0 and k == 0:
+                    print("debug1", key, j, k, output[key][j][k])
+                    print(loss_theta,loss_thetaeps)
+                sess.run(tf.assign(params[key], params[key]-eps_j_k(epsilon,a,b,j,k)))
+    return output
+
+def eps_j_k(epsilon,a,b,j,k):
+    out = np.zeros(shape=(a,b),dtype=np.float32)
+    out[j][k]=epsilon
+    return out
+
+def eps_i(epsilon,a,i):
+    out = np.zeros(shape=(a,),dtype=np.float32)
+    out[i] = epsilon
+    return out

@@ -70,7 +70,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                                                        [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if True else [[-15000.],[-19000.],[-20000.]]))
                                                                                          for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key])) for key in self.all_params.keys()]))
-        self.momentum = 0.8
+        self.momentum = 0.8  # 0.6 - 0.975
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
