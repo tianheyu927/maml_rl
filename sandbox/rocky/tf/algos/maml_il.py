@@ -271,12 +271,12 @@ class MAMLIL(BatchMAMLPolopt):
             print("debug, constructing corr term for task", i)
             # term0 = unpack_adam_grads(self.optimizer._adam.compute_gradients(loss=old_outer_surr_objs[i],var_list=[updated_params[i][key] for key in updated_params[i].keys()]))
             term0 = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in updated_params[i].keys()])
-            paths_range = range(int(self.batch_size / self.max_path_length / self.meta_batch_size/20))
+            paths_range = range(int(self.batch_size / self.max_path_length / self.meta_batch_size))
             # print("debug, paths_range\n", paths_range)
-            temp1 = tf.reduce_sum(tf.reshape(old_logli_sym[0][i], [ -1,20*self.max_path_length]), 1)
+            temp1 = tf.reduce_sum(tf.reshape(old_logli_sym[0][i], [ -1,self.max_path_length]), 1)
             # term1 = [unpack_adam_grads(self.optimizer._adam.compute_gradients(temp1[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()])) for p in paths_range]
             term1 = [tf.gradients(temp1[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
-            temp2 = tf.reduce_mean(tf.reshape(old_logli_sym[0][i] * old_adv[0][i], [-1,20*self.max_path_length]), 1)
+            temp2 = tf.reduce_mean(tf.reshape(old_logli_sym[0][i] * old_adv[0][i], [-1,self.max_path_length]), 1)
             term2 = [tf.gradients(temp2[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
 
             corr_term_i_v2_per_path_list = [
