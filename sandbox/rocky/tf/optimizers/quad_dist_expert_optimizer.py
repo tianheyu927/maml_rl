@@ -29,6 +29,7 @@ class QuadDistExpertOptimizer(Serializable):
             max_penalty_itr=10,
             adapt_penalty=True,
             adam_steps=5,
+            use_momentum_optimizer=False,
     ):
         Serializable.quick_init(self, locals())
         self._name = name
@@ -48,6 +49,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._constraint_name = None
         self._adam_steps = adam_steps
         self._correction_term = 0
+        self._use_momentum_optimizer=use_momentum_optimizer
 
 
     def update_opt(self, loss, target, leq_constraint, inputs, constraint_name="constraint", *args, **kwargs):
@@ -70,7 +72,10 @@ class QuadDistExpertOptimizer(Serializable):
 
         self._inputs = inputs
         self._loss = loss
-        self._adam = tf.train.AdamOptimizer()
+        if self._use_momentum_optimizer:
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.5)
+        else:
+            self._adam = tf.train.AdamOptimizer()
         # self._adam = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.5)
         # self._train_step = self._adam.minimize(self._loss)
 
@@ -150,10 +155,11 @@ class QuadDistExpertOptimizer(Serializable):
         for _ in range(self._adam_steps):
             if _ in [0,24,49,74,99,124]:
                 print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
+                print("debug05 loss",sess.run(self._loss, feed_dict=feed_dict))
 
-                print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
+                # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
                 # print("debug01.1", sess.run(self._dummy_gradients, feed_dict=feed_dict))
-                print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
+                # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
 

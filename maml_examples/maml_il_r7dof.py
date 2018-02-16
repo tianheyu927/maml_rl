@@ -33,8 +33,8 @@ beta_adam_steps_list = [(1,125),]
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
@@ -53,7 +53,7 @@ bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-# basas = 200 # baseline adam steps
+basas = 20 # baseline adam steps
 
 
 
@@ -126,9 +126,32 @@ for baslayers in baslayers_list:
                                                                                        # # tf_optimizer_cls=tf.train.AdamOptimizer,
                                                                                        # max_epochs=200,
                                                                                        # batch_size=None,
-                                                                                        adam_steps=basas
+                                                                                        adam_steps=basas,
+                                                                                        use_momentum_optimizer=True,
                                                                                        ))
                                                                                    )
+                                                # baseline = GaussianMLPBaseline(env_spec=env.spec,
+                                                #                                    regressor_args=dict(
+                                                #                                    hidden_sizes=baslayers,
+                                                #                                    hidden_nonlinearity=bas_hnl,
+                                                #                                    learn_std=False,
+                                                #                                    # use_trust_region=False,
+                                                #                                    # normalize_inputs=False,
+                                                #                                    # normalize_outputs=False,
+                                                #                                    # optimizer=QuadDistExpertOptimizer(
+                                                #                                    #      name="bas_optimizer",
+                                                #                                    #     #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
+                                                #                                    #     #  tf_optimizer_args=dict(
+                                                #                                    #     #      learning_rate=bas_lr,
+                                                #                                    #     #  ),
+                                                #                                    #     # # tf_optimizer_cls=tf.train.AdamOptimizer,
+                                                #                                    #     # max_epochs=200,
+                                                #                                    #     # batch_size=None,
+                                                #                                    #      adam_steps=basas,
+                                                #                                    #     # use_momentum_optimizer=True,
+                                                #                                    #     )
+                                                #                                    )
+                                                #                                    )
                                             algo = MAMLIL(
                                                 env=env,
                                                 policy=policy,
@@ -137,7 +160,7 @@ for baslayers in baslayers_list:
                                                 max_path_length=max_path_length,
                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                n_itr=100, #100
+                                                n_itr=30, #100
                                                 make_video=True,
                                                 use_maml=use_maml,
                                                 use_pooled_goals=True,
@@ -187,7 +210,7 @@ for baslayers in baslayers_list:
                                                         +("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
                                                          +"_" + str(baslayers) #size
                                                         +"_baslr" + str(bas_lr)
-                                                        # +"_basas" + str(basas) #baseline adam steps
+                                                        +"_basas" + str(basas) #baseline adam steps
                                                          + "_" + time.strftime("%D_%H_%M").replace("/", "."),
                                                 plot=False,
                                                 sync_s3_pkl=True,
