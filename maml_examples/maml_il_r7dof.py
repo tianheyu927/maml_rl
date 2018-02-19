@@ -53,7 +53,7 @@ bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 200 # baseline adam steps
+basas = 2000 # baseline adam steps
 
 
 
@@ -127,7 +127,7 @@ for baslayers in baslayers_list:
                                                                                        # max_epochs=200,
                                                                                        # batch_size=None,
                                                                                         adam_steps=basas,
-                                                                                        use_momentum_optimizer=True,
+                                                                                        # use_momentum_optimizer=True,
                                                                                        ))
                                                                                    )
                                                 # baseline = GaussianMLPBaseline(env_spec=env.spec,

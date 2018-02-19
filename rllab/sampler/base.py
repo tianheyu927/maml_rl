@@ -65,13 +65,13 @@ class BaseSampler(Sampler):
             else:
                 print("debug21 baseline before fitting",self.algo.baseline.predict(paths[0])[0:2], "...",self.algo.baseline.predict(paths[0])[-3:-1])
                 # print("debug21 baseline before fitting",self.algo.baseline.predict(paths[0]))
-                print("debug21 returns                ",paths[0]['returns'][0:2], "...",paths[0]['returns'][-3:-1])
-                print("debug21 predloss before fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
+                print("debug22 returns                ",paths[0]['returns'][0:2], "...",paths[0]['returns'][-3:-1])
+                print("debug23 predloss before fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
 
                 self.algo.baseline.fit(paths, log=log)
-                print("debug21.1 baseline after fitting",self.algo.baseline.predict(paths[0])[0:2], "...", self.algo.baseline.predict(paths[0])[-3:-1])
+                print("debug24 baseline after fitting",self.algo.baseline.predict(paths[0])[0:2], "...", self.algo.baseline.predict(paths[0])[-3:-1])
                 # print("debug21.1 baseline after fitting",self.algo.baseline.predict(paths[0]))
-                print("debug21 predloss after fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
+                print("debug25 predloss AFTER fitting",np.mean([np.mean(np.square(p['returns']-self.algo.baseline.predict(p))) for p in paths]))
             if log:
                 logger.log("fitted")
 
