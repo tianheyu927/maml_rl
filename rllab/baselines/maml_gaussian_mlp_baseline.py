@@ -196,7 +196,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al3 = al**3
         # al0 = al**0
         # print("debug43", np.shape(obs))
-        returns = np.concatenate([p["returns"] for p in paths])
+        returns = np.concatenate([p["returns"] for p in paths])  #TODO: do we need to reshape the returns here?
         # print("debug11", np.shape(obs))
         inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
         # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]

@@ -23,7 +23,7 @@ class GaussianMLPBaseline(Baseline, Parameterized, Serializable):
             regressor_args = dict()
 
         self._regressor = GaussianMLPRegressor(
-            input_shape=(env_spec.observation_space.flat_dim * num_seq_inputs,),
+            input_shape=((2 *env_spec.observation_space.flat_dim + 3) * num_seq_inputs,),
             output_dim=1,
             name="vf",
             **regressor_args
@@ -31,13 +31,31 @@ class GaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
     @overrides
     def fit(self, paths, log=True):
-        observations = np.concatenate([p["observations"] for p in paths])
+        # observations = np.concatenate([p["observations"] for p in paths])
+        # returns = np.concatenate([p["returns"] for p in paths])
+        # self._regressor.fit(observations, returns.reshape((-1, 1)), log=log)
+
+        obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
+        obs2 = np.square(obs)
+        al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
+        al2 =al**2
+        al3 = al**3
         returns = np.concatenate([p["returns"] for p in paths])
-        self._regressor.fit(observations, returns.reshape((-1, 1)), log=log)
+        enh_obs = np.concatenate([obs,obs2,al,al2,al3],axis=1)
+        self._regressor.fit(enh_obs, returns.reshape(-1,1), log=log)
+
+
+        # print("debug11", np.shape(obs))
 
     @overrides
     def predict(self, path):
-        return self._regressor.predict(path["observations"]).flatten()
+        obs = np.clip(path["observations"],-10,10)
+        obs2 = np.square(obs)
+        al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
+        al2 =al**2
+        al3 = al**3
+        enh_obs = np.concatenate([obs,obs2,al,al2,al3],axis=1)
+        return self._regressor.predict(enh_obs).flatten()
 
     @overrides
     def get_param_values(self, **tags):
