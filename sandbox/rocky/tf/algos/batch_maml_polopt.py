@@ -408,7 +408,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                             all_samples_data_for_betastep.append(samples_data)
                             # for logging purposes only
-                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=fast_process, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
+                            self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=True, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
                             logger.log("Logging diagnostics...")
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 

@@ -73,7 +73,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._inputs = inputs
         self._loss = loss
         if self._use_momentum_optimizer:
-            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.5)
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.0001,momentum=0.33)
         else:
             self._adam = tf.train.AdamOptimizer()
         # self._adam = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.5)
