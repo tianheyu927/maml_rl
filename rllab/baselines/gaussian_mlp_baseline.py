@@ -6,7 +6,7 @@ from rllab.baselines.base import Baseline
 from rllab.misc.overrides import overrides
 # from rllab.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
 from sandbox.rocky.tf.regressors.gaussian_mlp_regressor import GaussianMLPRegressor
-
+import tensorflow as tf
 
 class GaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
@@ -42,6 +42,7 @@ class GaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al3 = al**3
         returns = np.concatenate([p["returns"] for p in paths])
         enh_obs = np.concatenate([obs,obs2,al,al2,al3],axis=1)
+        self._regressor._optimizer.reset_optimizer()
         self._regressor.fit(enh_obs, returns.reshape(-1,1), log=log)
 
 

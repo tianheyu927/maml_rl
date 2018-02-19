@@ -72,10 +72,14 @@ class QuadDistExpertOptimizer(Serializable):
 
         self._inputs = inputs
         self._loss = loss
+        assert len([var for var in tf.global_variables() if self._name in var.name]) == 0, "please choose a different name for your optimizer"
+
         if self._use_momentum_optimizer:
-            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.75)
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.25, name=self._name)
         else:
-            self._adam = tf.train.AdamOptimizer()
+            self._adam = tf.train.AdamOptimizer(name=self._name)
+        self._optimizer_vars_initializers = [var.initializer for var in tf.global_variables() if self._name in var.name]
+
         # self._adam = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.5)
         # self._train_step = self._adam.minimize(self._loss)
 
@@ -164,6 +168,10 @@ class QuadDistExpertOptimizer(Serializable):
             sess.run(self._train_step, feed_dict=feed_dict)
 
 
+    def reset_optimizer(self):
+        sess=tf.get_default_session()
+        sess.run(self._optimizer_vars_initializers)
+
 def compute_numeric_grad(loss, params, feed_dict, epsilon=1e-4):
     sess = tf.get_default_session()
     loss_theta = sess.run(loss, feed_dict=feed_dict)
@@ -192,6 +200,7 @@ def compute_numeric_grad(loss, params, feed_dict, epsilon=1e-4):
                     print(loss_theta,loss_thetaeps)
                 sess.run(tf.assign(params[key], params[key]-eps_j_k(epsilon,a,b,j,k)))
     return output
+
 
 def eps_j_k(epsilon,a,b,j,k):
     out = np.zeros(shape=(a,b),dtype=np.float32)
