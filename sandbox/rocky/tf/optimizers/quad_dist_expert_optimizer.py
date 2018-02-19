@@ -153,9 +153,9 @@ class QuadDistExpertOptimizer(Serializable):
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
-            if _ in [0,24,49,74,99,124]:
-                print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
-                print("debug05 loss",sess.run(self._loss, feed_dict=feed_dict))
+            # if _ in [0,24,49,74,99,124]:
+                # print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
+                # print("debug05 loss",sess.run(self._loss, feed_dict=feed_dict))
 
                 # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
                 # print("debug01.1", sess.run(self._dummy_gradients, feed_dict=feed_dict))
