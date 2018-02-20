@@ -75,7 +75,7 @@ class QuadDistExpertOptimizer(Serializable):
         assert len([var for var in tf.global_variables() if self._name in var.name]) == 0, "please choose a different name for your optimizer"
 
         if self._use_momentum_optimizer:
-            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.85, name=self._name)
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001,momentum=0.75, name=self._name)
         else:
             self._adam = tf.train.AdamOptimizer(name=self._name)
         self._optimizer_vars_initializers = [var.initializer for var in tf.global_variables() if self._name in var.name]
