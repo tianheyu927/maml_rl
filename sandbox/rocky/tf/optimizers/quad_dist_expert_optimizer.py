@@ -98,7 +98,7 @@ class QuadDistExpertOptimizer(Serializable):
             print("debug2", self._correction_term)
             self.new_gradients = []
             for ((grad, var), corr) in zip(self._gradients, self._correction_term):
-                self.new_gradients.append((grad + 0.0005 *corr, var))
+                self.new_gradients.append((grad + corr, var))
             print("debug3", self.new_gradients)
             self._train_step = self._adam.apply_gradients(self.new_gradients)
 
