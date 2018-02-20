@@ -245,82 +245,82 @@ class MAMLIL(BatchMAMLPolopt):
             # correction_term=corr_term
         )
 
-        # # CORRECTION TERM
-        # for i in range(self.meta_batch_size):
-        #     # dist_info_sym_i, updated_params_i = self.policy.updated_dist_info_sym(task_id=i,
-        #     #                                                                       surr_obj=all_surr_objs[-1][i],
-        #     #                                                                       new_obs_var=obs_vars[i],
-        #     #                                                                       params_dict=new_params[i])
-        #     # if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
-        #         # kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
-        #         # kls.append(kl)  # we either get kl from here or from kl_constrain_step =0
-        #
-        #     # here we define the loss for meta-gradient
-        #     def grads_dotprod(A, B):
-        #         return tf.reduce_sum([tf.reduce_sum(a * b) for a, b in zip(A, B)])
-        #
-        #     def mult_grad_by_number(num, grad_list):
-        #         return [num * grad for grad in grad_list]
-        #
-        #     def unpack_adam_grads(grad_list):
-        #         output = []
-        #         for grad, var in grad_list:
-        #             output.append(grad)
-        #         return output
-        #
-        #     print("debug, constructing corr term for task", i)
-        #     # term0 = unpack_adam_grads(self.optimizer._adam.compute_gradients(loss=old_outer_surr_objs[i],var_list=[updated_params[i][key] for key in updated_params[i].keys()]))
-        #     term0 = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in updated_params[i].keys()])
-        #     paths_range = range(int(self.batch_size / self.max_path_length / self.meta_batch_size))
-        #     # print("debug, paths_range\n", paths_range)
-        #     temp1 = tf.reduce_sum(tf.reshape(old_logli_sym[0][i], [ -1,self.max_path_length]), 1)
-        #     # term1 = [unpack_adam_grads(self.optimizer._adam.compute_gradients(temp1[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()])) for p in paths_range]
-        #     term1 = [tf.gradients(temp1[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
-        #     temp2 = tf.reduce_mean(tf.reshape(old_logli_sym[0][i] * old_adv[0][i], [-1,self.max_path_length]), 1)
-        #     term2 = [tf.gradients(temp2[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
-        #
-        #     corr_term_i_v2_per_path_list = [
-        #         mult_grad_by_number(self.policy.step_size * grads_dotprod(term0, term1[p]), term2[p]) for p in
-        #         paths_range]
-        #     corr_term_i_v2 = [tf.reduce_mean([c[y] for c in corr_term_i_v2_per_path_list], 0) for y in
-        #                       range(len(corr_term_i_v2_per_path_list[0]))]
-        #     corr_terms.append(corr_term_i_v2)
-        #
-        #     print("debug, done constructing corr term for task", i)
-        #
-        #     """
-        #     # a bunch of unused lines that might come in handy
-        #     # outer_surr_obj = tf.nn.l2_loss(m-e+0.0*s)
-        #
-        #     # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
-        #     # term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
-        #     # term0 = tf.gradients(tf.nn.l2_loss(m-e+0.0*s), [updated_params_i[key] for key in updated_params_i.keys()])
-        #     # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-        #     # temp1_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
-        #     # temp2_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
-        #     # flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
-        #     # temp1_1 = [tf.gradients(temp1[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
-        #     # temp2_1 = [tf.gradients(temp2[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
-        #     # temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
-        #     # term1 = tf.gradients(0.5*tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-        #     # term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
-        #     # term2 = tf.reduce_sum((m-a_star)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
-        #     # term01 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
-        #     # corr_term_i = [self.policy.step_size*term01*t for t in term2]
-        #     """
-        #
-        # print("debug07", len(corr_terms[0]))
-        # corr_term = [tf.reduce_mean([c[y] for c in corr_terms], 0) for y in range(len(corr_terms[0]))]
-        #
-        # self.optimizer.update_opt(
-        #     loss=outer_surr_obj,
-        #     # target=None,
-        #     target=self.policy,
-        #     leq_constraint=(mean_kl, self.step_size),
-        #     inputs=input_vars_list,
-        #     constraint_name="mean_kl",
-        #     correction_term=corr_term
-        # )
+        # CORRECTION TERM
+        for i in range(self.meta_batch_size):
+            # dist_info_sym_i, updated_params_i = self.policy.updated_dist_info_sym(task_id=i,
+            #                                                                       surr_obj=all_surr_objs[-1][i],
+            #                                                                       new_obs_var=obs_vars[i],
+            #                                                                       params_dict=new_params[i])
+            # if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
+                # kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
+                # kls.append(kl)  # we either get kl from here or from kl_constrain_step =0
+
+            # here we define the loss for meta-gradient
+            def grads_dotprod(A, B):
+                return tf.reduce_sum([tf.reduce_sum(a * b) for a, b in zip(A, B)])
+
+            def mult_grad_by_number(num, grad_list):
+                return [num * grad for grad in grad_list]
+
+            def unpack_adam_grads(grad_list):
+                output = []
+                for grad, var in grad_list:
+                    output.append(grad)
+                return output
+
+            print("debug, constructing corr term for task", i)
+            # term0 = unpack_adam_grads(self.optimizer._adam.compute_gradients(loss=old_outer_surr_objs[i],var_list=[updated_params[i][key] for key in updated_params[i].keys()]))
+            term0 = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in updated_params[i].keys()])
+            paths_range = range(int(self.batch_size / self.max_path_length / self.meta_batch_size))
+            # print("debug, paths_range\n", paths_range)
+            temp1 = tf.reduce_sum(tf.reshape(old_logli_sym[0][i], [ -1,self.max_path_length]), 1)
+            # term1 = [unpack_adam_grads(self.optimizer._adam.compute_gradients(temp1[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()])) for p in paths_range]
+            term1 = [tf.gradients(temp1[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
+            temp2 = tf.reduce_mean(tf.reshape(old_logli_sym[0][i] * old_adv[0][i], [-1,self.max_path_length]), 1)
+            term2 = [tf.gradients(temp2[p], [self.policy.all_params[key] for key in self.policy.all_params.keys()]) for p in paths_range]
+
+            corr_term_i_v2_per_path_list = [
+                mult_grad_by_number(self.policy.step_size * grads_dotprod(term0, term1[p]), term2[p]) for p in
+                paths_range]
+            corr_term_i_v2 = [tf.reduce_mean([c[y] for c in corr_term_i_v2_per_path_list], 0) for y in
+                              range(len(corr_term_i_v2_per_path_list[0]))]
+            corr_terms.append(corr_term_i_v2)
+
+            print("debug, done constructing corr term for task", i)
+
+            """
+            # a bunch of unused lines that might come in handy
+            # outer_surr_obj = tf.nn.l2_loss(m-e+0.0*s)
+
+            # term0 = [tf.gradients(dist_info_vars_i["mean"][:,d], [new_params[i][key] for key in new_params[i].keys()]) for d in range(self.policy.action_dim)] # probably want to break this up into 7 gradients
+            # term0 = tf.gradients(tf.nn.l2_loss(m-e), [new_params[i][key] for key in new_params[i].keys()])
+            # term0 = tf.gradients(tf.nn.l2_loss(m-e+0.0*s), [updated_params_i[key] for key in updated_params_i.keys()])
+            # grad_wrt_theta = lambda x: tf.gradients(x, [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # temp1_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
+            # temp2_1 = tf.map_fn(grad_wrt_theta, temp1)  # 20 x (17,100; 100; etc)
+            # flat_params =tf.concat([tf.reshape(self.policy.all_params[key],[-1]) for key in self.policy.all_params.keys()],0)
+            # temp1_1 = [tf.gradients(temp1[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+            # temp2_1 = [tf.gradients(temp2[j],flat_params) for j in range(int(self.batch_size/self.max_path_length/self.meta_batch_size))]
+            # temp3 = tf.reduce_mean( [tf.matmul(tf.reshape(t1_1,[-1,1]),tf.reshape(t2_1,[1,-1])) for t1_1,t2_1 in zip(temp1_1,temp2_1)],0)
+            # term1 = tf.gradients(0.5*tf.reduce_mean(old_logli_sym[0][i]), [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # term2 = tf.gradients(inner_surr_objs[i], [self.policy.all_params[key] for key in self.policy.all_params.keys()])
+            # term2 = tf.reduce_sum((m-a_star)*tf.convert_to_tensor([tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0_d,term1)]) for term0_d in term0]))
+            # term01 = tf.reduce_sum([tf.reduce_sum(a*b) for a,b in zip(term0,term1)])
+            # corr_term_i = [self.policy.step_size*term01*t for t in term2]
+            """
+
+        print("debug07", len(corr_terms[0]))
+        corr_term = [tf.reduce_mean([c[y] for c in corr_terms], 0) for y in range(len(corr_terms[0]))]
+
+        self.optimizer.update_opt(
+            loss=outer_surr_obj,
+            # target=None,
+            target=self.policy,
+            leq_constraint=(mean_kl, self.step_size),
+            inputs=input_vars_list,
+            constraint_name="mean_kl",
+            correction_term=corr_term
+        )
 
 
         return dict()
