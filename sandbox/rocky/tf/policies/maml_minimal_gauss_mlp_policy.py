@@ -16,6 +16,7 @@ from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian  #
 from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.policies.base import StochasticPolicy
 from sandbox.rocky.tf.spaces.box import Box
+from tensorflow.python.framework import dtypes
 
 load_params = True
 
@@ -134,7 +135,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
             self.min_std_param = min_std_param  # TODO: change these to min_std_param_raw
             self.max_std_param = max_std_param
-            self.std_modifier = std_modifier
+            self.std_modifier = np.float64(std_modifier)
             #print("initializing max_std debug4", self.min_std_param, self.max_std_param)
 
 
@@ -272,7 +273,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             self.assign_placeholders = {}
             self.assign_ops = {}
             for key in tensor_dict.keys():
-                self.assign_placeholders[key] = tf.placeholder(tf.float32)
+                self.assign_placeholders[key] = tf.placeholder(tf.float64)
                 self.assign_ops[key] = tf.assign(tensor_dict[key], self.assign_placeholders[key])
 
         feed_dict = {self.assign_placeholders[key]:param_values[key] for key in tensor_dict.keys()}
@@ -399,8 +400,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
     # This makes all of the parameters.
     def create_MLP(self, name, output_dim, hidden_sizes,
-                   hidden_W_init=tf_layers.xavier_initializer(), hidden_b_init=tf.zeros_initializer(),
-                   output_W_init=tf_layers.xavier_initializer(), output_b_init=tf.zeros_initializer(),
+                   hidden_W_init=tf_layers.xavier_initializer(dtype=dtypes.float64), hidden_b_init=tf.zeros_initializer(dtype=dtypes.float64),
+                   output_W_init=tf_layers.xavier_initializer(dtype=dtypes.float64), output_b_init=tf.zeros_initializer(dtype=dtypes.float64),
                    weight_normalization=False,
                    ):
         all_params = OrderedDict()

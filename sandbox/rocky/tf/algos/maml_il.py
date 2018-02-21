@@ -54,20 +54,20 @@ class MAMLIL(BatchMAMLPolopt):
             ))
             adv_vars.append(tensor_utils.new_tensor(
                     'advantage' + stepnum + '_' + str(i),
-                    ndim=1, dtype=tf.float32,
+                    ndim=1, dtype=tf.float64,
                 ))
             if self.metalearn_baseline:
                 rewards_vars.append(tensor_utils.new_tensor(
                     'rewards' + stepnum + '_' + str(i),
-                    ndim=1, dtype=tf.float32,
+                    ndim=1, dtype=tf.float64,
                 ))
                 returns_vars.append(tensor_utils.new_tensor(
                     'returns' + stepnum + '_' + str(i),
-                    ndim=1, dtype=tf.float32,
+                    ndim=1, dtype=tf.float64,
                 ))
                 # path_lengths_vars.append(tensor_utils.new_tensor(
                 #     'path_lengths' + stepnum + '_' + str(i),
-                #     ndim=1, dtype=tf.float32,
+                #     ndim=1, dtype=tf.float64,
                 # ))
             expert_action_vars.append(self.env.action_space.new_tensor_variable(
                 name='expert_actions' + stepnum + '_' + str(i),
@@ -89,7 +89,7 @@ class MAMLIL(BatchMAMLPolopt):
         old_dist_info_vars, old_dist_info_vars_list = [], []
         for i in range(self.meta_batch_size):
             old_dist_info_vars.append({
-                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='old_%s_%s' % (i, k))
+                k: tf.placeholder(tf.float64, shape=[None] + list(shape), name='old_%s_%s' % (i, k))
                 for k, shape in dist.dist_info_specs
                 })
             old_dist_info_vars_list += [old_dist_info_vars[i][k] for k in dist.dist_info_keys]
@@ -97,7 +97,7 @@ class MAMLIL(BatchMAMLPolopt):
         theta0_dist_info_vars, theta0_dist_info_vars_list = [], []
         for i in range(self.meta_batch_size):
             theta0_dist_info_vars.append({
-                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta0_%s_%s' % (i, k))
+                k: tf.placeholder(tf.float64, shape=[None] + list(shape), name='theta0_%s_%s' % (i, k))
                 for k, shape in dist.dist_info_specs
                 })
             theta0_dist_info_vars_list += [theta0_dist_info_vars[i][k] for k in dist.dist_info_keys]
@@ -105,7 +105,7 @@ class MAMLIL(BatchMAMLPolopt):
         theta_l_dist_info_vars, theta_l_dist_info_vars_list = [], []  #theta_l is the current beta step's pre-inner grad update params
         for i in range(self.meta_batch_size):
             theta_l_dist_info_vars.append({
-                k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta_l_%s_%s' % (i, k))
+                k: tf.placeholder(tf.float64, shape=[None] + list(shape), name='theta_l_%s_%s' % (i, k))
                 for k, shape in dist.dist_info_specs
                 })
             theta_l_dist_info_vars_list += [theta_l_dist_info_vars[i][k] for k in dist.dist_info_keys]
@@ -137,7 +137,7 @@ class MAMLIL(BatchMAMLPolopt):
 
             al_const = tf.constant(np.arange(self.max_path_length).reshape(-1, 1) / 100.0)
             al = tf.tile(al_const, tf.stack([tf.cast(tf.shape(obs_vars[0])[0] / self.max_path_length, tf.int32), 1]))
-            al = tf.cast(al, dtype=tf.float32)
+            al = tf.cast(al, dtype=tf.float64)
 
             for i in range(self.meta_batch_size):  # for training task T_i
                 adv = adv_vars[i]
@@ -224,7 +224,7 @@ class MAMLIL(BatchMAMLPolopt):
             a_star = expert_action_vars[i]
             s = dist_info_sym_i["log_std"]
             m = dist_info_sym_i["mean"]
-            outer_surr_obj = tf.reduce_mean(self.l2loss_std_multiplier*(tf.square(tf.exp(s)))+tf.square(m)-2*tf.multiply(m,a_star))
+            outer_surr_obj = tf.reduce_mean(tf.square(m)-2*tf.multiply(m,a_star)+self.l2loss_std_multiplier*(tf.square(tf.exp(s))))
             outer_surr_objs.append(outer_surr_obj)
             # old_outer_surr_objs.append(outer_surr_obj)
 
