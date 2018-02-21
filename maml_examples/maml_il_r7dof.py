@@ -72,7 +72,7 @@ for baslayers in baslayers_list:
                                         for bas in baselines:
                                             stub(globals())
 
-                                            seed = 10
+                                            seed = 1
                                             env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
 
                                             policy = MAMLGaussianMLPPolicy(
