@@ -185,8 +185,8 @@ class MAMLIL(BatchMAMLPolopt):
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
-                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
-                # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
+                # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
                 if self.metalearn_baseline:
                     inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
             inner_input_vars_list += obs_vars + action_vars + adv_vars
