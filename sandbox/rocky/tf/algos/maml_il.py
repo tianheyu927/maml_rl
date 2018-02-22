@@ -169,14 +169,14 @@ class MAMLIL(BatchMAMLPolopt):
                 new_params.append(params)
                 logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i)
                 lr_per_step = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
-                logli_old = dist.log_likelihood_sym(action_vars[i], theta0_dist_info_vars[i])
-                logli_new = dist.log_likelihood_sym(action_vars[i], theta_l_dist_info_vars[i])
-                logli_diff = logli_new-logli_old
+                # logli_old = dist.log_likelihood_sym(action_vars[i], theta0_dist_info_vars[i])
+                # logli_new = dist.log_likelihood_sym(action_vars[i], theta_l_dist_info_vars[i])
+                # logli_diff = logli_new-logli_old
                 # tf acrobatics
-                logli_diff_by_path = tf.reduce_sum(tf.reshape(logli_diff,[-1,self.max_path_length]),1)
-                logli_diff_by_path_ = tf.reshape(tf.tile(tf.reshape(logli_diff_by_path, [-1,1]), (1,self.max_path_length)),[-1])
-                lr_by_path = tf.exp(logli_diff_by_path_)
-                lr_by_path = self.ism(lr_by_path)
+                # logli_diff_by_path = tf.reduce_sum(tf.reshape(logli_diff,[-1,self.max_path_length]),1)
+                # logli_diff_by_path_ = tf.reshape(tf.tile(tf.reshape(logli_diff_by_path, [-1,1]), (1,self.max_path_length)),[-1])
+                # lr_by_path = tf.exp(logli_diff_by_path_)
+                # lr_by_path = self.ism(lr_by_path)
 
                 old_logli_sym[-1].append(logli_i)
                 old_lr[-1].append(lr_per_step)
@@ -184,7 +184,8 @@ class MAMLIL(BatchMAMLPolopt):
                 lr_per_step = self.ism(lr_per_step)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
-                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
+                # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
                 if self.metalearn_baseline:
                     inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
