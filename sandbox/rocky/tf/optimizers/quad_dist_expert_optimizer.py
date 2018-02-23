@@ -76,7 +76,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._loss = loss
 
         if self._use_momentum_optimizer:
-            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00002, momentum=0.6, name=self._name)
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001, momentum=0.5, name=self._name)
         else:
             self._adam = tf.train.AdamOptimizer(name=self._name)
         self._optimizer_vars_initializers = [var.initializer for var in tf.global_variables() if self._name in var.name]
@@ -91,7 +91,7 @@ class QuadDistExpertOptimizer(Serializable):
 
         # gradients = self._adam.compute_gradients(loss=self._loss, var_list=[self._target.all_params[key] for key in self._target.all_params.keys()])
         self._gradients = self._adam.compute_gradients(loss=self._loss)
-        if self._correction_term is None:
+        if True: #self._correction_term is None:
             self._train_step = self._adam.apply_gradients(self._gradients)
         else:
             # print("debug1", self._gradients)
@@ -159,9 +159,9 @@ class QuadDistExpertOptimizer(Serializable):
         # print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
             # if _ in [0,24,49,74,99,124]:
-            print("debug00 loss",sess.run(self._loss, feed_dict=feed_dict))
-            print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
-            print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
+            # print("debug00 loss",sess.run(self._loss, feed_dict=feed_dict))
+            # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
+            # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
 

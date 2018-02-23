@@ -28,7 +28,7 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,10),]
+beta_adam_steps_list = [(1,5),]
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
@@ -53,7 +53,7 @@ bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 20 # baseline adam steps
+basas = 25 # baseline adam steps
 
 
 
@@ -160,7 +160,7 @@ for baslayers in baslayers_list:
                                                 max_path_length=max_path_length,
                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                n_itr=30, #100
+                                                n_itr=800, #100
                                                 make_video=True,
                                                 use_maml=use_maml,
                                                 use_pooled_goals=True,
