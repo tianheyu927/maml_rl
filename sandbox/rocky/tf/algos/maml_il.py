@@ -10,6 +10,8 @@ from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExper
 from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import ConjugateGradientOptimizer
 from maml_examples.maml_experiment_vars import TESTING_ITRS, BASELINE_TRAINING_ITRS
 from rllab.misc.tensor_utils import flatten_tensors, unflatten_tensors
+from collections import OrderedDict
+
 
 class MAMLIL(BatchMAMLPolopt):
 
@@ -344,8 +346,8 @@ class MAMLIL(BatchMAMLPolopt):
 
             print("debug, constructing corr term for task", i)
             term0 = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in updated_params[i].keys()])
-            theta_triangle = [self.policy.all_params[key] * 1.0 for key in self.policy.all_params.keys()]
-            theta_box = [self.policy.all_params[key] * 1.0 for key in self.policy.all_params.keys()]
+            theta_triangle = OrderedDict({key:self.policy.all_params[key] * 1.0 for key in self.policy.all_params.keys()})
+            theta_box = OrderedDict({key:self.policy.all_params[key] * 1.0 for key in self.policy.all_params.keys()})
 
             dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=theta_triangle)
             dist_info_sym_i_box, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=theta_box)
@@ -354,8 +356,8 @@ class MAMLIL(BatchMAMLPolopt):
 
             L = tf.reduce_mean(logli_i_triangle * adv * logli_i_box)
             print("debug, L", L)
-            term1 = grads_dotprod(term0, tf.gradients(L, theta_triangle))
-            corr_term = tf.gradients(term1, theta_box)
+            term1 = grads_dotprod(term0, tf.gradients(L, [theta_triangle[key] for key in theta_triangle.keys()]))
+            corr_term = tf.gradients(term1, [theta_box[key] for key in theta_box.keys()])
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
