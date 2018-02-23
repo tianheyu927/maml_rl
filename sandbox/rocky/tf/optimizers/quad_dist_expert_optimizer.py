@@ -94,12 +94,12 @@ class QuadDistExpertOptimizer(Serializable):
         if self._correction_term is None:
             self._train_step = self._adam.apply_gradients(self._gradients)
         else:
-            print("debug1", self._gradients)
-            print("debug2", self._correction_term)
+            # print("debug1", self._gradients)
+            # print("debug2", self._correction_term)
             self.new_gradients = []
             for ((grad, var), corr) in zip(self._gradients, self._correction_term):
                 self.new_gradients.append((grad + corr, var))
-            print("debug3", self.new_gradients)
+            # print("debug3", self.new_gradients)
             self._train_step = self._adam.apply_gradients(self.new_gradients)
 
         # initialize Adam variables
@@ -158,12 +158,10 @@ class QuadDistExpertOptimizer(Serializable):
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
-            if _ in [0,24,49,74,99,124]:
-                print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
-                # print("debug05 loss",sess.run(self._loss, feed_dict=feed_dict))
-
-                print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
-                print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
+            # if _ in [0,24,49,74,99,124]:
+            print("debug00 loss",sess.run(self._loss, feed_dict=feed_dict))
+            print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
+            print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
 

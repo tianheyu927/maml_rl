@@ -303,9 +303,9 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         if self.max_std_param is not None:
             std_param_var = tf.minimum(std_param_var, self.max_std_param)
         if self.std_parametrization == 'exp':
-            log_std_var = std_param_var + tf.log(self.std_modifier)
+            log_std_var = std_param_var + np.log(self.std_modifier)
         elif self.std_parametrization == 'softplus':
-            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + tf.log(self.std_modifier)
+            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + np.log(self.std_modifier)
         else:
             raise NotImplementedError
 

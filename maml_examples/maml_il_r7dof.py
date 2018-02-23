@@ -28,7 +28,7 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,125),]
+beta_adam_steps_list = [(1,10),]
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
