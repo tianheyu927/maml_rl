@@ -30,7 +30,7 @@ class MAMLIL(BatchMAMLPolopt):
         if optimizer is None:
             if optimizer_args is None:
                 optimizer_args = dict(min_penalty=1e-8)
-            optimizer = QuadDistExpertOptimizer("name1", adam_steps=adam_steps)  #  **optimizer_args)
+            optimizer = QuadDistExpertOptimizer("main_optimizer", adam_steps=adam_steps)  #  **optimizer_args)
         self.optimizer = optimizer
         self.step_size = step_size
         self.use_maml = use_maml
@@ -120,6 +120,8 @@ class MAMLIL(BatchMAMLPolopt):
         old_logli_sym = []
         old_lr = []
         old_adv = []
+        old_action_vars = []
+        old_obs_vars = []
         input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
         inner_input_vars_list += tuple(theta0_dist_info_vars_list) + tuple(theta_l_dist_info_vars_list)
 
@@ -136,6 +138,8 @@ class MAMLIL(BatchMAMLPolopt):
             old_logli_sym.append([])
             old_lr.append([])
             old_adv.append([])
+            old_action_vars.append([])
+            old_obs_vars.append([])
 
             al_const = tf.constant(np.arange(self.max_path_length).reshape(-1, 1) / 100.0)
             al = tf.tile(al_const, tf.stack([tf.cast(tf.shape(obs_vars[0])[0] / self.max_path_length, tf.int32), 1]))
@@ -183,6 +187,8 @@ class MAMLIL(BatchMAMLPolopt):
                 old_logli_sym[-1].append(logli_i)
                 old_lr[-1].append(lr_per_step)
                 old_adv[-1].append(adv)
+                old_action_vars[-1].append(action_vars[i])
+                old_obs_vars[-1].append(obs_vars[i])
                 lr_per_step = self.ism(lr_per_step)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
@@ -238,15 +244,16 @@ class MAMLIL(BatchMAMLPolopt):
         mean_kl = tf.reduce_mean(tf.concat(kls, 0))
 
 
-        self.optimizer.update_opt(
-            loss=outer_surr_obj,
-            # target=None,
-            target=self.policy,
-            leq_constraint=(mean_kl, self.step_size),
-            inputs=input_vars_list,
-            constraint_name="mean_kl",
-            # correction_term=corr_term
-        )
+        # self.optimizer.update_opt(
+        #     loss=outer_surr_obj,
+        #     # target=None,
+        #     target=self.policy,
+        #     leq_constraint=(mean_kl, self.step_size),
+        #     inputs=input_vars_list,
+        #     constraint_name="mean_kl",
+        #     # correction_term=corr_term
+        # )
+
         #
         # # CORRECTION TERM
         # for i in range(self.meta_batch_size):
@@ -330,6 +337,10 @@ class MAMLIL(BatchMAMLPolopt):
 
 
         # CORRECTION TERM ATTEMPT 2
+        term1_list = []
+        keys = self.policy.all_params.keys()
+        theta_triangle = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
+        theta_box = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
         for i in range(self.meta_batch_size):
 
             def grads_dotprod(A, B):
@@ -345,19 +356,19 @@ class MAMLIL(BatchMAMLPolopt):
             #     return output
 
             print("debug, constructing corr term for task", i)
-            term0 = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in updated_params[i].keys()])
-            theta_triangle = OrderedDict({key:self.policy.all_params[key] * 1.0 for key in self.policy.all_params.keys()})
-            theta_box = OrderedDict({key:self.policy.all_params[key] * 1.0 for key in self.policy.all_params.keys()})
 
-            dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=theta_triangle)
-            dist_info_sym_i_box, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=theta_box)
-            logli_i_triangle = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i_triangle)
-            logli_i_box = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i_box)
+            term0_i = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in keys])
+            dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_triangle)
+            dist_info_sym_i_box, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_box)
+            logli_i_triangle = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_triangle)
+            logli_i_box = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_box)
+            L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * logli_i_box)
+            term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
+            term1_list.append(term1_i)
 
-            L = tf.reduce_mean(logli_i_triangle * adv * logli_i_box)
-            print("debug, L", L)
-            term1 = grads_dotprod(term0, tf.gradients(L, [theta_triangle[key] for key in theta_triangle.keys()]))
-            corr_term = tf.gradients(term1, [theta_box[key] for key in theta_box.keys()])
+        corr_term = tf.gradients(tf.reduce_mean(term1_list), [theta_box[key] for key in keys])
+
+
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,

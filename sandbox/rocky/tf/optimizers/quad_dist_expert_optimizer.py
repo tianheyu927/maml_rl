@@ -33,6 +33,8 @@ class QuadDistExpertOptimizer(Serializable):
     ):
         Serializable.quick_init(self, locals())
         self._name = name
+        assert len([var for var in tf.global_variables() if self._name in var.name]) == 0, "please choose a different name for your optimizer"
+
         self._max_opt_itr = max_opt_itr
         self._penalty = initial_penalty
         self._initial_penalty = initial_penalty
@@ -72,7 +74,6 @@ class QuadDistExpertOptimizer(Serializable):
 
         self._inputs = inputs
         self._loss = loss
-        assert len([var for var in tf.global_variables() if self._name in var.name]) == 0, "please choose a different name for your optimizer"
 
         if self._use_momentum_optimizer:
             self._adam=tf.train.MomentumOptimizer(learning_rate=0.00002, momentum=0.6, name=self._name)
@@ -152,16 +153,17 @@ class QuadDistExpertOptimizer(Serializable):
     def optimize(self, input_vals_list,):
         sess = tf.get_default_session()
         feed_dict = dict(list(zip(self._inputs, input_vals_list)))
-        print("debug01, tf gradients", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
-        numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
+        # print("debug01, tf gradients", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
+        # print("debug01, tf gradients", sess.run(self.new_gradients, feed_dict=feed_dict)[0][0][0][0:4])
+        # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
         for _ in range(self._adam_steps):
-            # if _ in [0,24,49,74,99,124]:
-                # print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
+            if _ in [0,24,49,74,99,124]:
+                print("debug04 loss",sess.run(self._loss, feed_dict=feed_dict))
                 # print("debug05 loss",sess.run(self._loss, feed_dict=feed_dict))
 
-                # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
-                # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
+                print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
+                print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
 
