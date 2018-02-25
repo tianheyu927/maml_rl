@@ -362,7 +362,7 @@ class MAMLIL(BatchMAMLPolopt):
             dist_info_sym_i_box, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_box)
             logli_i_triangle = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_triangle)
             logli_i_box = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_box)
-            L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * logli_i_box)
+            L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * old_lr[0][i] * logli_i_box)
             term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
             term1_list.append(term1_i)
 
