@@ -61,7 +61,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             max_path_length=max_path_length,
                             meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                             num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                            n_itr=100, #100
+                            n_itr=800, #100
                             use_maml=use_maml,
                             step_size=meta_step_size,
                             plot=False,
