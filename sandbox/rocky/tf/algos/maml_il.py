@@ -241,7 +241,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
-        mean_kl = tf.reduce_mean(tf.concat(kls, 0))
+        mean_kl = tf.cast(tf.reduce_mean(tf.concat(kls, 0)),tf.float64)
 
 
         # self.optimizer.update_opt(

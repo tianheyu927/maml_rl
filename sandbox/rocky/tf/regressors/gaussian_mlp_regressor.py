@@ -178,13 +178,13 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
 
             normalized_dist_info_vars = dict(mean=normalized_means_var, log_std=normalized_log_stds_var)
 
-            mean_kl = tf.reduce_mean(dist.kl_sym(
+            mean_kl = tf.cast(tf.reduce_mean(dist.kl_sym(
                 dict(mean=normalized_old_means_var, log_std=normalized_old_log_stds_var),
                 normalized_dist_info_vars,
-            ))
+            )), tf.float64)
 
             # loss = - tf.reduce_mean(dist.log_likelihood_sym(normalized_ys_var, normalized_dist_info_vars))
-            loss = tf.nn.l2_loss(normalized_ys_var-normalized_means_var) + tf.nn.l2_loss(normalized_log_stds_var)
+            loss = tf.cast(tf.nn.l2_loss(normalized_ys_var-normalized_means_var) + tf.nn.l2_loss(normalized_log_stds_var), tf.float64)
             self._f_predict = tensor_utils.compile_function([xs_var], means_var)
             self._f_pdists = tensor_utils.compile_function([xs_var], [means_var, log_stds_var])
             self._l_mean = l_mean

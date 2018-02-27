@@ -64,8 +64,13 @@ class QuadDistExpertOptimizer(Serializable):
         :return: No return value.
         """
         constraint_term, constraint_value = leq_constraint
+
+        print("debug101", constraint_term)
         with tf.variable_scope(self._name):
             penalty_var = tf.placeholder(tf.float64, tuple(), name="penalty")
+        temp1 = penalty_var * constraint_term
+        temp2 = loss + penalty_var
+        temp3 = loss + constraint_term
         penalized_loss = loss + penalty_var * constraint_term
 
         self._target = target
