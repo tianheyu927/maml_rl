@@ -183,13 +183,13 @@ class MAMLIL(BatchMAMLPolopt):
                 # logli_diff_by_path_ = tf.reshape(tf.tile(tf.reshape(logli_diff_by_path, [-1,1]), (1,self.max_path_length)),[-1])
                 # lr_by_path = tf.exp(logli_diff_by_path_)
                 # lr_by_path = self.ism(lr_by_path)
+                lr_per_step = self.ism(lr_per_step)
 
                 old_logli_sym[-1].append(logli_i)
                 old_lr[-1].append(lr_per_step)
                 old_adv[-1].append(adv)
                 old_action_vars[-1].append(action_vars[i])
                 old_obs_vars[-1].append(obs_vars[i])
-                lr_per_step = self.ism(lr_per_step)
                 # formulate a minimization problem
                 # The gradient of the surrogate objective is the policy gradient
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
