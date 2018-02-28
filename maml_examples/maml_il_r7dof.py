@@ -28,10 +28,10 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,1),]
+beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['GaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"

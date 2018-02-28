@@ -366,7 +366,7 @@ class MAMLIL(BatchMAMLPolopt):
             term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
             term1_list.append(term1_i)
 
-        corr_term = tf.gradients(tf.reduce_mean(term1_list), [theta_box[key] for key in keys])
+        corr_term = tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys])  #TODO: need to test it with the step size
 
 
 

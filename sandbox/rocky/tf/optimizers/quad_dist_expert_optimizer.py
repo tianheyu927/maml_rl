@@ -103,7 +103,7 @@ class QuadDistExpertOptimizer(Serializable):
             # print("debug2", self._correction_term)
             self.new_gradients = []
             for ((grad, var), corr) in zip(self._gradients, self._correction_term):
-                self.new_gradients.append((grad + corr, var))
+                self.new_gradients.append((grad - corr, var))
             # print("debug3", self.new_gradients)
             self._train_step = self._adam.apply_gradients(self.new_gradients)
 
@@ -166,7 +166,7 @@ class QuadDistExpertOptimizer(Serializable):
             # if _ in [0,24,49,74,99,124]:
             print("debug00 loss",sess.run(self._loss, feed_dict=feed_dict))
             print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
-            # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
+            print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
 
