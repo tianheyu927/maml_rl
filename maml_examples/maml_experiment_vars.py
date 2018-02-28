@@ -32,6 +32,8 @@ def clip05_20(x):
 
 def clip05_(x):
     return tf.maximum(x,0.5)
+def clip1_(x):
+    return tf.maximum(x,1.0)
 
 def clip095_105(x):
     return tf.clip_by_value(x,0.95,1.05)
@@ -43,4 +45,5 @@ MOD_FUNC={
     'clip0.5_2.0':clip05_20,
     'clip0.95_1.05':clip095_105,
     'clip0.5_':clip05_,
+    'clip1.0_':clip1_,
 }
