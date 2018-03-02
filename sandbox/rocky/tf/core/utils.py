@@ -9,7 +9,7 @@ def make_input(shape, input_var=None, name="input", **kwargs):
             with tf.variable_scope(name):
                     input_var = tf.placeholder(tf.float64, shape=shape, name="input")
         else:
-            input_var = tf.placeholder(tf.float64, shape=shape, name="input")
+            input_var = tf.placeholder(tf.float32, shape=shape, name="input")
     return input_var
 
 def _create_param(spec, shape, name, trainable=True, regularizable=True):
@@ -23,7 +23,7 @@ def _create_param(spec, shape, name, trainable=True, regularizable=True):
         regularizer = lambda _: tf.constant(0.)
     return tf.get_variable(
         name=name, shape=shape, initializer=spec, trainable=trainable,
-        regularizer=regularizer, dtype=tf.float64
+        regularizer=regularizer, dtype=tf.float32
     )
 
 def add_param(spec, shape, layer_name, name, weight_norm=None, variable_reuse=None, **tags):

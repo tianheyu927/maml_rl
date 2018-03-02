@@ -67,7 +67,7 @@ class QuadDistExpertOptimizer(Serializable):
 
         # print("debug101", constraint_term)
         with tf.variable_scope(self._name):
-            penalty_var = tf.placeholder(tf.float64, tuple(), name="penalty")
+            penalty_var = tf.placeholder(tf.float32, tuple(), name="penalty")
         # temp1 = penalty_var * constraint_term
         # temp2 = loss + penalty_var
         # temp3 = loss + constraint_term
@@ -133,8 +133,8 @@ class QuadDistExpertOptimizer(Serializable):
                     grads[idx] = tf.zeros_like(param)
             flat_grad = tensor_utils.flatten_tensor_variables(grads)
             return [
-                tf.cast(penalized_loss, tf.float64),
-                tf.cast(flat_grad, tf.float64),
+                tf.cast(penalized_loss, tf.float32),
+                tf.cast(flat_grad, tf.float32),
             ]
 
         self._opt_fun = ext.lazydict(

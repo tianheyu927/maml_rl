@@ -273,7 +273,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             self.assign_placeholders = {}
             self.assign_ops = {}
             for key in tensor_dict.keys():
-                self.assign_placeholders[key] = tf.placeholder(tf.float64)
+                self.assign_placeholders[key] = tf.placeholder(tf.float32)
                 self.assign_ops[key] = tf.assign(tensor_dict[key], self.assign_placeholders[key])
 
         feed_dict = {self.assign_placeholders[key]:param_values[key] for key in tensor_dict.keys()}

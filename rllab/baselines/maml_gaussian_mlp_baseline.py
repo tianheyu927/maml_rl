@@ -432,6 +432,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.all_param_vals = None
         self.assign_params(self.all_params,self.init_param_vals)
         self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
+        sess = tf.get_default_session()
         print("debug, accum vals", sess.run(self.accumulation))
 
     def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
