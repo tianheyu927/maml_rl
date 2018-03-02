@@ -50,7 +50,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._max_constraint_val = None
         self._constraint_name = None
         self._adam_steps = adam_steps
-        self._correction_term = 0
+        self._correction_term = None
         self._use_momentum_optimizer=use_momentum_optimizer
 
 
@@ -81,8 +81,10 @@ class QuadDistExpertOptimizer(Serializable):
         self._loss = loss
 
         if self._use_momentum_optimizer:
-            self._adam=tf.train.MomentumOptimizer(learning_rate=0.00001, momentum=0.5, name=self._name)
+            print("debug31, setting momentum optimizer", self._name)
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.5, name=self._name)
         else:
+            print("debug31, setting Adam optimizer", self._name)
             self._adam = tf.train.AdamOptimizer(name=self._name)
         self._optimizer_vars_initializers = [var.initializer for var in tf.global_variables() if self._name in var.name]
 

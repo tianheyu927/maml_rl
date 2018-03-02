@@ -195,6 +195,7 @@ class MAMLIL(BatchMAMLPolopt):
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
                 inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
+                # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(logli_i, adv)))
                 if self.metalearn_baseline:
                     inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
             inner_input_vars_list += obs_vars + action_vars + adv_vars
@@ -242,38 +243,38 @@ class MAMLIL(BatchMAMLPolopt):
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
         mean_kl = tf.cast(tf.reduce_mean(tf.concat(kls, 0)),tf.float64)
-
-        # CORRECTION TERM ATTEMPT 2
-        term1_list = []
-        keys = self.policy.all_params.keys()
-        theta_triangle = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
-        theta_box = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
-        for i in range(self.meta_batch_size):
-
-            def grads_dotprod(A, B):
-                return tf.reduce_sum([tf.reduce_sum(a * b) for a, b in zip(A, B)])
-
-            # def mult_grad_by_number(num, grad_list):
-            #     return [num * grad for grad in grad_list]
-            #
-            # def unpack_adam_grads(grad_list):
-            #     output = []
-            #     for grad, var in grad_list:
-            #         output.append(grad)
-            #     return output
-
-            print("debug, constructing corr term for task", i)
-
-            term0_i = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in keys])
-            dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_triangle)
-            dist_info_sym_i_box, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_box)
-            logli_i_triangle = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_triangle)
-            logli_i_box = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_box)
-            L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * old_lr[0][i] * logli_i_box)
-            term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
-            term1_list.append(term1_i)
-
-        corr_term = tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys])  #TODO: need to test it with the step size
+        #
+        # # CORRECTION TERM ATTEMPT 2
+        # term1_list = []
+        # keys = self.policy.all_params.keys()
+        # theta_triangle = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
+        # theta_box = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
+        # for i in range(self.meta_batch_size):
+        #
+        #     def grads_dotprod(A, B):
+        #         return tf.reduce_sum([tf.reduce_sum(a * b) for a, b in zip(A, B)])
+        #
+        #     # def mult_grad_by_number(num, grad_list):
+        #     #     return [num * grad for grad in grad_list]
+        #     #
+        #     # def unpack_adam_grads(grad_list):
+        #     #     output = []
+        #     #     for grad, var in grad_list:
+        #     #         output.append(grad)
+        #     #     return output
+        #
+        #     print("debug, constructing corr term for task", i)
+        #
+        #     term0_i = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in keys])
+        #     dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_triangle)
+        #     dist_info_sym_i_box, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_box)
+        #     logli_i_triangle = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_triangle)
+        #     logli_i_box = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_box)
+        #     L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * old_lr[0][i] * logli_i_box)
+        #     term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
+        #     term1_list.append(term1_i)
+        #
+        # corr_term = tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys])  #TODO: need to test it with the step size
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
@@ -282,7 +283,7 @@ class MAMLIL(BatchMAMLPolopt):
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
             constraint_name="mean_kl",
-            correction_term=corr_term
+            # correction_term=corr_term
         )
 
 

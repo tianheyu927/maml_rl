@@ -70,7 +70,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                                                        [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if True else [[-15000.],[-19000.],[-20000.]]))
                                                                                          for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key])) for key in self.all_params.keys()]))
-        self.momentum = 0.8  # 0.6 - 0.975
+        self.momentum = 0.5  # 0.6 - 0.975
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
@@ -172,7 +172,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
     @overrides
-    def fit(self, paths, log=True, repeat=20):  # TODO REVERT repeat=10000
+    def fit(self, paths, log=True, repeat=35):  # TODO REVERT repeat=10000
         # return True
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
@@ -431,6 +431,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._cur_f_dist = self._init_f_dist
         self.all_param_vals = None
         self.assign_params(self.all_params,self.init_param_vals)
+        self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
+        print("debug, accum vals", sess.run(self.accumulation))
 
     def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
         """equivalent of dist_info_sym, this function constructs the tf graph, only called

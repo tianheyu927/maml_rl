@@ -28,10 +28,10 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(100,1),]
+beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -46,15 +46,17 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 # importance_sampling_modifier_list = ['clip0.5_2.0']
-importance_sampling_modifier_list = ['clip1.0_']
+# importance_sampling_modifier_list = ['clip1.0_']
+# importance_sampling_modifier_list = ['clip1.0_1.0']
+importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
-bas_lr = 0.0075# baseline learning rate, 0.001
+bas_lr = 0.01# baseline learning rate, 0.001
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 25 # baseline adam steps
+basas = 35 # baseline adam steps
 
 
 
@@ -128,31 +130,8 @@ for baslayers in baslayers_list:
                                                                                        # max_epochs=200,
                                                                                        # batch_size=None,
                                                                                         adam_steps=basas,
-                                                                                        use_momentum_optimizer=True,
-                                                                                       ))
-                                                                                   )
-                                                # baseline = GaussianMLPBaseline(env_spec=env.spec,
-                                                #                                    regressor_args=dict(
-                                                #                                    hidden_sizes=baslayers,
-                                                #                                    hidden_nonlinearity=bas_hnl,
-                                                #                                    learn_std=False,
-                                                #                                    # use_trust_region=False,
-                                                #                                    # normalize_inputs=False,
-                                                #                                    # normalize_outputs=False,
-                                                #                                    # optimizer=QuadDistExpertOptimizer(
-                                                #                                    #      name="bas_optimizer",
-                                                #                                    #     #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
-                                                #                                    #     #  tf_optimizer_args=dict(
-                                                #                                    #     #      learning_rate=bas_lr,
-                                                #                                    #     #  ),
-                                                #                                    #     # # tf_optimizer_cls=tf.train.AdamOptimizer,
-                                                #                                    #     # max_epochs=200,
-                                                #                                    #     # batch_size=None,
-                                                #                                    #      adam_steps=basas,
-                                                #                                    #     # use_momentum_optimizer=True,
-                                                #                                    #     )
-                                                #                                    )
-                                                #                                    )
+                                                                                        # use_momentum_optimizer=True,
+                                                                                   )))
                                             algo = MAMLIL(
                                                 env=env,
                                                 policy=policy,
