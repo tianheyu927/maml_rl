@@ -159,7 +159,7 @@ class MAMLIL(BatchMAMLPolopt):
                         predicted_returns_sym, _ = self.baseline.predict_sym(enh_obs_vars=enh_obs_i, all_params=self.baseline.all_params)
                         predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
                         predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
-                        baseline_pred_loss_i = tf.reduce_mean((predicted_returns_means_sym - returns_vars[i])**2) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
+                        baseline_pred_loss_i = tf.reduce_mean(tf.square(predicted_returns_means_sym - returns_vars[i])) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
                         self.baseline.set_init_surr_obj(input_list=[enh_obs_i]+ [returns_vars[i]], surr_obj_tensor=baseline_pred_loss_i)
                     adv_sym = self.baseline.build_adv_sym(enh_obs_vars=enh_obs_i,
                                                       rewards_vars=rewards_vars[i],

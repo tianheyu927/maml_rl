@@ -7,7 +7,7 @@ def make_input(shape, input_var=None, name="input", **kwargs):
     if input_var is None:
         if name is not None:
             with tf.variable_scope(name):
-                    input_var = tf.placeholder(tf.float64, shape=shape, name="input")
+                    input_var = tf.placeholder(tf.float32, shape=shape, name="input")
         else:
             input_var = tf.placeholder(tf.float32, shape=shape, name="input")
     return input_var
