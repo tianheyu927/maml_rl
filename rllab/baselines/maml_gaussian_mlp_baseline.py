@@ -30,7 +30,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             algo_discount=0.99,
             repeat=25,
             repeat_sym=1,
-            momentum=0.17,
+            momentum=0.5,
             hidden_sizes=(32,32),
             hidden_nonlinearity=tf.nn.relu,
             output_nonlinearity=tf.identity,
@@ -217,8 +217,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         if 'all_fast_params_tensor' not in dir(self) or self.all_fast_params_tensor is None:
             gradients = OrderedDict(zip(update_param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
-            # new_accumulation = {key:gradients[key] + self.momentum * self.accumulation[key]  for key in update_param_keys}
-            new_accumulation = {key:gradients[key] + (self.last_grad[key]+gradients[key])**4/(self.last_grad[key]**4+gradients[key]**4+1e-8) * self.momentum * self.accumulation[key] for key in update_param_keys}
+            new_accumulation = {key:gradients[key] + self.momentum * self.accumulation[key]  for key in update_param_keys}
+            # new_accumulation = {key:gradients[key] + (self.last_grad[key]+gradients[key])**4/(self.last_grad[key]**4+gradients[key]**4+1e-8) * self.momentum * self.accumulation[key] for key in update_param_keys}
             # new_accumulation = {key:gradients[key] + tf.divide(self.accumulation[key]*(gradients[key]**2) - gradients[key]**3,tf.square(self.accumulation[key]-gradients[key])+1e-4) for key in update_param_keys}
             # new_accumulation = {key:self.momentum * self.accumulation[key] +gradients[key] * tf.divide((self.accumulation[key] + gradients[key])**2,self.accumulation[key]**2+gradients[key]**2) for key in update_param_keys}
             # new_accumulation = {key:gradients[key] + self.accumulation[key] * tf.divide((2 * gradients[key] - self.accumulation[key]) * (self.accumulation[key] - gradients[key]),self.accumulation[key]**2 + gradients[key]**2+1e-8) for key in update_param_keys}
@@ -514,10 +514,25 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
         returns_vars_ = tf.reshape(returns_vars, [-1,1])
         # accumulation_sym = {key:tf.Variable(self.accumulation[key]) for key in self.accumulation.keys()}
-        accumulation_sym = self.accumulation
-        for _ in range(repeat):
+        a1accumulation_sym = self.accumulation
+        # for _ in range(repeat):
+        #     baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
+        #     (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
+        i = tf.constant(0)
+        whatever_vars_0 = (i, predicted_returns_sym, updated_params, a1accumulation_sym)
+        c = lambda i, whatever_vars, more_vars: i < repeat
+
+        def b(i, predicted_returns_sym, updated_params, accumulation_sym):
             baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
             (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
+            return (i+1, predicted_returns_sym, updated_params, accumulation_sym)
+
+        (i, predicted_returns_sym, updated_params, accumulation_sym) = tf.while_loop(c,b,(i, whatever_vars_0), shape_invariants=(x.get_shape() for x in whatever_vars_0))
+        # baseline_pred_loss = tf.reduce_mean(
+        #     tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
+        # (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(
+        #     baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params,
+        #     accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
 
         organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])
         organized_pred_returns = tf.reshape(predicted_returns_sym['mean'], [-1,self.max_path_length])
