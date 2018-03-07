@@ -28,8 +28,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             num_seq_inputs=1,
             learning_rate=0.01,
             algo_discount=0.99,
-            repeat=25,
-            repeat_sym=1,
+            repeat=30,
+            repeat_sym=30,
             momentum=0.5,
             hidden_sizes=(32,32),
             hidden_nonlinearity=tf.nn.relu,
@@ -70,11 +70,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.all_param_vals = None
 
         self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),
-                                                       [tf.Variable(self.learning_rate * tf.Variable(tf.ones_like(self.all_params[key]) if True else [[-15000.],[-19000.],[-20000.]]), trainable=False)
+                                                       [tf.Variable(self.learning_rate * tf.ones_like(self.all_params[key]), trainable=False)
                                                                                          for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
         self.last_grad = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
-        self.momentum = momentum  # 0.6 - 0.975
 
         self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
@@ -93,10 +92,11 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             outputs=[mean_var,log_std_var],
         )
         self._cur_f_dist = self._init_f_dist
-        self.initialized = True
+        self.initialized = False
         self.lr_mult = 1.0
         self.repeat=repeat
         self.repeat_sym=repeat_sym
+        self.momentum = momentum
 
         # self.momopt = tf.train.MomentumOptimizer(learning_rate=0.000001, momentum=0.999)
         self.momopt = tf.train.AdamOptimizer(name="Adam2")
@@ -496,11 +496,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         grads = tf.gradients(baseline_pred_loss, [old_params_dict[key] for key in update_param_keys])
         gradients = dict(zip(update_param_keys, grads))
         if accumulation_sym is not None:
+            print("debug", gradients)
+            print("debug", accumulation_sym)
             new_accumulation_sym = {key:self.momentum * accumulation_sym[key] + gradients[key] for key in update_param_keys}
-            params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * new_accumulation_sym[key] for key in update_param_keys]))
+            params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * new_accumulation_sym[key] for key in update_param_keys]))
         else:
             new_accumulation_sym = None
-            params_dict = dict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * gradients[key] for key in update_param_keys]))
+            params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * gradients[key] for key in update_param_keys]))
         # for key in update_param_keys:
         #     old_params_dict[key] = params_dict[key]
         for k in no_update_param_keys:
@@ -510,6 +512,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=None):  # path_lengths_vars was before all_params
         # assert baseline_pred_loss is None, "don't give me baseline pred loss"
         repeat = repeat if repeat is not None else self.repeat_sym
+        print("debug", repeat)
         updated_params = all_params
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
         returns_vars_ = tf.reshape(returns_vars, [-1,1])
@@ -519,15 +522,28 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         #     baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
         #     (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
         i = tf.constant(0)
-        whatever_vars_0 = (i, predicted_returns_sym, updated_params, a1accumulation_sym)
-        c = lambda i, whatever_vars, more_vars: i < repeat
+        whatever_vars_0 = [i, updated_params, a1accumulation_sym]
+        c = lambda i, _, ___: i < repeat
 
-        def b(i, predicted_returns_sym, updated_params, accumulation_sym):
+        def get_structure(x):
+            if "get_shape" in dir(x):
+                return x.get_shape()
+            else:
+                if isinstance(x, OrderedDict):
+                    return OrderedDict({key:get_structure(x[key]) for key in x.keys()})
+                elif isinstance(x, dict):
+                    return {key:get_structure(x[key]) for key in x.keys()}
+
+
+        def b(i, updated_params, accumulation_sym):
+            predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
             baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
             (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
-            return (i+1, predicted_returns_sym, updated_params, accumulation_sym)
+            return [i+1, updated_params, accumulation_sym]
+        print("debug",[get_structure(x) for x in whatever_vars_0])
 
-        (i, predicted_returns_sym, updated_params, accumulation_sym) = tf.while_loop(c,b,(i, whatever_vars_0), shape_invariants=(x.get_shape() for x in whatever_vars_0))
+        (i, updated_params, accumulation_sym) = tf.while_loop(c,b,whatever_vars_0, shape_invariants=[get_structure(x) for x in whatever_vars_0])
+        predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
         # baseline_pred_loss = tf.reduce_mean(
         #     tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
         # (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(

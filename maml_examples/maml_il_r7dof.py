@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['GaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -51,13 +51,14 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [4]  # 40
 test_goals_mult = 1
-bas_lr = 0.001 # baseline learning rate, 0.001
+bas_lr = 0.00001 # baseline learning rate, 0.001
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 100 # baseline adam steps
+basas = 30 # baseline adam steps
 
+momentum=0.5
 
 
 
@@ -94,6 +95,9 @@ for baslayers in baslayers_list:
                                                                                    learning_rate=bas_lr,
                                                                                    hidden_sizes=baslayers,
                                                                                    hidden_nonlinearity=bas_hnl,
+                                                                                   repeat=basas,
+                                                                                   repeat_sym=1,
+                                                                                   momentum=momentum,
                                                                                    # learn_std=False,
                                                                                    # use_trust_region=False,
                                                                                    # optimizer=QuadDistExpertOptimizer(
@@ -130,7 +134,7 @@ for baslayers in baslayers_list:
                                                                                        # max_epochs=200,
                                                                                        # batch_size=None,
                                                                                         adam_steps=basas,
-                                                                                        # use_momentum_optimizer=True,
+                                                                                        use_momentum_optimizer=True,
                                                                                    )))
                                             algo = MAMLIL(
                                                 env=env,

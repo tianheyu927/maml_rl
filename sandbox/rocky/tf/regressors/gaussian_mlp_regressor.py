@@ -138,18 +138,22 @@ class GaussianMLPRegressor(LayersPowered, Serializable):
             x_mean_var = tf.Variable(
                 np.zeros((1,) + input_shape, dtype=np.float32),
                 name="x_mean",
+                trainable=False
             )
             x_std_var = tf.Variable(
                 np.ones((1,) + input_shape, dtype=np.float32),
                 name="x_std",
+                trainable=False
             )
             y_mean_var = tf.Variable(
                 np.zeros((1, output_dim), dtype=np.float32),
                 name="y_mean",
+                trainable=False
             )
             y_std_var = tf.Variable(
                 np.ones((1, output_dim), dtype=np.float32),
                 name="y_std",
+                trainable=False
             )
 
             normalized_xs_var = (xs_var - x_mean_var) / x_std_var
