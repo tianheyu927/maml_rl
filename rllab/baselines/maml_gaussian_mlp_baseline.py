@@ -35,6 +35,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             hidden_nonlinearity=tf.nn.relu,
             output_nonlinearity=tf.identity,
             init_std=1.0,
+            normalize_inputs=True,
+            normalize_outputs=True,
 
     ):
         Serializable.quick_init(self, locals())
@@ -49,7 +51,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self.max_path_length = 100
-
+        self._normalize_inputs = normalize_inputs
+        self._normalize_outputs = normalize_outputs
 
         self.all_params = self.create_MLP(
             name="mean_baseline_network",
@@ -68,6 +71,28 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         )
         forward_std = lambda x, params: forward_param_layer(x, params['std_param'])
         self.all_param_vals = None
+
+        enh_obs_mean_var = tf.Variable(
+            tf.zeros((1,) + self.input_shape, dtype=tf.float32),
+            name="enh_obs_mean",
+            trainable=False
+        )
+        enh_obs_std_var = tf.Variable(
+            tf.ones((1,) + self.input_shape, dtype=tf.float32),
+            name="enh_obs_std",
+            trainable=False
+        )
+        self.output_dim=1
+        ret_mean_var = tf.Variable(
+            tf.zeros((1, self.output_dim), dtype=tf.float32),
+            name="ret_mean",
+            trainable=False
+        )
+        ret_std_var = tf.Variable(
+            tf.ones((1, self.output_dim), dtype=tf.float32),
+            name="ret_std",
+            trainable=False
+        )
 
         self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),
                                                        [tf.Variable(self.learning_rate * tf.ones_like(self.all_params[key]), trainable=False)
@@ -111,7 +136,21 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         """ Set the surrogate objectives used the update the policy
         """
         self.input_list_for_grad = input_list
-        self.surr_obj = surr_obj_tensor
+        if surr_obj_tensor is not None:
+            self.surr_obj = surr_obj_tensor
+        else:
+            assert len(input_list) == 2
+            enh_obs, returns_vars = input_list[0], input_list[1]
+            def normalize(x):
+                mean, var = tf.nn.moments(x, axes=[0])
+                return (x - mean) / (tf.sqrt(var) + 1e-8)
+            normalized_enh_obs = normalize(enh_obs)
+            normalized_returns = normalize(returns_vars)
+            predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=normalized_enh_obs,all_params=self.all_params)
+            predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
+            predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
+            baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_means_sym - normalized_returns)) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
+            self.surr_obj = baseline_pred_loss
 
     '''
     def fit_train_baseline(self, paths, repeat=100):
@@ -196,6 +235,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         sess = tf.get_default_session()
 
+
+
         if 'init_params_tensor' not in dir(self):
             self.init_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] for key in update_param_keys]))
         self.init_param_vals = sess.run(self.init_params_tensor)
@@ -205,11 +246,25 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
+        enh_obs = np.concatenate([obs,obs2,al,al2,al3],axis=1)
+        returns = np.concatenate([p["returns"] for p in paths])  #TODO: do we need to reshape the returns here?
+        inputs = [enh_obs] + [returns]
+
+        if self._normalize_inputs:
+            sess.run([
+                tf.assign(self._obs_mean_var, np.mean(enh_obs, axis=0, keepdims=True)),
+                tf.assign(self._obs_std_var, np.std(enh_obs, axis=0, keepdims=True) + 1e-8),
+            ])
+
+        if self._normalize_outputs:
+            sess.run([
+                tf.assign(self._ret_mean_var, np.mean(returns, axis=0, keepdims=True)),
+                tf.assign(self._ret_std_var, np.std(returns, axis=0, keepdims=True) + 1e-8),
+            ])
+
         # al0 = al**0
         # print("debug43", np.shape(obs))
-        returns = np.concatenate([p["returns"] for p in paths])  #TODO: do we need to reshape the returns here?
         # print("debug11", np.shape(obs))
-        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
         # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
         #
         # if self.all_param_vals is not None:

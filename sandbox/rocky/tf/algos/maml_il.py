@@ -156,21 +156,7 @@ class MAMLIL(BatchMAMLPolopt):
 
                     if 'surr_obj' not in dir(self.baseline):
                         assert i == 0
-                        predicted_returns_sym, _ = self.baseline.predict_sym(enh_obs_vars=enh_obs_i, all_params=self.baseline.all_params)
-                        predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
-                        predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
-                        # print("debug31", predicted_returns_means_sym)
-                        # print("debug32", predicted_returns_log_std_sym)
-                        # print("debug33",returns_vars[i])
-                        # def normalize(x):
-                        #     mean, var = tf.nn.moments(x, axes=[0])
-                        #     return (x-mean)/(tf.sqrt(var)+1e-8)
-                        # normalized_predicted_returns_means_sym = normalize(predicted_returns_means_sym)
-                        # normalized_predicted_returns_log_std_sym = normalize(predicted_returns_log_std_sym)
-                        # normalized_returns_i = normalize(returns_vars[i])
-                        # baseline_pred_loss_i = tf.reduce_mean(tf.square(normalized_predicted_returns_means_sym - normalized_returns_i)) - 0.0 * tf.reduce_mean(normalized_predicted_returns_log_std_sym)
-                        baseline_pred_loss_i = tf.reduce_mean(tf.square(predicted_returns_means_sym - returns_vars[i])) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
-                        self.baseline.set_init_surr_obj(input_list=[enh_obs_i]+ [returns_vars[i]], surr_obj_tensor=baseline_pred_loss_i)
+                        self.baseline.set_init_surr_obj(input_list=[enh_obs_i]+ [returns_vars[i]], surr_obj_tensor=None)  # we define the surr obj in the baseline
                     adv_sym = self.baseline.build_adv_sym(enh_obs_vars=enh_obs_i,
                                                       rewards_vars=rewards_vars[i],
                                                       returns_vars=returns_vars[i],

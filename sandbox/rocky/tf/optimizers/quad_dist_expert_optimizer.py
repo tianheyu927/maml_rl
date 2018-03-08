@@ -82,7 +82,7 @@ class QuadDistExpertOptimizer(Serializable):
 
         if self._use_momentum_optimizer:
             print("debug31, setting momentum optimizer", self._name)
-            self._adam=tf.train.MomentumOptimizer(learning_rate=0.005, momentum=0.5, name=self._name)
+            self._adam=tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.5, name=self._name)
         else:
             print("debug31, setting Adam optimizer", self._name)
             self._adam = tf.train.AdamOptimizer(name=self._name)

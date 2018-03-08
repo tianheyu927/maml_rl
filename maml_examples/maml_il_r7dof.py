@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,125),]
 
 fast_learning_rates = [1.0]
-baselines = ['GaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -51,7 +51,7 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [4]  # 40
 test_goals_mult = 1
-bas_lr = 0.00001 # baseline learning rate, 0.001
+bas_lr = 0.01 # baseline learning rate, 0.001
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
