@@ -102,7 +102,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),[tf.Variable(self.learning_rate * tf.ones_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
-        self.last_grad = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
+        # self.last_grad = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
 
 
         # self._dist = DiagonalGaussian(1)
@@ -158,8 +158,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
         if not self.initialized:
-            # self.learning_rate = 0.1 * self.learning_rate
-            repeat = 1000
+            repeat = 3000
             self.lr_mult = 0.5
         """Equivalent of compute_updated_dists"""
         update_param_keys = self.all_params.keys()
@@ -171,7 +170,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             self.init_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] for key in update_param_keys]))
         self.init_param_vals = sess.run(self.init_params_tensor)
         self.init_accumulation_vals = sess.run(self.accumulation)
-        self.init_grad_vals = sess.run(self.last_grad)
+        # self.init_grad_vals = sess.run(self.last_grad)
         obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
         obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
@@ -208,15 +207,15 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             # new_accumulation = {key:gradients[key] for key in update_param_keys}
             for k in no_update_param_keys:
                 fast_params_tensor[k] = self.all_params[k]
-            self.all_fast_params_tensor = (fast_params_tensor, new_accumulation, gradients)
+            self.all_fast_params_tensor = (fast_params_tensor, new_accumulation)
             # pull new param vals out of tensorflow, so gradient computation only done once
             # these are the updated values of the params after the gradient step
         for _ in range(repeat):
-            self.all_param_vals, self.accumulation_vals, new_gradient_vals = sess.run(self.all_fast_params_tensor,
+            self.all_param_vals, self.accumulation_vals= sess.run(self.all_fast_params_tensor,
                                            feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
             self.assign_params(self.all_params, self.all_param_vals)
             self.assign_accumulation(self.accumulation, self.accumulation_vals)
-            self.assign_gradients(self.last_grad, new_gradient_vals)
+            # self.assign_gradients(self.last_grad, new_gradient_vals)
 
         # if init_param_values is not None:
         #     self.assign_params(self.all_params, init_param_values)
@@ -446,7 +445,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.all_param_vals = None
         self.assign_params(self.all_params,self.init_param_vals)
         self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
-        self.assign_gradients(self.last_grad, self.init_grad_vals)
+        # self.assign_gradients(self.last_grad, self.init_grad_vals)
 
     # def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
     #     """equivalent of dist_info_sym, this function constructs the tf graph, only called
@@ -520,8 +519,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         updated_params = all_params
         normalized_enh_obs_vars = normalize_sym(enh_obs_vars)
         returns_vars_ = tf.reshape(returns_vars, [-1,1])
-        ret_mean_var_sym, ret_std_var_sym = tf.nn.moments(returns_vars_, axes=[0])
-        normalized_returns_vars_ = normalize_sym(returns_vars_)
+        ret_mean_var_sym, ret_var_var_sym = tf.nn.moments(returns_vars_, axes=[0])
+        ret_std_var_sym = tf.sqrt(ret_var_var_sym)
+        normalized_returns_vars_ = (returns_vars_ - ret_mean_var_sym)/(ret_std_var_sym + 1e-8)
         accumulation_sym = self.accumulation
         i = tf.constant(0)
         while_loop_vars_0 = [i, updated_params, accumulation_sym]
@@ -706,6 +706,7 @@ def discount_cumsum_sym(var, discount):
 
 def normalize_sym(x):
     mean, var = tf.nn.moments(x, axes=[0])
+    print("debug, normalize_sym", mean, var)
     return (x - mean) / (tf.sqrt(var) + 1e-8)
 
 
