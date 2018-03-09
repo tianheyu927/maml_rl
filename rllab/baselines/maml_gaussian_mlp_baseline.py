@@ -143,7 +143,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             assert len(input_list) == 2
             enh_obs, returns_vars = input_list[0], input_list[1]
             normalized_enh_obs = normalize_sym(enh_obs)
-            normalized_returns = normalize_sym(returns_vars)
+            normalized_returns = normalize_sym(returns_vars, debug=True)
             normalized_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs,all_params=self.all_params)
             predicted_returns_means_sym = tf.reshape(normalized_predicted_returns_sym['mean'], [-1])
             meta_constant_sym = tf.reshape(normalized_predicted_returns_sym['meta_constant'], [-1])
@@ -518,10 +518,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         repeat = repeat if repeat is not None else self.repeat_sym
         updated_params = all_params
         normalized_enh_obs_vars = normalize_sym(enh_obs_vars)
-        returns_vars_ = tf.reshape(returns_vars, [-1,1])
-        ret_mean_var_sym, ret_var_var_sym = tf.nn.moments(returns_vars_, axes=[0])
+        ret_mean_var_sym, ret_var_var_sym = tf.nn.moments(returns_vars, axes=[0])
         ret_std_var_sym = tf.sqrt(ret_var_var_sym)
-        normalized_returns_vars_ = (returns_vars_ - ret_mean_var_sym)/(ret_std_var_sym + 1e-8)
+        normalized_returns_vars = (returns_vars - ret_mean_var_sym)/(ret_std_var_sym + 1e-8)
+        normalized_returns_vars_ = tf.reshape(normalized_returns_vars, [-1,1])
         accumulation_sym = self.accumulation
         i = tf.constant(0)
         while_loop_vars_0 = [i, updated_params, accumulation_sym]
@@ -704,9 +704,10 @@ def discount_cumsum_sym(var, discount):
     return tf.cumsum(var_,reverse=True) * tf.pow(discount,-range_)
 
 
-def normalize_sym(x):
+def normalize_sym(x, debug=False):
     mean, var = tf.nn.moments(x, axes=[0])
-    print("debug, normalize_sym", mean, var)
+    if debug:
+        print("debug, normalize_sym", mean, var)
     return (x - mean) / (tf.sqrt(var) + 1e-8)
 
 

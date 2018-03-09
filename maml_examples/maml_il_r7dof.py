@@ -51,14 +51,14 @@ l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [4]  # 40
 test_goals_mult = 1
-bas_lr = 0.015 # baseline learning rate, 0.001
+bas_lr = 0.013 # baseline learning rate, 0.001
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 40 # baseline adam steps
+basas = 50 # baseline adam steps
 
-momentum=0.6
+momentum=0.5
 
 
 
