@@ -34,7 +34,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             hidden_sizes=(32,32),
             hidden_nonlinearity=tf.nn.relu,
             output_nonlinearity=tf.identity,
-            init_std=1.0,
+            init_meta_constant=0.0,
             normalize_inputs=True,
             normalize_outputs=True,
 
@@ -53,6 +53,30 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.max_path_length = 100
         self._normalize_inputs = normalize_inputs
         self._normalize_outputs = normalize_outputs
+        #
+        # self._enh_obs_mean_var = tf.Variable(
+        #     tf.zeros((1,) + self.input_shape, dtype=tf.float32),
+        #     name="enh_obs_mean",
+        #     trainable=False
+        # )
+        # self._enh_obs_std_var = tf.Variable(
+        #     tf.ones((1,) + self.input_shape, dtype=tf.float32),
+        #     name="enh_obs_std",
+        #     trainable=False
+        # )
+        self.output_dim=1
+        self._ret_mean_var = tf.Variable(
+            tf.zeros((self.output_dim), dtype=tf.float32),
+            name="ret_mean",
+            trainable=False
+        )
+        self._ret_std_var = tf.Variable(
+            tf.ones((self.output_dim), dtype=tf.float32),
+            name="ret_std",
+            trainable=False
+        )
+
+
 
         self.all_params = self.create_MLP(
             name="mean_baseline_network",
@@ -60,61 +84,38 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             hidden_sizes=hidden_sizes,
         )
         self.input_tensor, _ = self.forward_MLP('mean_baseline_network', self.all_params, reuse=None)
-        forward_mean = lambda x, params, is_train: self.forward_MLP('mean_baseline_network',all_params=params, input_tensor=x, is_training=is_train)[1]
+        print("debug, input_tensor", self.input_tensor )
+        self.normalized_input_tensor = normalize_sym(self.input_tensor)
 
-        init_log_std = np.log(init_std)
-        self.all_params['std_param'] = make_param_layer(
+        self.all_params['meta_constant'] = make_param_layer(
             num_units=1,
-            param=tf.constant_initializer(init_log_std),
-            name="output_bas_std_param",
+            param=tf.constant_initializer(init_meta_constant),
+            name="output_bas_meta_constant",
             trainable=False,
         )
-        forward_std = lambda x, params: forward_param_layer(x, params['std_param'])
+        forward_mean = lambda x, params, is_train: self.forward_MLP('mean_baseline_network',all_params=params, input_tensor=x, is_training=is_train)[1]
+        forward_meta_constant = lambda x, params: forward_param_layer(x, params['meta_constant'])
+        self._forward = lambda normalized_enh_obs, params, is_train: (forward_mean(normalized_enh_obs, params, is_train), forward_meta_constant(normalized_enh_obs, params))
         self.all_param_vals = None
 
-        enh_obs_mean_var = tf.Variable(
-            tf.zeros((1,) + self.input_shape, dtype=tf.float32),
-            name="enh_obs_mean",
-            trainable=False
-        )
-        enh_obs_std_var = tf.Variable(
-            tf.ones((1,) + self.input_shape, dtype=tf.float32),
-            name="enh_obs_std",
-            trainable=False
-        )
-        self.output_dim=1
-        ret_mean_var = tf.Variable(
-            tf.zeros((1, self.output_dim), dtype=tf.float32),
-            name="ret_mean",
-            trainable=False
-        )
-        ret_std_var = tf.Variable(
-            tf.ones((1, self.output_dim), dtype=tf.float32),
-            name="ret_std",
-            trainable=False
-        )
 
-        self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),
-                                                       [tf.Variable(self.learning_rate * tf.ones_like(self.all_params[key]), trainable=False)
-                                                                                         for key in self.all_params.keys()]))
+
+        self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),[tf.Variable(self.learning_rate * tf.ones_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
         self.last_grad = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
 
-        self._forward = lambda enh_obs, params, is_train: (forward_mean(enh_obs, params, is_train), forward_std(enh_obs, params))
 
-        self._dist = DiagonalGaussian(1)
-
+        # self._dist = DiagonalGaussian(1)
         self._cached_params = {}
-
         super(MAMLGaussianMLPBaseline, self).__init__(env_spec)
 
-        predict_sym = self.predict_sym(enh_obs_vars=self.input_tensor)
-        mean_var = predict_sym['mean']
-        log_std_var = predict_sym['log_std']
+        normalized_predict_sym = self.normalized_predict_sym(normalized_enh_obs_vars=self.normalized_input_tensor)
+        mean_var = normalized_predict_sym['mean'] * self._ret_std_var + self._ret_mean_var
+        meta_constant_var = normalized_predict_sym['meta_constant']
 
         self._init_f_dist = tensor_utils.compile_function(
             inputs=[self.input_tensor],
-            outputs=[mean_var,log_std_var],
+            outputs=[mean_var,meta_constant_var],
         )
         self._cur_f_dist = self._init_f_dist
         self.initialized = False
@@ -124,7 +125,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.momentum = momentum
 
         # self.momopt = tf.train.MomentumOptimizer(learning_rate=0.000001, momentum=0.999)
-        self.momopt = tf.train.AdamOptimizer(name="Adam2")
+        # self.momopt = tf.train.AdamOptimizer(name="bas_optimizer")
 
 
     @property
@@ -141,82 +142,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         else:
             assert len(input_list) == 2
             enh_obs, returns_vars = input_list[0], input_list[1]
-            def normalize(x):
-                mean, var = tf.nn.moments(x, axes=[0])
-                return (x - mean) / (tf.sqrt(var) + 1e-8)
-            normalized_enh_obs = normalize(enh_obs)
-            normalized_returns = normalize(returns_vars)
-            predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=normalized_enh_obs,all_params=self.all_params)
-            predicted_returns_means_sym = tf.reshape(predicted_returns_sym['mean'], [-1])
-            predicted_returns_log_std_sym = tf.reshape(predicted_returns_sym['log_std'], [-1])
-            baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_means_sym - normalized_returns)) - 0.0 * tf.reduce_mean(predicted_returns_log_std_sym)
+            normalized_enh_obs = normalize_sym(enh_obs)
+            normalized_returns = normalize_sym(returns_vars)
+            normalized_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs,all_params=self.all_params)
+            predicted_returns_means_sym = tf.reshape(normalized_predicted_returns_sym['mean'], [-1])
+            meta_constant_sym = tf.reshape(normalized_predicted_returns_sym['meta_constant'], [-1])
+            baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_means_sym - normalized_returns)) - 0.0 * tf.reduce_mean(meta_constant_sym)
             self.surr_obj = baseline_pred_loss
-
-    '''
-    def fit_train_baseline(self, paths, repeat=100):
-        if 'surr_obj' not in dir(self):
-            assert False, "why didn't we define it already"
-        param_keys = self.all_params.keys()
-
-        sess = tf.get_default_session()
-        obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
-        obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
-        al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
-        al2 =al**2
-        al3 = al**3
-        # al0 = al**0
-        returns = np.concatenate([p["returns"] for p in paths])
-        # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
-        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
-
-        if 'lr_train_step' not in dir(self) :
-            gradients = dict(zip(param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in param_keys])))  #+[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])))
-            postupdate_params = OrderedDict(zip(param_keys, [self.all_params[key] - self.learning_rate_per_param[key]*gradients[key] for key in param_keys]))
-            print("debug88\n", self.all_params)
-            print("debug89\n", postupdate_params)
-            predicted_returns_sym, _ = self.predict_sym(enh_obs_vars = self.input_list_for_grad[0],all_params=postupdate_params)
-            print("debug01\n", self.input_list_for_grad[0])
-            print("debug02\n", self.input_list_for_grad[1])
-            loss_after = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - tf.reshape(self.input_list_for_grad[1], [-1,1])) + 0.0 * predicted_returns_sym['log_std'])
-            self.lr_train_step = self.momopt.minimize(loss=loss_after, var_list=[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])
-            # self.lr_train_step = self.momopt.minimize(loss=loss_after) #, var_list=[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])
-                                            # OrderedDict(zip(param_keys, [self.all_params[key] - self.learning_rate_per_param[key] * gradients[key] for key in param_keys]))
-            # pull new param vals out of tensorflow, so gradient computation only done once
-            # these are the updated values of the params after the gradient step
-
-        uninit_vars = []
-        for var in tf.global_variables():
-            # note - this is hacky, may be better way to do this in newer TF.
-            try:
-                sess.run(var)
-            except tf.errors.FailedPreconditionError:
-                uninit_vars.append(var)
-        sess.run(tf.variables_initializer(uninit_vars))
-        feed_dict = dict(list(zip(self.input_list_for_grad, inputs)))
-
-        for _ in range(repeat):
-            if _ in [0,repeat-1]:
-                print("debug99", sess.run(self.learning_rate_per_param).items())
-            sess.run(self.lr_train_step,feed_dict=feed_dict)
-
-            # self.all_param_vals, self.learning_rate_per_param_vals = sess.run(self.all_fast_params_tensor2,
-            #                                 feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
-            # self.assign_params(self.all_params, self.all_param_vals)
-            # self.assign_lr(self.learning_rate_per_param, self.learning_rate_per_param_vals)
-            #
-        #
-        # enh_obs = self.input_list_for_grad[0]
-        # info, _ = self.predict_sym(enh_obs_vars=enh_obs, is_training=False)
-        #
-        # outputs = [info['mean'], info['log_std']]
-        #
-        # self._cur_f_dist = tensor_utils.compile_function(
-        #     inputs=[self.input_tensor],
-        #     outputs=outputs,
-        # )
-    '''
-
-
 
 
     @overrides
@@ -235,12 +167,11 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         sess = tf.get_default_session()
 
-
-
         if 'init_params_tensor' not in dir(self):
             self.init_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] for key in update_param_keys]))
         self.init_param_vals = sess.run(self.init_params_tensor)
         self.init_accumulation_vals = sess.run(self.accumulation)
+        self.init_grad_vals = sess.run(self.last_grad)
         obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
         obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
@@ -250,11 +181,11 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         returns = np.concatenate([p["returns"] for p in paths])  #TODO: do we need to reshape the returns here?
         inputs = [enh_obs] + [returns]
 
-        if self._normalize_inputs:
-            sess.run([
-                tf.assign(self._obs_mean_var, np.mean(enh_obs, axis=0, keepdims=True)),
-                tf.assign(self._obs_std_var, np.std(enh_obs, axis=0, keepdims=True) + 1e-8),
-            ])
+        # if self._normalize_inputs:
+        #     sess.run([
+        #         tf.assign(self._enh_obs_mean_var, np.mean(enh_obs, axis=0, keepdims=True)),
+        #         tf.assign(self._enh_obs_std_var, np.std(enh_obs, axis=0, keepdims=True) + 1e-8),
+        #     ])
 
         if self._normalize_outputs:
             sess.run([
@@ -262,13 +193,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                 tf.assign(self._ret_std_var, np.std(returns, axis=0, keepdims=True) + 1e-8),
             ])
 
-        # al0 = al**0
-        # print("debug43", np.shape(obs))
-        # print("debug11", np.shape(obs))
-        # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
-        #
-        # if self.all_param_vals is not None:
-        #     self.assign_params(self.all_params,self.all_param_vals)
+        # enh_obs_mean = np.mean(enh_obs, axis=0, keepdims=True)
+        # enh_obs_std = np.std(enh_obs, axis=0, keepdims=True) + 1e-8
+        # normalized_enh_obs = (enh_obs-enh_obs_mean)/enh_obs_std
 
         if 'all_fast_params_tensor' not in dir(self) or self.all_fast_params_tensor is None:
             gradients = OrderedDict(zip(update_param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in update_param_keys])))
@@ -294,11 +221,11 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # if init_param_values is not None:
         #     self.assign_params(self.all_params, init_param_values)
 
-        inputs = tf.split(self.input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
-        enh_obs = inputs[0]
-        info, _ = self.predict_sym(enh_obs_vars=enh_obs, all_params=self.all_param_vals,is_training=False)
+        normalized_input_vars = tf.split(self.normalized_input_tensor, 1, 0)  #TODO: how to convert this since we don't need to calculate multiple updates simultaneously
+        normalized_enh_obs_vars = normalized_input_vars[0]
+        normalized_predict_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=self.all_param_vals,is_training=False)
 
-        outputs = [info['mean'], info['log_std']]
+        outputs = [normalized_predict_sym['mean']*self._ret_std_var + self._ret_mean_var, normalized_predict_sym['meta_constant']]
 
         self._cur_f_dist = tensor_utils.compile_function(
             inputs=[self.input_tensor],
@@ -393,7 +320,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
         if len(result) == 2:
-            means, log_stds = result
+            means, meta_constant = result
         else:
             raise NotImplementedError('Not supported.')
         return np.reshape(means, [-1])
@@ -414,15 +341,15 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # print("debug24.1", np.shape(enh_obs))
         result = self._cur_f_dist(enh_obs)
         if len(result) == 2:
-            means, log_stds = result
+            means, meta_constant = result # meta constant is actually a repetition list of the same constant
         else:
             raise NotImplementedError('Not supported.')
-        return np.reshape(log_stds, [-1])
+        return np.reshape(meta_constant, [-1])
 
 
-    @property
-    def distribution(self):
-        return self._dist
+    # @property
+    # def distribution(self):
+    #     return self._dist
 
     def get_params_internal(self, all_params=False, **tags):
         if tags.get('trainable', False):
@@ -430,8 +357,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         else:
             params = tf.global_variables()
 
-        params = [p for p in params if p.name.startswith('mean_baseline_network') or p.name.startswith('output_bas_std_param')]
+        params = [p for p in params if p.name.startswith('mean_baseline_network') or p.name.startswith('output_bas_meta_constant')]
         params = [p for p in params if 'Adam' not in p.name]
+        params = [p for p in params if 'bas_optimizer' not in p.name]
 
         return params
 
@@ -518,6 +446,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.all_param_vals = None
         self.assign_params(self.all_params,self.init_param_vals)
         self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
+        self.assign_gradients(self.last_grad, self.init_grad_vals)
 
     def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
         """equivalent of dist_info_sym, this function constructs the tf graph, only called
@@ -530,12 +459,33 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                 assert False, "Shouldn't get here"
 
 
-        mean_var, std_param_var = self._forward(enh_obs=enh_obs_vars, params=all_params, is_train=is_training)
+        mean_var, meta_constant_var = self._forward(normalized_enh_obs=enh_obs_vars, params=all_params, is_train=is_training)
 
         if return_params:
-            return dict(mean=mean_var, log_std=std_param_var), all_params
+            return dict(mean=mean_var, meta_constant=meta_constant_var), all_params
         else:
-            return dict(mean=mean_var, log_std=std_param_var)
+            return dict(mean=mean_var, meta_constant=meta_constant_var)
+
+
+    def normalized_predict_sym(self, normalized_enh_obs_vars, all_params=None, is_training=True):
+        """equivalent of dist_info_sym, this function constructs the tf graph, only called
+        during beginning of meta-training"""
+        return_params = True
+        if all_params is None:
+            return_params = False
+            all_params = self.all_params
+            if self.all_params is None:
+                assert False, "Shouldn't get here"
+
+
+        normalized_mean_var, normalized_meta_constant_var = self._forward(normalized_enh_obs=normalized_enh_obs_vars, params=all_params, is_train=is_training)
+
+        if return_params:
+            return dict(mean=normalized_mean_var, meta_constant=normalized_meta_constant_var), all_params
+        else:
+            return dict(mean=normalized_mean_var, meta_constant=normalized_meta_constant_var)
+
+
 
     def updated_predict_sym(self, baseline_pred_loss, enh_obs_vars, params_dict=None, accumulation_sym=None):
         """ symbolically create post-fitting baseline predict_sym, to be used for meta-optimization.
@@ -574,7 +524,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # accumulation_sym = {key:tf.Variable(self.accumulation[key]) for key in self.accumulation.keys()}
         a1accumulation_sym = self.accumulation
         # for _ in range(repeat):
-        #     baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
+        #     baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['meta_constant'])
         #     (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
         i = tf.constant(0)
         whatever_vars_0 = [i, updated_params, a1accumulation_sym]
@@ -592,7 +542,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         def b(i, updated_params, accumulation_sym):
             predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
-            baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
+            baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['meta_constant'])
             (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
             return [i+1, updated_params, accumulation_sym]
         print("debug",[get_structure(x) for x in whatever_vars_0])
@@ -600,7 +550,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         (i, updated_params, accumulation_sym) = tf.while_loop(c,b,whatever_vars_0, shape_invariants=[get_structure(x) for x in whatever_vars_0])
         predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
         # baseline_pred_loss = tf.reduce_mean(
-        #     tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['log_std'])
+        #     tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['meta_constant'])
         # (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(
         #     baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params,
         #     accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
@@ -614,7 +564,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         adv_vars = tf.reshape(adv_vars, [-1])
         adv_vars = (adv_vars - tf.reduce_mean(adv_vars))/tf.sqrt(tf.reduce_mean(adv_vars**2))  # centering advantages
-        adv_vars = adv_vars + predicted_returns_sym['log_std'][0]
+        adv_vars = adv_vars + predicted_returns_sym['meta_constant'][0]
 
         return adv_vars
 
@@ -688,6 +638,71 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
 
+'''
+    def fit_train_baseline(self, paths, repeat=100):
+        if 'surr_obj' not in dir(self):
+            assert False, "why didn't we define it already"
+        param_keys = self.all_params.keys()
+
+        sess = tf.get_default_session()
+        obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
+        obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
+        al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
+        al2 =al**2
+        al3 = al**3
+        # al0 = al**0
+        returns = np.concatenate([p["returns"] for p in paths])
+        # inputs = [np.concatenate([al,al2,al3],axis=1)] + [returns]
+        inputs = [np.concatenate([obs,obs2,al,al2,al3],axis=1)] + [returns]
+
+        if 'lr_train_step' not in dir(self) :
+            gradients = dict(zip(param_keys, tf.gradients(self.surr_obj, [self.all_params[key] for key in param_keys])))  #+[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])))
+            postupdate_params = OrderedDict(zip(param_keys, [self.all_params[key] - self.learning_rate_per_param[key]*gradients[key] for key in param_keys]))
+            print("debug88\n", self.all_params)
+            print("debug89\n", postupdate_params)
+            predicted_returns_sym, _ = self.predict_sym(enh_obs_vars = self.input_list_for_grad[0],all_params=postupdate_params)
+            print("debug01\n", self.input_list_for_grad[0])
+            print("debug02\n", self.input_list_for_grad[1])
+            loss_after = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - tf.reshape(self.input_list_for_grad[1], [-1,1])) + 0.0 * predicted_returns_sym['meta_constant'])
+            self.lr_train_step = self.momopt.minimize(loss=loss_after, var_list=[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])
+            # self.lr_train_step = self.momopt.minimize(loss=loss_after) #, var_list=[self.learning_rate_per_param[key] for key in self.learning_rate_per_param.keys()])
+                                            # OrderedDict(zip(param_keys, [self.all_params[key] - self.learning_rate_per_param[key] * gradients[key] for key in param_keys]))
+            # pull new param vals out of tensorflow, so gradient computation only done once
+            # these are the updated values of the params after the gradient step
+
+        uninit_vars = []
+        for var in tf.global_variables():
+            # note - this is hacky, may be better way to do this in newer TF.
+            try:
+                sess.run(var)
+            except tf.errors.FailedPreconditionError:
+                uninit_vars.append(var)
+        sess.run(tf.variables_initializer(uninit_vars))
+        feed_dict = dict(list(zip(self.input_list_for_grad, inputs)))
+
+        for _ in range(repeat):
+            if _ in [0,repeat-1]:
+                print("debug99", sess.run(self.learning_rate_per_param).items())
+            sess.run(self.lr_train_step,feed_dict=feed_dict)
+
+            # self.all_param_vals, self.learning_rate_per_param_vals = sess.run(self.all_fast_params_tensor2,
+            #                                 feed_dict=dict(list(zip(self.input_list_for_grad, inputs))))
+            # self.assign_params(self.all_params, self.all_param_vals)
+            # self.assign_lr(self.learning_rate_per_param, self.learning_rate_per_param_vals)
+            #
+        #
+        # enh_obs = self.input_list_for_grad[0]
+        # info, _ = self.predict_sym(enh_obs_vars=enh_obs, is_training=False)
+        #
+        # outputs = [info['mean'], info['meta_constant']]
+        #
+        # self._cur_f_dist = tensor_utils.compile_function(
+        #     inputs=[self.input_tensor],
+        #     outputs=outputs,
+        # )
+'''
+
+
 def discount_cumsum_sym(var, discount):
     # y[0] = x[0] + discount * x[1] + discount**2 * x[2] + ...
     # y[1] = x[1] + discount * x[2] + discount**2 * x[3] + ...
@@ -696,6 +711,10 @@ def discount_cumsum_sym(var, discount):
     var_ = var * tf.pow(discount, range_)
     return tf.cumsum(var_,reverse=True) * tf.pow(discount,-range_)
 
+
+def normalize_sym(x):
+    mean, var = tf.nn.moments(x, axes=[0])
+    return (x - mean) / (tf.sqrt(var) + 1e-8)
 
 
 

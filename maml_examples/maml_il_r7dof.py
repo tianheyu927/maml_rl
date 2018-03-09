@@ -56,7 +56,7 @@ bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 30 # baseline adam steps
+basas = 40 # baseline adam steps
 
 momentum=0.5
 
