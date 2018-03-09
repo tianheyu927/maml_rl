@@ -448,23 +448,23 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
         self.assign_gradients(self.last_grad, self.init_grad_vals)
 
-    def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
-        """equivalent of dist_info_sym, this function constructs the tf graph, only called
-        during beginning of meta-training"""
-        return_params = True
-        if all_params is None:
-            return_params = False
-            all_params = self.all_params
-            if self.all_params is None:
-                assert False, "Shouldn't get here"
-
-
-        mean_var, meta_constant_var = self._forward(normalized_enh_obs=enh_obs_vars, params=all_params, is_train=is_training)
-
-        if return_params:
-            return dict(mean=mean_var, meta_constant=meta_constant_var), all_params
-        else:
-            return dict(mean=mean_var, meta_constant=meta_constant_var)
+    # def predict_sym(self, enh_obs_vars, all_params=None, is_training=True):
+    #     """equivalent of dist_info_sym, this function constructs the tf graph, only called
+    #     during beginning of meta-training"""
+    #     return_params = True
+    #     if all_params is None:
+    #         return_params = False
+    #         all_params = self.all_params
+    #         if self.all_params is None:
+    #             assert False, "Shouldn't get here"
+    #
+    #
+    #     mean_var, meta_constant_var = self._forward(normalized_enh_obs=enh_obs_vars, params=all_params, is_train=is_training)
+    #
+    #     if return_params:
+    #         return dict(mean=mean_var, meta_constant=meta_constant_var), all_params
+    #     else:
+    #         return dict(mean=mean_var, meta_constant=meta_constant_var)
 
 
     def normalized_predict_sym(self, normalized_enh_obs_vars, all_params=None, is_training=True):
@@ -487,7 +487,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
 
-    def updated_predict_sym(self, baseline_pred_loss, enh_obs_vars, params_dict=None, accumulation_sym=None):
+    def updated_n_predict_sym(self, baseline_pred_loss, n_enh_obs_vars, params_dict=None, accumulation_sym=None):
         """ symbolically create post-fitting baseline predict_sym, to be used for meta-optimization.
         Equivalent of updated_dist_info_sym"""
         old_params_dict = params_dict
@@ -512,22 +512,19 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         #     old_params_dict[key] = params_dict[key]
         for k in no_update_param_keys:
             params_dict[k] = old_params_dict[k]
-        return (self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=params_dict), new_accumulation_sym)
+        return self.normalized_predict_sym(normalized_enh_obs_vars=n_enh_obs_vars, all_params=params_dict), new_accumulation_sym
 
     def build_adv_sym(self,enh_obs_vars,rewards_vars, returns_vars, all_params, baseline_pred_loss=None, repeat=None):  # path_lengths_vars was before all_params
-        # assert baseline_pred_loss is None, "don't give me baseline pred loss"
+        assert baseline_pred_loss is None, "don't give me baseline pred loss"
         repeat = repeat if repeat is not None else self.repeat_sym
-        print("debug", repeat)
         updated_params = all_params
-        predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
+        normalized_enh_obs_vars = normalize_sym(enh_obs_vars)
         returns_vars_ = tf.reshape(returns_vars, [-1,1])
-        # accumulation_sym = {key:tf.Variable(self.accumulation[key]) for key in self.accumulation.keys()}
-        a1accumulation_sym = self.accumulation
-        # for _ in range(repeat):
-        #     baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['meta_constant'])
-        #     (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
+        ret_mean_var_sym, ret_std_var_sym = tf.nn.moments(returns_vars_, axes=[0])
+        normalized_returns_vars_ = normalize_sym(returns_vars_)
+        accumulation_sym = self.accumulation
         i = tf.constant(0)
-        whatever_vars_0 = [i, updated_params, a1accumulation_sym]
+        while_loop_vars_0 = [i, updated_params, accumulation_sym]
         c = lambda i, _, ___: i < repeat
 
         def get_structure(x):
@@ -541,22 +538,17 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
 
         def b(i, updated_params, accumulation_sym):
-            predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
-            baseline_pred_loss = tf.reduce_mean(tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['meta_constant'])
-            (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
+            n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)
+            baseline_pred_loss = tf.reduce_mean(tf.square(n_predicted_returns_sym['mean'] - normalized_returns_vars_) + 0.0 * n_predicted_returns_sym['meta_constant'])
+            (n_predicted_returns_sym, updated_params), accumuluation_sym = self.updated_n_predict_sym(baseline_pred_loss=baseline_pred_loss, n_enh_obs_vars=normalized_enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
             return [i+1, updated_params, accumulation_sym]
-        print("debug",[get_structure(x) for x in whatever_vars_0])
+        print("debug",[get_structure(x) for x in while_loop_vars_0])
 
-        (i, updated_params, accumulation_sym) = tf.while_loop(c,b,whatever_vars_0, shape_invariants=[get_structure(x) for x in whatever_vars_0])
-        predicted_returns_sym, _ = self.predict_sym(enh_obs_vars=enh_obs_vars, all_params=updated_params)
-        # baseline_pred_loss = tf.reduce_mean(
-        #     tf.square(predicted_returns_sym['mean'] - returns_vars_) + 0.0 * predicted_returns_sym['meta_constant'])
-        # (predicted_returns_sym, updated_params), accumuluation_sym = self.updated_predict_sym(
-        #     baseline_pred_loss=baseline_pred_loss, enh_obs_vars=enh_obs_vars, params_dict=updated_params,
-        #     accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
-
+        (i, updated_params, accumulation_sym) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=[get_structure(x) for x in while_loop_vars_0])
+        n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)
+        # predicted_returns_sym = n_predicted_returns_sym * self._ret_std_var + self._ret_mean_var
         organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])
-        organized_pred_returns = tf.reshape(predicted_returns_sym['mean'], [-1,self.max_path_length])
+        organized_pred_returns = tf.reshape(n_predicted_returns_sym['mean'] *(ret_std_var_sym+1e-8) + ret_mean_var_sym , [-1,self.max_path_length])
         organized_pred_returns_ = tf.concat((organized_pred_returns[:,1:], tf.reshape(tf.zeros(tf.shape(organized_pred_returns[:,0])),[-1,1])),axis=1)
 
         deltas = organized_rewards + self.algo_discount * organized_pred_returns_ - organized_pred_returns
@@ -564,7 +556,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
 
         adv_vars = tf.reshape(adv_vars, [-1])
         adv_vars = (adv_vars - tf.reduce_mean(adv_vars))/tf.sqrt(tf.reduce_mean(adv_vars**2))  # centering advantages
-        adv_vars = adv_vars + predicted_returns_sym['meta_constant'][0]
+        adv_vars = adv_vars + n_predicted_returns_sym['meta_constant'][0]
 
         return adv_vars
 

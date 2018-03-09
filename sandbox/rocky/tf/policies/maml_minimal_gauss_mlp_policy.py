@@ -245,7 +245,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             self.assign_params(self.all_params, init_param_values)
 
         outputs = []
-        self._cur_f_dist_i = {}
         inputs = tf.split(self.input_tensor, num_tasks, 0)
         for i in range(num_tasks):
             # TODO - use a placeholder to feed in the params, so that we don't have to recompile every time.
@@ -284,7 +283,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
     def switch_to_init_dist(self):
         # switch cur policy distribution to pre-update policy
         self._cur_f_dist = self._init_f_dist
-        self._cur_f_dist_i = None
         self.all_param_vals = None
 
     def dist_info_sym(self, obs_var, state_info_vars=None, all_params=None, is_training=True):
