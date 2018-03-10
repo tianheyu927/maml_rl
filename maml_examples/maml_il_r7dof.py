@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -56,7 +56,7 @@ bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
 
-basas = 50 # baseline adam steps
+basas = 55 # baseline adam steps
 
 momentum=0.5
 
