@@ -11,7 +11,7 @@ from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.envs.gym_env import GymEnv
 from maml_examples.r7dof_env import Reacher7DofMultitaskEnv
 from rllab.envs.mujoco.pusher_env import PusherEnv
-from gym.wrappers.monitoring import Monitor
+# from gym.wrappers.monitoring import Monitor
 from maml_examples.maml_experiment_vars import HIDDEN_NONLINEARITY, OUTPUT_NONLINEARITY
 from maml_examples.r7dof_vars import R7DOF_GOALS_LOCATION, default_r7dof_env_option
 import tensorflow as tf
@@ -79,7 +79,7 @@ for post_std_modifier_train in post_std_modifier_train_list:
                         post_std_modifier_test=post_std_modifier_test,
                         goals_pool_to_load=R7DOF_GOALS_LOCATION,
                         # goals_pickle_to=R7DOF_GOALS_LOCATION,
-                        # goals_pool_size=1000,
+                        # goals_pool_size=100,
 
                     )
                     run_experiment_lite(
@@ -106,6 +106,6 @@ for post_std_modifier_train in post_std_modifier_train_list:
                                  + "_" + time.strftime("%D_%H_%M").replace("/", ""),
                         plot=False,
                         sync_s3_pkl=True,
-                        mode="ec2",
+                        mode="local",
                         terminate_machine=False,
                     )

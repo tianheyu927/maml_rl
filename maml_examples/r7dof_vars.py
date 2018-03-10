@@ -12,8 +12,9 @@ default_r7dof_env_option = ''
 
 EXPERT_TRAJ_LOCATION_DICT = {
     ".local": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
-    ".local_100": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-100/",
-    ".local_200": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200/",
+    ".local_1000_40": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
+    ".local_100_40": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-100-40/",  # 100 goals, 40 goals per itr, 40 et per goal
+    ".local_200_40": "/home/rosen/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40/", # 200 goals, 40 goals per itr, 40 et per goal
     ".ec2": "/root/code/rllab/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
 
 }

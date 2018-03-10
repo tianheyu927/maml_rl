@@ -69,7 +69,7 @@ def run_task(v):
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
         action_noise_test=0.1,
-        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local"],
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local_100_40"],
         goals_pool_to_load=R7DOF_GOALS_LOCATION,
     )
     algo.train()

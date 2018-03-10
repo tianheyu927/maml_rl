@@ -91,7 +91,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             num_units=1,
             param=tf.constant_initializer(init_meta_constant),
             name="output_bas_meta_constant",
-            trainable=False,
+            trainable=True,
         )
         forward_mean = lambda x, params, is_train: self.forward_MLP('mean_baseline_network',all_params=params, input_tensor=x, is_training=is_train)[1]
         forward_meta_constant = lambda x, params: forward_param_layer(x, params['meta_constant'])

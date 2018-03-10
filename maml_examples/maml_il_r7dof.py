@@ -28,15 +28,15 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,125),]
+beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
 
-fast_batch_size_list = [4]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -49,9 +49,9 @@ l2loss_std_mult_list = [1.0]
 # importance_sampling_modifier_list = ['clip1.0_']
 # importance_sampling_modifier_list = ['clip1.0_1.0']
 importance_sampling_modifier_list = ['']
-limit_expert_traj_num_list = [4]  # 40
+limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
-bas_lr = 0.013 # baseline learning rate, 0.001
+bas_lr = 0.013 # baseline learning rate, 0.013 works well for 4 demos/ 4 ets
 bas_hnl = tf.identity
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(), ]
@@ -161,7 +161,7 @@ for baslayers in baslayers_list:
                                                 importance_sampling_modifier=MOD_FUNC[ism],
                                                 post_std_modifier_train=post_std_modifier_train,
                                                 post_std_modifier_test=post_std_modifier_test,
-                                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode],
+                                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+""],
                                             )
                                             run_experiment_lite(
                                                 algo.train(),
@@ -169,8 +169,8 @@ for baslayers in baslayers_list:
                                                 snapshot_mode="last",
                                                 python_command='python3',
                                                 seed=seed,
-                                                exp_prefix='R7_IL_D0.2',
-                                                exp_name='R7_IL_D0.2'
+                                                exp_prefix='R7_IL_D0.2_g100',
+                                                exp_name='R7_IL_D0.2_g100'
                                                          # + str(int(use_maml))
                                                              +'_fbs'+str(fast_batch_size)
                                                              +'_mbs'+str(meta_batch_size)

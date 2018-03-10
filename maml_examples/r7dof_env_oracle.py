@@ -15,7 +15,7 @@ class Reacher7DofMultitaskEnvOracle(
             noise = kwargs['noise']
         else:
             noise = 0.0
-        self.__class__.FILE = 'r7dof_versions/recher_7dof.xml'
+        self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
         super().__init__(action_noise=noise)
         Serializable.__init__(self, *args, **kwargs)
 
