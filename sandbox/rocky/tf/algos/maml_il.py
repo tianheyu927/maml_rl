@@ -183,7 +183,10 @@ class MAMLIL(BatchMAMLPolopt):
 
                 old_logli_sym[-1].append(logli_i)
                 old_lr[-1].append(lr_per_step)
-                old_adv[-1].append(adv)
+                if not self.metalearn_baseline:
+                    old_adv[-1].append(adv)
+                else:
+                    old_adv[-1].append(adv_sym)
                 old_action_vars[-1].append(action_vars[i])
                 old_obs_vars[-1].append(obs_vars[i])
                 # formulate a minimization problem
