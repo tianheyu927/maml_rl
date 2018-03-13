@@ -273,7 +273,8 @@ class MAMLIL(BatchMAMLPolopt):
             term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
             term1_list.append(term1_i)
 
-        corr_term = tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys])  #TODO: need to test it with the step size
+        corr_term = OrderedDict(zip(tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys]),[self.policy.all_params[key] for key in keys]))  #TODO: need to test it with the step size
+        print("debug54", [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()])
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
