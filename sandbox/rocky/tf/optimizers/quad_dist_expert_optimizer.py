@@ -101,12 +101,13 @@ class QuadDistExpertOptimizer(Serializable):
         if self._correction_term is None:
             self._train_step = self._adam.apply_gradients(self._gradients)
         else:
-            # print("debug1", self._gradients)
-            # print("debug2", self._correction_term)
+            print("debug1", self._gradients)
+            print("debug2", self._correction_term)
+            print("debug2", self._correction_term.keys())
             self.new_gradients = []
             for grad,var in self._gradients:
                 if var in self._correction_term.keys():
-                    self.new_gradients.append((grad + 0.0 * corr, var))
+                    self.new_gradients.append((grad + self._correction_term[var], var))
                 else:
                     self.new_gradients.append((grad,var))
             # print("debug3", self.new_gradients)
