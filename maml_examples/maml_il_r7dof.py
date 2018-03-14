@@ -161,7 +161,7 @@ for baslayers in baslayers_list:
                                                 importance_sampling_modifier=MOD_FUNC[ism],
                                                 post_std_modifier_train=post_std_modifier_train,
                                                 post_std_modifier_test=post_std_modifier_test,
-                                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+"_100_40"],
+                                                expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+""],
                                             )
                                             run_experiment_lite(
                                                 algo.train(),
