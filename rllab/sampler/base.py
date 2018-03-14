@@ -52,7 +52,6 @@ class BaseSampler(Sampler):
         returns = []
         if testitr:
             metalearn_baseline = False
-            # print("debug31, we're testing")
         train_baseline = (itr in BASELINE_TRAINING_ITRS)
 
         for idx, path in enumerate(paths):

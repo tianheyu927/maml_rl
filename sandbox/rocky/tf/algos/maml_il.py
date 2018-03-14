@@ -274,13 +274,12 @@ class MAMLIL(BatchMAMLPolopt):
             term1_list.append(term1_i)
 
         corr_term = OrderedDict(zip(tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys]),[self.policy.all_params[key] for key in keys]))  #TODO: need to test it with the step size
-        print("debug54", [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()])
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']] ,
-            target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()],
-            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()],
+            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()],
+            target=[self.policy.all_params[key] for key in self.policy.all_params.keys()],
             # target=self.policy,
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
