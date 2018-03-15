@@ -118,7 +118,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             outputs=[mean_var,meta_constant_var],
         )
         self._cur_f_dist = self._init_f_dist
-        self.initialized = False
+        self.initialized = 10
         self.lr_mult = 1.0
         self.repeat=repeat
         self.repeat_sym=repeat_sym
@@ -157,8 +157,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         repeat = repeat if repeat is not None else self.repeat
         if 'surr_obj' not in dir(self):
             assert False, "why didn't we define it already"
-        if not self.initialized:
-            repeat = 3000
+        if self.initialized > 0:
+            repeat = 400
             self.lr_mult = 0.5
         """Equivalent of compute_updated_dists"""
         update_param_keys = self.all_params.keys()
@@ -230,11 +230,12 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             inputs=[self.input_tensor],
             outputs=outputs,
         )
-        if not self.initialized:
+        if self.initialized > 0:
             self.init_param_vals = sess.run(self.init_params_tensor)
-            self.all_fast_params_tensor = None
-            self.lr_mult = 1.0
-            self.initialized=True
+            self.initialized -= 1
+            if self.initialized == 0:
+                self.all_fast_params_tensor = None
+                self.lr_mult = 1.0
 
         self.assign_accumulation(self.accumulation, self.init_accumulation_vals)
 
@@ -503,10 +504,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             print("debug", gradients)
             print("debug", accumulation_sym)
             new_accumulation_sym = {key:self.momentum * accumulation_sym[key] + gradients[key] for key in update_param_keys}
-            params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * new_accumulation_sym[key] for key in update_param_keys]))
+            params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.lr_mult * self.learning_rate_per_param[key] * new_accumulation_sym[key] for key in update_param_keys]))
         else:
             new_accumulation_sym = None
-            params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.learning_rate_per_param[key] * gradients[key] for key in update_param_keys]))
+            params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.lr_mult * self.learning_rate_per_param[key] * gradients[key] for key in update_param_keys]))
         # for key in update_param_keys:
         #     old_params_dict[key] = params_dict[key]
         for k in no_update_param_keys:
