@@ -73,7 +73,6 @@ class BaseSampler(Sampler):
                 logger.log("fitted")
 
             if 'switch_to_init_dist' in dir(self.algo.baseline):
-                # print("debug77, switching to init")
                 self.algo.baseline.switch_to_init_dist()
 
             if train_baseline:
@@ -267,3 +266,9 @@ class BaseSampler(Sampler):
         #         self.algo.baseline.revert()
 
         return samples_data
+
+
+TensorShape=1
+OrderedDict=2
+Dimension=3
+

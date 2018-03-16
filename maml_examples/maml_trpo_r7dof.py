@@ -41,7 +41,7 @@ for post_std_modifier_train in post_std_modifier_train_list:
                 for bas in baselines:
                     stub(globals())
 
-                    seed = 1
+                    seed = 4
                     #env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))  #TODO: force_reset was True
                     #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
                     env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
@@ -77,9 +77,9 @@ for post_std_modifier_train in post_std_modifier_train_list:
                         pre_std_modifier=pre_std_modifier,
                         post_std_modifier_train=post_std_modifier_train,
                         post_std_modifier_test=post_std_modifier_test,
-                        goals_pool_to_load=R7DOF_GOALS_LOCATION,
-                        # goals_pickle_to=R7DOF_GOALS_LOCATION,
-                        # goals_pool_size=100,
+                        # goals_pool_to_load=R7DOF_GOALS_LOCATION,
+                        goals_pickle_to=R7DOF_GOALS_LOCATION,
+                        goals_pool_size=200,
 
                     )
                     run_experiment_lite(

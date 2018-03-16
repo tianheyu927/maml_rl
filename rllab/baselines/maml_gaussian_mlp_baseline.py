@@ -118,7 +118,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             outputs=[mean_var,meta_constant_var],
         )
         self._cur_f_dist = self._init_f_dist
-        self.initialized = 10
+        self.initialized = 30
         self.lr_mult = 1.0
         self.repeat=repeat
         self.repeat_sym=repeat_sym
@@ -501,8 +501,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         grads = tf.gradients(baseline_pred_loss, [old_params_dict[key] for key in update_param_keys])
         gradients = dict(zip(update_param_keys, grads))
         if accumulation_sym is not None:
-            print("debug", gradients)
-            print("debug", accumulation_sym)
             new_accumulation_sym = {key:self.momentum * accumulation_sym[key] + gradients[key] for key in update_param_keys}
             params_dict = OrderedDict(zip(update_param_keys, [old_params_dict[key] - self.lr_mult * self.learning_rate_per_param[key] * new_accumulation_sym[key] for key in update_param_keys]))
         else:
@@ -543,7 +541,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             baseline_pred_loss = tf.reduce_mean(tf.square(n_predicted_returns_sym['mean'] - normalized_returns_vars_) + 0.0 * n_predicted_returns_sym['meta_constant'])
             (n_predicted_returns_sym, updated_params), accumuluation_sym = self.updated_n_predict_sym(baseline_pred_loss=baseline_pred_loss, n_enh_obs_vars=normalized_enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
             return [i+1, updated_params, accumulation_sym]
-        print("debug",[get_structure(x) for x in while_loop_vars_0])
+        # print("debug",[get_structure(x) for x in while_loop_vars_0])
 
         (i, updated_params, accumulation_sym) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=[get_structure(x) for x in while_loop_vars_0])
         n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)

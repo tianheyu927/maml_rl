@@ -62,14 +62,14 @@ def run_task(v):
         batch_size_expert_traj=40*100,
         max_path_length=100,
         start_itr=-1,
-        n_itr=1001,  # actually last iteration number, not total iterations
+        n_itr=201,  # actually last iteration number, not total iterations
         discount=0.99,
         step_size=0.01,  # 0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
         action_noise_test=0.1,
-        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local_100_40"],
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local_200_40_4"],
         goals_pool_to_load=R7DOF_GOALS_LOCATION,
     )
     algo.train()

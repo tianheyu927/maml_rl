@@ -49,7 +49,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._target = None
         self._max_constraint_val = None
         self._constraint_name = None
-        self._adam_steps = adam_steps
+        self._optimizer_steps = adam_steps
         self._correction_term = None
         self._use_momentum_optimizer=use_momentum_optimizer
 
@@ -168,7 +168,7 @@ class QuadDistExpertOptimizer(Serializable):
         # print("debug01, tf gradients", sess.run(self.new_gradients, feed_dict=feed_dict)[0][0][0][0:4])
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
-        for _ in range(self._adam_steps):
+        for _ in range(self._optimizer_steps):
             # if _ in [0,24,49,74,99,124]:
             # print("debug00 loss",sess.run(self._loss, feed_dict=feed_dict))
             # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
