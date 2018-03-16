@@ -35,7 +35,8 @@ baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
-goals_suffixes = ["_200_40_2","_200_40_3","_200_40_4"]
+# goals_suffixes = ["_200_40_2","_200_40_3","_200_40_4"]
+goals_suffixes = ["_1000_40"]
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
@@ -61,7 +62,7 @@ basas = 60 # baseline adam steps
 
 momentum=0.5
 use_corr_term = True
-seeds = [2,3,4,5]
+seeds = [1,2,3,4,5]
 use_maml = True
 for goals_suffix in goals_suffixes:
     for seed in seeds:
@@ -79,7 +80,7 @@ for goals_suffix in goals_suffixes:
                                                     stub(globals())
                                                     env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
 
-                                                    exp_name = str('R7_IL_D0.2'
+                                                    exp_name = str('R7_IL_D0.3'
                                                     + goals_suffix
                                                     + str(seed)
                                                     + ("corr" if use_corr_term else "")
@@ -206,6 +207,6 @@ for goals_suffix in goals_suffixes:
                                                         plot=False,
                                                         sync_s3_pkl=True,
                                                         mode=mode,
-                                                        terminate_machine=False,
+                                                        terminate_machine=True,
                                                     )
 
