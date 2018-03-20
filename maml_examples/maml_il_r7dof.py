@@ -207,6 +207,6 @@ for goals_suffix in goals_suffixes:
                                                         plot=False,
                                                         sync_s3_pkl=True,
                                                         mode=mode,
-                                                        terminate_machine=True,
+                                                        terminate_machine=False,
                                                     )
 
