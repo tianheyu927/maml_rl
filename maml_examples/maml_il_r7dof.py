@@ -31,12 +31,12 @@ import time
 beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
-# goals_suffixes = ["_200_40_2","_200_40_3","_200_40_4"]
-goals_suffixes = ["_1000_40"]
+goals_suffixes = ["_200_40_2","_200_40_3","_200_40_4"]
+#goals_suffixes = ["_1000_40"]
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
@@ -54,9 +54,9 @@ importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate, 0.013 works well for 4 demos/ 4 ets
-bas_hnl = tf.identity
+bas_hnl = tf.nn.relu
 # bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
-baslayers_list = [(), ]
+baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 
