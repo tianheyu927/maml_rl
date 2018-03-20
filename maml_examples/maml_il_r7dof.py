@@ -31,12 +31,12 @@ import time
 beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
-goals_suffixes = ["_200_40_2","_200_40_3","_200_40_4"]
-#goals_suffixes = ["_1000_40"]
+# goals_suffixes = ["_200_40_2","_200_40_3","_200_40_4"]
+goals_suffixes = ["_1000_40"]
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
