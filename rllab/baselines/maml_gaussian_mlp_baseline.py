@@ -4,10 +4,10 @@ from rllab.core.serializable import Serializable
 from rllab.core.parameterized import Parameterized
 from rllab.baselines.base import Baseline
 from rllab.misc.overrides import overrides
-from sandbox.rocky.tf.regressors.maml_gaussian_mlp_regressor import MAMLGaussianMLPRegressor
-from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
-from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
-from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian  # This is just a util class. No params.
+# from sandbox.rocky.tf.regressors.maml_gaussian_mlp_regressor import MAMLGaussianMLPRegressor
+# from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimizer
+# from sandbox.rocky.tf.optimizers.quad_dist_expert_optimizer import QuadDistExpertOptimizer
+# from sandbox.rocky.tf.distributions.diagonal_gaussian import DiagonalGaussian  # This is just a util class. No params.
 
 from collections import OrderedDict
 from sandbox.rocky.tf.misc import tensor_utils

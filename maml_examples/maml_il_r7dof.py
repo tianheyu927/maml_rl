@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
@@ -62,7 +62,7 @@ basas = 60 # baseline adam steps
 
 momentum=0.5
 use_corr_term = True
-seeds = [1,2,3,4,5]
+seeds = [4]
 use_maml = True
 for goals_suffix in goals_suffixes:
     for seed in seeds:
