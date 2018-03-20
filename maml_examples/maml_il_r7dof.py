@@ -105,7 +105,7 @@ for goals_suffix in goals_suffixes:
                                                     # +"_tfbe" # TF backend for baseline
                                                     # +"_qdo" # quad dist optimizer
                                                     + (("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
-                                                    + "_" + str(baslayers)  # size
+                                                    # + "_" + str(baslayers)  # size
                                                     + "_baslr" + str(bas_lr)
                                                     + "_basas" + str(basas) if bas[0] in ["G","M"] else "")  # baseline adam steps
                                                     + "_" + time.strftime("%D_%H_%M").replace("/", "."))
