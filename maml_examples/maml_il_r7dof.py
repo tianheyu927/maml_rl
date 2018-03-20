@@ -62,7 +62,7 @@ basas = 60 # baseline adam steps
 
 momentum=0.5
 use_corr_term = True
-seeds = [1,2,3,5]
+seeds = [1,2,3,4,5]
 use_maml = True
 for goals_suffix in goals_suffixes:
     for seed in seeds:
