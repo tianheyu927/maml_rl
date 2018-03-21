@@ -178,7 +178,7 @@ class QuadDistExpertOptimizer(Serializable):
             # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
-        return init_loss, final_loss
+        # return init_loss, final_loss
 
 
     def reset_optimizer(self):
