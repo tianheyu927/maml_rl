@@ -542,8 +542,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             (n_predicted_returns_sym, updated_params), accumuluation_sym = self.updated_n_predict_sym(baseline_pred_loss=baseline_pred_loss, n_enh_obs_vars=normalized_enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
             return [i+1, updated_params, accumulation_sym]
         # print("debug",[get_structure(x) for x in while_loop_vars_0])
-
-        (i, updated_params, accumulation_sym) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=[get_structure(x) for x in while_loop_vars_0])
+        print("debug1", tf.__version__)
+        shape_invariants = [get_structure(x) for x in while_loop_vars_0]
+        print("debug1", shape_invariants)
+        (i, updated_params, accumulation_sym) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=shape_invariants)
         n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)
         # predicted_returns_sym = n_predicted_returns_sym * self._ret_std_var + self._ret_mean_var
         organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])

@@ -363,7 +363,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                             while 'sample_goals' not in dir(env):
                                 env = env.wrapped_env
                             if self.test_on_training_goals:
-                                goals_to_use = self.goals_pool
+                                goals_to_use = self.goals_pool[self.meta_batch_size*beta_step:self.meta_batch_size*(beta_step+1)]
+                                print("Debug11", goals_to_use)
                             else:
                                 goals_to_use = env.sample_goals(self.meta_batch_size)
                             self.goals_to_use_dict[itr] = goals_to_use if beta_step==0 else np.concatenate((self.goals_to_use_dict[itr],goals_to_use))
