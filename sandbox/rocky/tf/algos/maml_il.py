@@ -376,7 +376,7 @@ class MAMLIL(BatchMAMLPolopt):
        # loss_before = self.optimizer.loss(input_vals_list)
         if itr not in TESTING_ITRS:
             logger.log("Optimizing")
-            self.optimizer.optimize(input_vals_list)
+            init_loss, final_loss = self.optimizer.optimize(input_vals_list)
         else:
             logger.log("Not Optimizing")
         logger.log("Computing loss after")

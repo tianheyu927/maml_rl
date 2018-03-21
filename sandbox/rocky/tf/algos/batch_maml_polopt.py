@@ -62,6 +62,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             force_batch_sampler=False,
             use_maml=True,
             use_maml_il=False,
+            test_on_training_goals=False,
             limit_expert_traj_num=None,
             test_goals_mult=1,
             load_policy=None,
@@ -115,6 +116,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.discount = discount
         self.gae_lambda = gae_lambda
         self.beta_steps = beta_steps
+        self.old_il_loss = None
         self.plot = plot
         self.pause_for_plot = pause_for_plot
         self.make_video = make_video
@@ -126,7 +128,8 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.meta_batch_size = meta_batch_size  # number of tasks
         self.num_grad_updates = num_grad_updates  # number of gradient steps during training
         self.use_maml_il = use_maml_il
-        print("use_maml_il", self.use_maml_il)
+        self.test_on_training_goals= test_on_training_goals
+        print("test_on_training_goals", self.test_on_training_goals)
         self.limit_expert_traj_num = limit_expert_traj_num
         self.test_goals_mult = test_goals_mult
         self.pre_std_modifier = pre_std_modifier
@@ -338,6 +341,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else range(self.test_goals_mult)
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in TESTING_ITRS:
+                        print("debug12, calculating pre-optimization loss")
+                        cur_il_loss = tf.get_default_session().run(self.optimizer)
                         if not self.use_pooled_goals:
                             expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
                         else:
@@ -357,7 +362,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                             env = self.env
                             while 'sample_goals' not in dir(env):
                                 env = env.wrapped_env
-                            goals_to_use = env.sample_goals(self.meta_batch_size)
+                            if self.test_on_training_goals:
+                                goals_to_use = self.goals_pool
+                            else:
+                                goals_to_use = env.sample_goals(self.meta_batch_size)
                             self.goals_to_use_dict[itr] = goals_to_use if beta_step==0 else np.concatenate((self.goals_to_use_dict[itr],goals_to_use))
                         for step in range(self.num_grad_updates+1): # inner loop
                             logger.log('** Betastep %s ** Step %s **' % (str(beta_step), str(step)))
