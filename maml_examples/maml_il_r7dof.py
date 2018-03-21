@@ -47,15 +47,11 @@ pre_std_modifier_list = [1.0]
 post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
-# importance_sampling_modifier_list = ['clip0.5_2.0']
-# importance_sampling_modifier_list = ['clip1.0_']
-# importance_sampling_modifier_list = ['clip1.0_1.0']
 importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [40]  # 40
-test_goals_mult = 5
-bas_lr = 0.01 # baseline learning rate, 0.013 works well for 4 demos/ 4 ets
+test_goals_mult = 1
+bas_lr = 0.01 # baseline learning rate
 bas_hnl = tf.nn.relu
-# bas_onl = lambda x: x*0.0 + tf.constant(-5.0)
 baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
