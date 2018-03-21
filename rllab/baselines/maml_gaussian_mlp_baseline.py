@@ -523,7 +523,10 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         normalized_returns_vars_ = tf.reshape(normalized_returns_vars, [-1,1])
         accumulation_sym = self.accumulation
         i = tf.constant(0)
-        while_loop_vars_0 = [updated_params, accumulation_sym, i]
+        keys = updated_params.keys()
+        updated_params_list = [updated_params[key] for key in keys ]
+        accumulation_sym_list = [accumulation_sym[key] for key in keys]
+        while_loop_vars_0 = [updated_params_list, accumulation_sym_list, i]
         c = lambda _, ___, i: i < repeat
 
         def get_structure(x):
@@ -534,18 +537,26 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                     return OrderedDict({key:get_structure(x[key]) for key in x.keys()})
                 elif isinstance(x, dict):
                     return {key:get_structure(x[key]) for key in x.keys()}
+                elif isinstance(x, list):
+                    return [get_structure(y) for y in x]
 
 
-        def b(updated_params, accumulation_sym, i ):
-            n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)
+        def b(updated_params_list, accumulation_sym_list, i ):
+            updated_params_reconstr = OrderedDict(zip(keys,updated_params_list))
+            accumulation_sym_reconstr = OrderedDict(zip(keys, accumulation_sym_list))
+            n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params_reconstr)
             baseline_pred_loss = tf.reduce_mean(tf.square(n_predicted_returns_sym['mean'] - normalized_returns_vars_) + 0.0 * n_predicted_returns_sym['meta_constant'])
-            (n_predicted_returns_sym, updated_params), accumuluation_sym = self.updated_n_predict_sym(baseline_pred_loss=baseline_pred_loss, n_enh_obs_vars=normalized_enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
-            return [updated_params, accumulation_sym, i+1]
+            (n_predicted_returns_sym, updated_params1), accumulation_sym1 = self.updated_n_predict_sym(baseline_pred_loss=baseline_pred_loss, n_enh_obs_vars=normalized_enh_obs_vars, params_dict=updated_params_reconstr, accumulation_sym=accumulation_sym_reconstr)  # TODO: do we need to update the params here?
+            updated_params_list = [updated_params1[key] for key in keys]
+            accumulation_sym_list = [accumulation_sym1[key] for key in keys]
+            return [updated_params_list, accumulation_sym_list, i+1]
         # print("debug",[get_structure(x) for x in while_loop_vars_0])
         print("debug1", tf.__version__)
         shape_invariants = [get_structure(x) for x in while_loop_vars_0]
         print("debug1", shape_invariants)
-        (i, updated_params, accumulation_sym) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=shape_invariants)
+        (updated_params_list, accumulation_sym_list, i) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=shape_invariants)
+        updated_params = OrderedDict(zip(keys, updated_params_list))
+        accumulation_sym = OrderedDict(zip(keys, accumulation_sym_list))
         n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)
         # predicted_returns_sym = n_predicted_returns_sym * self._ret_std_var + self._ret_mean_var
         organized_rewards = tf.reshape(rewards_vars, [-1,self.max_path_length])
