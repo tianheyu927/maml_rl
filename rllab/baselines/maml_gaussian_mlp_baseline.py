@@ -523,8 +523,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         normalized_returns_vars_ = tf.reshape(normalized_returns_vars, [-1,1])
         accumulation_sym = self.accumulation
         i = tf.constant(0)
-        while_loop_vars_0 = [i, updated_params, accumulation_sym]
-        c = lambda i, _, ___: i < repeat
+        while_loop_vars_0 = [updated_params, accumulation_sym, i]
+        c = lambda _, ___, i: i < repeat
 
         def get_structure(x):
             if "get_shape" in dir(x):
@@ -536,11 +536,11 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
                     return {key:get_structure(x[key]) for key in x.keys()}
 
 
-        def b(i, updated_params, accumulation_sym):
+        def b(updated_params, accumulation_sym, i ):
             n_predicted_returns_sym, _ = self.normalized_predict_sym(normalized_enh_obs_vars=normalized_enh_obs_vars, all_params=updated_params)
             baseline_pred_loss = tf.reduce_mean(tf.square(n_predicted_returns_sym['mean'] - normalized_returns_vars_) + 0.0 * n_predicted_returns_sym['meta_constant'])
             (n_predicted_returns_sym, updated_params), accumuluation_sym = self.updated_n_predict_sym(baseline_pred_loss=baseline_pred_loss, n_enh_obs_vars=normalized_enh_obs_vars, params_dict=updated_params, accumulation_sym=accumulation_sym)  # TODO: do we need to update the params here?
-            return [i+1, updated_params, accumulation_sym]
+            return [updated_params, accumulation_sym, i+1]
         # print("debug",[get_structure(x) for x in while_loop_vars_0])
         print("debug1", tf.__version__)
         shape_invariants = [get_structure(x) for x in while_loop_vars_0]
