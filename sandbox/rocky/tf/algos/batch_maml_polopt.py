@@ -341,8 +341,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else range(self.test_goals_mult)
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in TESTING_ITRS:
-                        print("debug12, calculating pre-optimization loss")
-                        cur_il_loss = tf.get_default_session().run(self.optimizer)
+                        # print("debug12, calculating pre-optimization loss")
+                        # cur_il_loss = tf.get_default_session().run(self.optimizer)
                         if not self.use_pooled_goals:
                             expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
                         else:
