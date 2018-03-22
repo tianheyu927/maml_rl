@@ -127,18 +127,24 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # self.momopt = tf.train.MomentumOptimizer(learning_rate=0.000001, momentum=0.999)
         # self.momopt = tf.train.AdamOptimizer(name="bas_optimizer")
 
-        # initialize Adam variables
-        uninit_vars = []
+
         sess = tf.get_default_session()
         if sess is None:
             sess = tf.Session()
-        for var in tf.global_variables():
-            # note - this is hacky, may be better way to do this in newer TF.
-            try:
-                sess.run(var)
-            except tf.errors.FailedPreconditionError:
-                uninit_vars.append(var)
-        sess.run(tf.variables_initializer(uninit_vars))
+        keys = self.all_params.keys()
+        sess.run(tf.initialize_variables([self.all_params[k] for k in keys] + [self.learning_rate_per_param[k] for k in keys] + [self.accumulation[k] for k in keys]))
+
+        # uninit_vars = []
+        # sess = tf.get_default_session()
+        # if sess is None:
+        #     sess = tf.Session()
+        # for var in tf.global_variables():
+        #     # note - this is hacky, may be better way to do this in newer TF.
+        #     try:
+        #         sess.run(var)
+        #     except tf.errors.FailedPreconditionError:
+        #         uninit_vars.append(var)
+        # sess.run(tf.variables_initializer(uninit_vars))
 
 
 
