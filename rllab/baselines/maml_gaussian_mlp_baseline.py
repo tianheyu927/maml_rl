@@ -132,8 +132,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         if sess is None:
             sess = tf.Session()
         keys = self.all_params.keys()
-        sess.run(tf.initialize_variables([self.all_params[k] for k in keys] + [self.learning_rate_per_param[k] for k in keys] + [self.accumulation[k] for k in keys]))
-
+        sess.run(tf.variables_initializer([self.all_params[k] for k in keys] + [self.learning_rate_per_param[k] for k in keys] + [self.accumulation[k] for k in keys]))
+        sess.run(tf.global_variables_initializer())
         # uninit_vars = []
         # sess = tf.get_default_session()
         # if sess is None:
