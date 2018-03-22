@@ -98,9 +98,13 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self._forward = lambda normalized_enh_obs, params, is_train: (forward_mean(normalized_enh_obs, params, is_train), forward_meta_constant(normalized_enh_obs, params))
         self.all_param_vals = None
 
-
+        sess = tf.get_default_session()
+        if sess is None:
+            sess = tf.Session()
+        sess.run(tf.global_variables_initializer())
 
         self.learning_rate_per_param = OrderedDict(zip(self.all_params.keys(),[tf.Variable(self.learning_rate * tf.ones_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
+        sess.run(tf.global_variables_initializer())
         self.accumulation = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
         # self.last_grad = OrderedDict(zip(self.all_params.keys(),[tf.Variable(tf.zeros_like(self.all_params[key]), trainable=False) for key in self.all_params.keys()]))
 
