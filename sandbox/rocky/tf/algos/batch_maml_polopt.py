@@ -330,6 +330,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                 except tf.errors.FailedPreconditionError:
                     uninit_vars.append(var)
             sess.run(tf.variables_initializer(uninit_vars))
+            sess.run(tf.global_variables_initializer())
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
