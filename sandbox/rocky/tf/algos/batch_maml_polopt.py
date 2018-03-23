@@ -323,6 +323,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.init_opt()
             # initialize uninitialized vars  (only initialize vars that were not loaded)
             uninit_vars = []
+            sess.run(tf.global_variables_initializer())
             for var in tf.global_variables():
                 # note - this is hacky, may be better way to do this in newer TF.
                 try:
@@ -330,7 +331,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                 except tf.errors.FailedPreconditionError:
                     uninit_vars.append(var)
             sess.run(tf.variables_initializer(uninit_vars))
-            sess.run(tf.global_variables_initializer())
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
