@@ -31,11 +31,11 @@ import time
 beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
-goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
+goals_suffixes = ["_200_40_1","_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
 fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
@@ -58,9 +58,9 @@ basas = 60 # baseline adam steps
 
 momentum=0.5
 use_corr_term = True
-seeds = [1] #,2,3,4,5]
+seeds = [1,2,3,4,5]
 use_maml = True
-test_on_training_goals = False
+test_on_training_goals = True
 for goals_suffix in goals_suffixes:
     for seed in seeds:
         for baslayers in baslayers_list:
