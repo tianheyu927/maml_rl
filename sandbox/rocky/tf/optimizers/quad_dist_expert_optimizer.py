@@ -168,17 +168,14 @@ class QuadDistExpertOptimizer(Serializable):
         # print("debug01, tf gradients", sess.run(self.new_gradients, feed_dict=feed_dict)[0][0][0][0:4])
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
+        init_loss = sess.run(self._loss, feed_dict=feed_dict)
+        print("current_loss", init_loss)
         for _ in range(self._optimizer_steps):
-            if _ in [0]:
-                init_loss = sess.run(self._loss, feed_dict=feed_dict)
-            if _ in [self._optimizer_steps-1]:
-                final_loss = sess.run(self._loss, feed_dict=feed_dict)
-
             # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
             # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))
             sess.run(self._train_step, feed_dict=feed_dict)
-        # return init_loss, final_loss
+        return init_loss
 
 
     def reset_optimizer(self):

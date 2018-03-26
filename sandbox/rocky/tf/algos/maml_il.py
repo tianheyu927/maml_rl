@@ -39,6 +39,7 @@ class MAMLIL(BatchMAMLPolopt):
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
         self.ism = importance_sampling_modifier
+        self.old_start_il_loss = None
         self.metalearn_baseline = metalearn_baseline
         super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, metalearn_baseline=metalearn_baseline, **kwargs)
 
@@ -376,11 +377,14 @@ class MAMLIL(BatchMAMLPolopt):
        # loss_before = self.optimizer.loss(input_vals_list)
         if itr not in TESTING_ITRS:
             logger.log("Optimizing")
-            # init_loss, final_loss = self.optimizer.optimize(input_vals_list)
-            self.optimizer.optimize(input_vals_list)
+            start_loss = self.optimizer.optimize(input_vals_list)
+            # self.optimizer.optimize(input_vals_list)
+            return start_loss
+
         else:
             logger.log("Not Optimizing")
-        logger.log("Computing loss after")
+            return None
+        # logger.log("Computing loss after")
       #  loss_after = self.optimizer.loss(input_vals_list)
       #  logger.log("Computing KL after")
        # mean_kl = self.optimizer.constraint_val(input_vals_list)
@@ -390,7 +394,6 @@ class MAMLIL(BatchMAMLPolopt):
       #  logger.record_tabular('LossAfter', loss_after)
       #  logger.record_tabular('dLoss', loss_before - loss_after)
         # getting rid of the above because of issues with tabular
-        return dict()
 
 
     @overrides

@@ -342,8 +342,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else range(self.test_goals_mult)
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in TESTING_ITRS:
-                        # print("debug12, calculating pre-optimization loss")
-                        # cur_il_loss = tf.get_default_session().run(self.optimizer)
                         if not self.use_pooled_goals:
                             expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
                         else:
@@ -434,7 +432,18 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.
-                        self.optimize_policy(itr, all_samples_data_for_betastep)
+                        start_loss = self.optimize_policy(itr, all_samples_data_for_betastep)
+                        if beta_step == 0 and itr not in TESTING_ITRS:
+                            print("start loss", start_loss)
+                            if self.old_il_loss is not None:
+                                if self.old_il_loss < start_loss - 1e-6:
+                                    print("reducing betasteps from", self.beta_steps, "to",
+                                          int(np.ceil(self.beta_steps / 2)))
+                                    self.beta_steps = int(np.ceil(self.beta_steps / 2))
+                                self.old_il_loss = min(self.old_il_loss, start_loss)
+                            else:
+                                self.old_il_loss = start_loss
+
 
                     if itr in TESTING_ITRS:
                         self.process_samples(itr, flatten_list(all_postupdate_paths), prefix="1",log=True,fast_process=True,testitr=True,metalearn_baseline=self.metalearn_baseline)
