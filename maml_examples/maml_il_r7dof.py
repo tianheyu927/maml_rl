@@ -56,7 +56,6 @@ bas_hnl = tf.nn.relu
 baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
-ssh
 use_corr_term = True
 seeds = [1,2,3,4,5]
 use_maml = True
