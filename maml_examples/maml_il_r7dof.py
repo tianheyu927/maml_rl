@@ -31,7 +31,7 @@ import time
 beta_adam_steps_list = [(1,1),]
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
@@ -49,14 +49,14 @@ post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [40]  # 40
-test_goals_mult = 1
+test_goals_mult = 5
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
 bas_hnl = tf.nn.relu
 baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
-
+ssh
 use_corr_term = True
 seeds = [1,2,3,4,5]
 use_maml = True
