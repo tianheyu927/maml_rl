@@ -49,11 +49,11 @@ post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
 limit_expert_traj_num_list = [40]  # 40
-test_goals_mult = 5
+test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
 bas_hnl = tf.nn.relu
-baslayers_list = [(64,64), ]
+baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True

@@ -28,17 +28,17 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,1),]
+beta_adam_steps_list = [(250,1),(125,1),(50,1)]
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
-goals_suffixes = ["_200_40_1","_200_40_2", "_200_40_3","_200_40_4"]
+goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [5,10,20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -48,7 +48,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
-limit_expert_traj_num_list = [40]  # 40
+limit_expert_traj_num_list = [5,10]  # 40
 test_goals_mult = 5
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -57,7 +57,7 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1,2,3,4,5]
+seeds = [1] #,2,3,4,5]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
@@ -173,7 +173,7 @@ for goals_suffix in goals_suffixes:
                                                         max_path_length=max_path_length,
                                                         meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                         num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                        n_itr=800, #100
+                                                        n_itr=50, #100
                                                         make_video=True,
                                                         use_maml=use_maml,
                                                         use_pooled_goals=True,
