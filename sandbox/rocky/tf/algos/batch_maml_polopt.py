@@ -49,6 +49,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             discount=0.99,
             gae_lambda=1,
             beta_steps=1,
+            beta_curve=None,
             plot=False,
             pause_for_plot=False,
             make_video=False,
@@ -116,6 +117,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.discount = discount
         self.gae_lambda = gae_lambda
         self.beta_steps = beta_steps
+        self.beta_curve = beta_curve if beta_curve is not None else [self.beta_steps]
         self.old_il_loss = None
         self.plot = plot
         self.pause_for_plot = pause_for_plot
@@ -339,6 +341,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                 with logger.prefix('itr #%d | ' % itr):
                     all_paths_for_plotting = []
                     all_postupdate_paths = []
+                    self.beta_steps = min(self.beta_steps, self.beta_curve[min(itr,len(self.beta_curve)-1)])
+                    print("beta_steps", self.beta_steps)
                     beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else range(self.test_goals_mult)
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in TESTING_ITRS:
@@ -443,6 +447,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 self.old_il_loss = min(self.old_il_loss, start_loss)
                             else:
                                 self.old_il_loss = start_loss
+
 
 
                     if itr in TESTING_ITRS:

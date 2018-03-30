@@ -28,7 +28,8 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(250,1),(125,1),(50,1)]
+beta_adam_steps_list = [(250,1)]
+beta_curve = [250,250,250,125,125,50,50,25,25,5,5,1,1,]
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
@@ -38,7 +39,7 @@ mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [5,10,20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -48,8 +49,8 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
-limit_expert_traj_num_list = [5,10]  # 40
-test_goals_mult = 5
+limit_expert_traj_num_list = [40]  # 40
+test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
 bas_hnl = tf.nn.relu
@@ -186,6 +187,7 @@ for goals_suffix in goals_suffixes:
                                                         step_size=meta_step_size,
                                                         plot=False,
                                                         beta_steps=beta_steps,
+                                                        beta_curve=beta_curve,
                                                         adam_steps=adam_steps,
                                                         pre_std_modifier=pre_std_modifier,
                                                         l2loss_std_mult=l2loss_std_mult,
