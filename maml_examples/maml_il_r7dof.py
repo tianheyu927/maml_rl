@@ -34,8 +34,8 @@ beta_curve = [250,250,250,125,125,50,50,25,25,5,5,1,1,]
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-# mode = "ec2"
-mode = "local"
+mode = "ec2"
+# mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
