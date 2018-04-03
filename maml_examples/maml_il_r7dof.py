@@ -29,13 +29,13 @@ import tensorflow as tf
 import time
 
 beta_adam_steps_list = [(250,1)]
-beta_curve = [250,250,250,125,125,50,50,25,25,5,5,1,1,]
+beta_curve = [250,250,250,1,1,1,1,1,1,1,1,1,1,]
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-# mode = "ec2"
-mode = "local"
+mode = "ec2"
+# mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
@@ -175,7 +175,7 @@ for goals_suffix in goals_suffixes:
                                                         max_path_length=max_path_length,
                                                         meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                         num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                        n_itr=50, #100
+                                                        n_itr=800, #100
                                                         make_video=True,
                                                         use_maml=use_maml,
                                                         use_pooled_goals=True,
