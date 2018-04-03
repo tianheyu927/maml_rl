@@ -28,14 +28,14 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(250,1)]
-beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,]
+beta_adam_steps_list = [(1,250)]
+beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 

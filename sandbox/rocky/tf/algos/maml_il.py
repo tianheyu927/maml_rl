@@ -100,6 +100,7 @@ class MAMLIL(BatchMAMLPolopt):
             old_dist_info_vars_list += [old_dist_info_vars[i][k] for k in dist.dist_info_keys]
 
         theta0_dist_info_vars, theta0_dist_info_vars_list = [], []
+        theta0fast_dist_info_vars, theta0fast_dist_info_vars_list = [], []
         for i in range(self.meta_batch_size):
             theta0_dist_info_vars.append({
                 k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta0_%s_%s' % (i, k))
@@ -182,10 +183,20 @@ class MAMLIL(BatchMAMLPolopt):
                 # logli_diff_by_path_ = tf.reshape(tf.tile(tf.reshape(logli_diff_by_path, [-1,1]), (1,self.max_path_length)),[-1])
                 # lr_by_path = tf.exp(logli_diff_by_path_)
                 # lr_by_path = self.ism(lr_by_path)
-                lr_per_step = self.ism(lr_per_step)
+
+
+                # lr_per_step = self.ism(lr_per_step)
+                keys = self.policy.all_params.keys()
+                # theta_x = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
+                # dist_info_sym_i_x, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=theta_x)
+                # logli_i_x = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i_x)
+                theta_circle = OrderedDict({key: tf.stop_gradient(self.policy.all_params[key]) for key in keys})
+                dist_info_sym_i_circle, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=theta_circle)
+                lr_per_step_fast = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], dist_info_sym_i_circle)
+                lr_per_step_fast = self.ism(lr_per_step_fast)
 
                 old_logli_sym[-1].append(logli_i)
-                old_lr[-1].append(lr_per_step)
+                old_lr[-1].append(lr_per_step_fast)
                 if not self.metalearn_baseline:
                     old_adv[-1].append(adv)
                 else:
@@ -196,10 +207,10 @@ class MAMLIL(BatchMAMLPolopt):
                 # The gradient of the surrogate objective is the policy gradient
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
-                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(logli_i, adv)))
                 if self.metalearn_baseline:
-                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
+                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv_sym)))
             inner_input_vars_list += obs_vars + action_vars + adv_vars
             if not self.metalearn_baseline:
                 input_vars_list += obs_vars + action_vars + adv_vars
@@ -222,7 +233,6 @@ class MAMLIL(BatchMAMLPolopt):
             obs_vars, action_vars, _, _, _, expert_action_vars = self.make_vars('test')
         outer_surr_objs = []
         # old_outer_surr_objs = []
-        corr_terms =[]
         updated_params = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             # old_dist_info_sym_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
