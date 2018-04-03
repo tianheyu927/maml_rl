@@ -34,8 +34,8 @@ beta_curve = [250,250,250,125,125,50,50,25,25,5,5,1,1,]
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
@@ -76,8 +76,8 @@ for goals_suffix in goals_suffixes:
                                                 for bas in baselines:
                                                     stub(globals())
                                                     env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
-
-                                                    exp_name = str('R7_IL_D0.3'
+                                                    exp_name = str('R7_IL_'
+                                                    # +time.strftime("%D").replace("/", "")[0:4]
                                                     + goals_suffix
                                                     + str(seed)
                                                     + ("corr" if use_corr_term else "")
@@ -107,6 +107,7 @@ for goals_suffix in goals_suffixes:
                                                     + "_basas" + str(basas) if bas[0] in ["G","M"] else "")  # baseline adam steps
                                                     + ("r" if test_on_training_goals else "")
                                                     + "_" + time.strftime("%D_%H_%M").replace("/", "."))
+
 
 
                                                     policy = MAMLGaussianMLPPolicy(
@@ -202,7 +203,8 @@ for goals_suffix in goals_suffixes:
                                                         snapshot_mode="last",
                                                         python_command='python3',
                                                         seed=seed,
-                                                        exp_prefix='R7_IL_D0.3',
+                                                        exp_prefix=str('R7_IL_'
+                                                        +time.strftime("%D").replace("/", "")[0:4]),
                                                         exp_name=exp_name,
                                                         plot=False,
                                                         sync_s3_pkl=True,

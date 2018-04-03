@@ -77,7 +77,7 @@ for goals_suffix in goals_suffixes:
                                                     stub(globals())
                                                     env = TfEnv(normalize(Reacher7DofMultitaskEnvSparse()))
 
-                                                    exp_name = str('R7_IL_0.1_sparse_'
+                                                    exp_name = str('R7_IL_sparse_'
                                                     + goals_suffix
                                                     + str(seed)
                                                     + ("corr" if use_corr_term else "")
@@ -201,7 +201,8 @@ for goals_suffix in goals_suffixes:
                                                         snapshot_mode="last",
                                                         python_command='python3',
                                                         seed=seed,
-                                                        exp_prefix='R7_IL_0.1_sparse',
+                                                        exp_prefix=str('R7_IL_sparse_'
+                                                                       + time.strftime("%D").replace("/", "")[0:4]),
                                                         exp_name=exp_name,
                                                         plot=False,
                                                         sync_s3_pkl=True,
