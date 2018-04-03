@@ -29,7 +29,7 @@ import tensorflow as tf
 import time
 
 beta_adam_steps_list = [(250,1)]
-beta_curve = [250,250,250,1,1,1,1,1,1,1,1,1,1,]
+beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,]
 
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero

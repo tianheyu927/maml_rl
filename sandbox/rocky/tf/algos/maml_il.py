@@ -286,7 +286,7 @@ class MAMLIL(BatchMAMLPolopt):
             target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()],
         else:
-            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()],
+            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
