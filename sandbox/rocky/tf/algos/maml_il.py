@@ -100,7 +100,6 @@ class MAMLIL(BatchMAMLPolopt):
             old_dist_info_vars_list += [old_dist_info_vars[i][k] for k in dist.dist_info_keys]
 
         theta0_dist_info_vars, theta0_dist_info_vars_list = [], []
-        theta0fast_dist_info_vars, theta0fast_dist_info_vars_list = [], []
         for i in range(self.meta_batch_size):
             theta0_dist_info_vars.append({
                 k: tf.placeholder(tf.float32, shape=[None] + list(shape), name='theta0_%s_%s' % (i, k))
@@ -187,16 +186,13 @@ class MAMLIL(BatchMAMLPolopt):
 
                 # lr_per_step = self.ism(lr_per_step)
                 keys = self.policy.all_params.keys()
-                # theta_x = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
-                # dist_info_sym_i_x, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=theta_x)
-                # logli_i_x = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i_x)
                 theta_circle = OrderedDict({key: tf.stop_gradient(self.policy.all_params[key]) for key in keys})
                 dist_info_sym_i_circle, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=theta_circle)
                 lr_per_step_fast = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], dist_info_sym_i_circle)
                 lr_per_step_fast = self.ism(lr_per_step_fast)
 
                 old_logli_sym[-1].append(logli_i)
-                old_lr[-1].append(lr_per_step_fast)
+                old_lr[-1].append(lr_per_step)
                 if not self.metalearn_baseline:
                     old_adv[-1].append(adv)
                 else:
@@ -207,10 +203,10 @@ class MAMLIL(BatchMAMLPolopt):
                 # The gradient of the surrogate objective is the policy gradient
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
-                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv)))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(logli_i, adv)))
                 if self.metalearn_baseline:
-                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv_sym)))
+                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
             inner_input_vars_list += obs_vars + action_vars + adv_vars
             if not self.metalearn_baseline:
                 input_vars_list += obs_vars + action_vars + adv_vars
@@ -292,9 +288,9 @@ class MAMLIL(BatchMAMLPolopt):
             corr_term = None
 
         if self.metalearn_baseline:
-            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']] ,
+            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']]
             target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
-            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()],
+            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
         else:
             target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
 
