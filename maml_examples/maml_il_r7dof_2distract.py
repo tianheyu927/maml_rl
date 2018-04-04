@@ -17,7 +17,7 @@ import sandbox.rocky.tf.core.layers as L
 from rllab.envs.gym_env import GymEnv
 from maml_examples.reacher_env import ReacherEnv
 from rllab.envs.mujoco.pusher_env import PusherEnv
-from maml_examples.r7dof_env import Reacher7DofMultitaskEnv
+from maml_examples.r7dof_2distract_env import Reacher7Dof2DistractEnv
 from maml_examples.r7dof_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, default_r7dof_env_option
 from maml_examples.maml_experiment_vars import MOD_FUNC
 
@@ -28,20 +28,20 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,50),(1,250)]
+beta_adam_steps_list = [(1,250)]
 beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 
 
 fast_learning_rates = [1.0]
-baselines = ['linear','MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [10,20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -51,7 +51,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
-limit_expert_traj_num_list = [5]  # 40
+limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -77,7 +77,7 @@ for goals_suffix in goals_suffixes:
                                             for beta_steps, adam_steps in beta_adam_steps_list:
                                                 for bas in baselines:
                                                     stub(globals())
-                                                    env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
+                                                    env = TfEnv(normalize(Reacher7Dof2DistractEnv()))
                                                     exp_name = str('R7_IL_'
                                                     # +time.strftime("%D").replace("/", "")[0:4]
                                                     + goals_suffix

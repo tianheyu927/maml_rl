@@ -579,7 +579,6 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         # print("debug",[get_structure(x) for x in while_loop_vars_0])
         print("debug1", tf.__version__)
         shape_invariants = [get_structure(x) for x in while_loop_vars_0]
-        print("debug1", shape_invariants)
         (updated_params_list, accumulation_sym_list, i) = tf.while_loop(c,b,while_loop_vars_0, shape_invariants=shape_invariants)
         updated_params = OrderedDict(zip(keys, updated_params_list))
         accumulation_sym = OrderedDict(zip(keys, accumulation_sym_list))

@@ -3,7 +3,7 @@
 # R7DOF_GOALS_LOCATION = '/home/rosen/maml_rl/saved_goals/R7DOF/goals_pool1_100_40.pkl'
 # R7DOF_GOALS_LOCATION_EC2 = '/root/code/rllab/saved_goals/R7DOF/goals_pool1.pkl'
 
-# R7DOF_GOALS_LOCATION = '/home/rosen/maml_rl/saved_goals/R7DOF/goals_pool4_200_40.pkl'
+R7DOF_GOALS_LOCATION = '/home/rosen/maml_rl/saved_goals/R7DOF/goals_pool1_200_40.pkl'
 
 
 ENV_OPTIONS = {
