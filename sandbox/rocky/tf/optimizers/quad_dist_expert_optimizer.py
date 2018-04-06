@@ -54,7 +54,7 @@ class QuadDistExpertOptimizer(Serializable):
         self._use_momentum_optimizer=use_momentum_optimizer
 
 
-    def update_opt(self, loss, target, leq_constraint, inputs, constraint_name="constraint", *args, **kwargs):
+    def update_opt(self, loss, target, leq_constraint, inputs, constraint_name="constraint", dummy_loss = None, *args, **kwargs):
         """
         :param loss: Symbolic expression for the loss function.
         :param target: A parameterized object to optimize over. It should implement methods of the
@@ -79,6 +79,7 @@ class QuadDistExpertOptimizer(Serializable):
 
         self._inputs = inputs
         self._loss = loss
+        self._dummy_loss = dummy_loss
 
         if self._use_momentum_optimizer:
             print("debug31, setting momentum optimizer", self._name)
@@ -169,8 +170,19 @@ class QuadDistExpertOptimizer(Serializable):
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
         init_loss = sess.run(self._loss, feed_dict=feed_dict)
-        print("current_loss", init_loss)
-        for _ in range(self._optimizer_steps):
+        print("init_loss", init_loss)
+        min_loss = init_loss
+        for i in range(self._optimizer_steps):
+            # BREAKER: limit the amount of adam steps you take by measuring the reduction in loss. Quite costly.
+            # loss_val = sess.run(self._loss, feed_dict=feed_dict)
+            # print("currentloss", loss_val, i)
+            # dummy_loss_val = sess.run(self._dummy_loss, feed_dict=feed_dict)
+            # print("current dummy_loss",dummy_loss_val)
+            # min_loss = min(min_loss,loss_val)
+            # if loss_val > min_loss + 0.0*(init_loss-min_loss):
+            #     print("breaking at", i)
+            #     break
+
             # print("debug01", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
             # print("debug02", sess.run(self._correction_term, feed_dict=feed_dict)[0][0][0:4])
                 # print("debug03", sess.run(self.new_gradients, feed_dict=feed_dict))

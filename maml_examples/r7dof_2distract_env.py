@@ -13,7 +13,7 @@ class Reacher7Dof2DistractEnv(
 ):
     def __init__(self, distance_metric_order=None, *args, **kwargs):
         self.goal = None
-        self.shuffled_order = None
+        self.shuffle_order = None
         self.objects = ["goal","distract1","distract2"]
         self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distract.xml'
         super().__init__()
@@ -39,9 +39,9 @@ class Reacher7Dof2DistractEnv(
             self.model.data.qpos.flat[:7],
             self.model.data.qvel.flat[:7],
             self.get_body_com("tips_arm"),
-            self.get_body_com(self.objects[self.shuffled_order[0]]),
-            self.get_body_com(self.objects[self.shuffled_order[1]]),
-            self.get_body_com(self.objects[self.shuffled_order[2]]),
+            self.get_body_com(self.objects[self.shuffle_order[0][0]]),
+            self.get_body_com(self.objects[self.shuffle_order[1][0]]),
+            self.get_body_com(self.objects[self.shuffle_order[2][0]]),
         ])
 
     def step(self, action):
@@ -61,9 +61,24 @@ class Reacher7Dof2DistractEnv(
         goals_list = []
         for _ in range(num_goals):
             newgoal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-            goals_list.append(newgoal)
+            distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+            distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+            shuffle_order = np.random.permutation([0,1,2]).reshape(3,1)
+            goals_list.append([newgoal, distract1, distract2, shuffle_order])
         return np.array(goals_list)
 
+    def enrich_goals_pool(self, goals_pool):
+        new_goals_list = []
+        goals_list = goals_pool['goals_pool']
+        new_goals_pool = {}
+        for goal in goals_list:
+            distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+            distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+            shuffle_order = np.random.permutation([0,1,2]).reshape(3,1)
+            new_goals_list.append([goal, distract1, distract2, shuffle_order])
+        new_goals_pool['goals_pool'] = np.array(new_goals_list)
+        new_goals_pool['idxs_dict'] = goals_pool['idxs_dict']
+        return new_goals_pool
 
     @overrides
     def reset(self, reset_args=None, **kwargs):
@@ -80,13 +95,18 @@ class Reacher7Dof2DistractEnv(
             self.goal = goal[0]
             self.distract1 = goal[1]
             self.distract2 = goal[2]
-            self.shuffled_order = goal[3] # get a new shuffled order on a new task
-        elif self.goal is None: # do not change goal between resets, only at initialization and when explicitly given a new goal
-        # elif reset_args is None: # change goal between resets
+            self.shuffle_order = goal[3]
+        # elif self.goal is None: # do not change goal between resets, only at initialization and when explicitly given a new goal
+        elif reset_args is None: # change goal between resets
             self.goal =np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-            self.shuffled_order = np.random.permutation([0, 1, 2])  # get a new shuffled order on a new task
+            self.distract1 = np.random.uniform(low=[-0.4, -0.4, -0.3], high=[0.4, 0.0, -0.3]).reshape(3, 1)
+            self.distract2 = np.random.uniform(low=[-0.4, -0.4, -0.3], high=[0.4, 0.0, -0.3]).reshape(3, 1)
+            self.shuffle_order = np.random.permutation([0, 1, 2]).reshape(3,1)  # get a new shuffled order on a new task
+
 
         qpos[-7:-4] = self.goal
+        qpos[-14:-11] = self.distract1
+        qpos[-21:-18] = self.distract2
         qvel[-7:] = 0  # todo: I think we may want to expand this to make sure distractors are also fixed
         setattr(self.model.data, 'qpos', qpos)
         setattr(self.model.data, 'qvel', qvel)

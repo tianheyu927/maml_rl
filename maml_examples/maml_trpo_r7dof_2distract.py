@@ -77,7 +77,7 @@ for post_std_modifier_train in post_std_modifier_train_list:
                         pre_std_modifier=pre_std_modifier,
                         post_std_modifier_train=post_std_modifier_train,
                         post_std_modifier_test=post_std_modifier_test,
-                        goals_pool_to_load=R7DOF_GOALS_LOCATION,
+                        # goals_pool_to_load=R7DOF_GOALS_LOCATION,
                         # goals_pickle_to=R7DOF_GOALS_LOCATION,
                         # goals_pool_size=200,
 
@@ -88,8 +88,8 @@ for post_std_modifier_train in post_std_modifier_train_list:
                         snapshot_mode="last",
                         python_command='python3',
                         seed=seed,
-                        exp_prefix='R7_TR_E3.3',
-                        exp_name='R7_TR_E3.3'
+                        exp_prefix='R7_DISTRACT_TR_',
+                        exp_name='R7_DISTRACT_'
                                  # + ".itr." + str(n_itr)
                                  # + str(int(use_maml))
                                  #     +'_fbs'+str(fast_batch_size)

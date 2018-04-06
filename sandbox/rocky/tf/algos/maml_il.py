@@ -118,7 +118,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         state_info_vars, state_info_vars_list = {}, []  # TODO: is this needed?
 
-        all_surr_objs, input_vars_list, inner_input_vars_list = [], [], []
+        all_surr_objs, all_surr_objs_slow, input_vars_list, inner_input_vars_list = [], [], [], []
         new_params = []
         old_logli_sym = []
         old_lr = []
@@ -135,6 +135,7 @@ class MAMLIL(BatchMAMLPolopt):
                 obs_vars, action_vars, adv_vars, rewards_vars, returns_vars, expert_action_vars = self.make_vars(str(grad_step))  # path_lengths_vars before expert actions
 
             inner_surr_objs, inner_surr_objs_sym = [], []  # surrogate objectives
+            # inner_surr_objs_slow = []  # surrogate objectives
 
             new_params = []
             kls = []
@@ -168,12 +169,14 @@ class MAMLIL(BatchMAMLPolopt):
                                                       all_params=self.baseline.all_params)
 
                 dist_info_sym_i, params = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=self.policy.all_params)
+
                 if self.kl_constrain_step == 0:
                     kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
                     kls.append(kl)
                 new_params.append(params)
                 logli_i = dist.log_likelihood_sym(action_vars[i], dist_info_sym_i)
-                lr_per_step = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
+                # lr_per_step_slow = dist.likelihood_ratio_sym(action_vars[i], theta0_dist_info_vars[i], theta_l_dist_info_vars[i])
+                # lr_per_step_slow = self.ism(lr_per_step_slow)
                 # logli_old = dist.log_likelihood_sym(action_vars[i], theta0_dist_info_vars[i])
                 # logli_new = dist.log_likelihood_sym(action_vars[i], theta_l_dist_info_vars[i])
                 # logli_diff = logli_new-logli_old
@@ -184,7 +187,7 @@ class MAMLIL(BatchMAMLPolopt):
                 # lr_by_path = self.ism(lr_by_path)
 
 
-                # lr_per_step = self.ism(lr_per_step)
+
                 keys = self.policy.all_params.keys()
                 theta_circle = OrderedDict({key: tf.stop_gradient(self.policy.all_params[key]) for key in keys})
                 dist_info_sym_i_circle, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars, all_params=theta_circle)
@@ -192,7 +195,7 @@ class MAMLIL(BatchMAMLPolopt):
                 lr_per_step_fast = self.ism(lr_per_step_fast)
 
                 old_logli_sym[-1].append(logli_i)
-                old_lr[-1].append(lr_per_step)
+                old_lr[-1].append(lr_per_step_fast)
                 if not self.metalearn_baseline:
                     old_adv[-1].append(adv)
                 else:
@@ -203,10 +206,11 @@ class MAMLIL(BatchMAMLPolopt):
                 # The gradient of the surrogate objective is the policy gradient
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
-                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv)))
+                inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv)))
+                # inner_surr_objs_slow.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_slow), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(logli_i, adv)))
                 if self.metalearn_baseline:
-                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step), adv_sym)))
+                    inner_surr_objs_sym.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv_sym)))
             inner_input_vars_list += obs_vars + action_vars + adv_vars
             if not self.metalearn_baseline:
                 input_vars_list += obs_vars + action_vars + adv_vars
@@ -219,6 +223,7 @@ class MAMLIL(BatchMAMLPolopt):
             input_vars_list += expert_action_vars # TODO: is this pre-update expert action vars? Should we kill this?
             if not self.metalearn_baseline:
                 all_surr_objs.append(inner_surr_objs)
+                # all_surr_objs_slow.append(inner_surr_objs_slow)
             else:
                 all_surr_objs.append(inner_surr_objs_sym)
 
@@ -228,11 +233,13 @@ class MAMLIL(BatchMAMLPolopt):
         else:
             obs_vars, action_vars, _, _, _, expert_action_vars = self.make_vars('test')
         outer_surr_objs = []
+        # outer_surr_objs_slow = []
         # old_outer_surr_objs = []
         updated_params = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             # old_dist_info_sym_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
             dist_info_sym_i, updated_params_i = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
+            # dist_info_sym_i_slow, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs_slow[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
                 kls.append(kl)  # we either get kl from here or from kl_constrain_step =0
@@ -244,11 +251,18 @@ class MAMLIL(BatchMAMLPolopt):
             m = dist_info_sym_i["mean"]
             outer_surr_obj = tf.reduce_mean(tf.square(m)-2*tf.multiply(m,a_star)+self.l2loss_std_multiplier*(tf.square(tf.exp(s))))
             outer_surr_objs.append(outer_surr_obj)
+
+
+            # s_slow = dist_info_sym_i_slow["log_std"]
+            # m_slow = dist_info_sym_i_slow["mean"]
+            # outer_surr_obj_slow = tf.reduce_mean(tf.square(m_slow)-2*tf.multiply(m_slow,a_star)+self.l2loss_std_multiplier*(tf.square(tf.exp(s_slow))))
+            # outer_surr_objs_slow.append(outer_surr_obj_slow)
             # old_outer_surr_objs.append(outer_surr_obj)
 
 
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
+        # outer_surr_obj_slow = tf.reduce_mean(tf.stack(outer_surr_objs_slow, 0))  # mean over all the different tasks
         input_vars_list += obs_vars + action_vars + expert_action_vars + old_dist_info_vars_list  # +adv_vars # TODO: kill action_vars from this list, and if we're not doing kl, kill old_dist_info_vars_list too
         mean_kl = tf.cast(tf.reduce_mean(tf.concat(kls, 0)),tf.float32)
 
@@ -296,6 +310,7 @@ class MAMLIL(BatchMAMLPolopt):
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
+            # dummy_loss = outer_surr_obj_slow,
             target=target,
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,

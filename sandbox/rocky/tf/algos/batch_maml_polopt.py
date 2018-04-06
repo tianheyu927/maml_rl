@@ -131,6 +131,9 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.num_grad_updates = num_grad_updates  # number of gradient steps during training
         self.use_maml_il = use_maml_il
         self.test_on_training_goals= test_on_training_goals
+        self.testing_itrs = TESTING_ITRS
+        if self.metalearn_baseline:
+            self.testing_itrs.insert(0,0)
         print("test_on_training_goals", self.test_on_training_goals)
         self.limit_expert_traj_num = limit_expert_traj_num
         self.test_goals_mult = test_goals_mult
@@ -189,7 +192,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             # we build goals_to_use_dict regardless of how we obtained goals_pool, goals_idx_for_itr_dict
             self.goals_to_use_dict = {}
             for itr in range(self.start_itr, self.n_itr):
-                if itr not in TESTING_ITRS:
+                if itr not in self.testing_itrs:
                     self.goals_to_use_dict[itr] = np.array([self.goals_pool[idx] for idx in self.goals_idxs_for_itr_dict[itr]])
 
 
@@ -203,7 +206,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.goals_to_use_dict = {itr:self.goals_to_use_dict[itr][:self.meta_batch_size]
                                       for itr in range(self.start_itr,self.n_itr)}
         # for itr in range(self.start_itr,self.n_itr):
-        #     if itr in TESTING_ITRS:
+        #     if itr in self.testing_itrs:
         #         while 'sample_goals' not in dir(env):
         #             env = env.wrapped_env
         #         self.goals_to_use_dict[itr] = env.sample_goals(self.test_goals)
@@ -216,6 +219,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             # joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
             logger.log("Saving goals pool to %s..." % goals_pickle_to)
             joblib_dump_safe(dict(goals_pool=self.goals_pool, idxs_dict=self.goals_idxs_for_itr_dict), goals_pickle_to)
+
+
+
 
         if sampler_cls is None:
             if singleton_pool.n_parallel > 1:
@@ -343,9 +349,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                     all_postupdate_paths = []
                     self.beta_steps = min(self.beta_steps, self.beta_curve[min(itr,len(self.beta_curve)-1)])
                     print("beta_steps", self.beta_steps)
-                    beta_steps_range = range(self.beta_steps) if itr not in TESTING_ITRS else range(self.test_goals_mult)
+                    beta_steps_range = range(self.beta_steps) if itr not in self.testing_itrs else range(self.test_goals_mult)
                     beta0_step0_paths = None
-                    if self.use_maml_il and itr not in TESTING_ITRS:
+                    if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
                             expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
                         else:
@@ -361,7 +367,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         all_samples_data_for_betastep = []
                         self.policy.std_modifier = self.pre_std_modifier
                         self.policy.switch_to_init_dist()  # Switch to pre-update policy
-                        if itr in TESTING_ITRS:
+                        if itr in self.testing_itrs:
                             env = self.env
                             while 'sample_goals' not in dir(env):
                                 env = env.wrapped_env
@@ -375,7 +381,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             logger.log('** Betastep %s ** Step %s **' % (str(beta_step), str(step)))
                             logger.log("Obtaining samples...")
 
-                            if itr in TESTING_ITRS:
+                            if itr in self.testing_itrs:
                                 print('debug12.0, test-time sampling')
                                 paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
                                                                 log_prefix=str(beta_step) + "_" + str(step),testitr=True)
@@ -412,7 +418,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     fast_process = True
                                 else:
                                     fast_process = False
-                                if itr in TESTING_ITRS:
+                                if itr in self.testing_itrs:
                                     testitr = True
                                 else:
                                     testitr = False
@@ -425,11 +431,11 @@ class BatchMAMLPolopt(RLAlgorithm):
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
                             if step < self.num_grad_updates:
-                                if itr not in TESTING_ITRS:
+                                if itr not in self.testing_itrs:
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
-                                if (itr in TESTING_ITRS or not self.use_maml_il or step<self.num_grad_updates-1) and step < self.num_grad_updates:
+                                if (itr in self.testing_itrs or not self.use_maml_il or step<self.num_grad_updates-1) and step < self.num_grad_updates:
                                     # do not update on last grad step, and do not update on second to last step when training MAMLIL
                                     logger.log("Computing policy updates...")
                                     self.policy.compute_updated_dists(samples=samples_data)
@@ -437,7 +443,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.
                         start_loss = self.optimize_policy(itr, all_samples_data_for_betastep)
-                        if beta_step == 0 and itr not in TESTING_ITRS:
+                        if beta_step == 0 and itr not in self.testing_itrs:
                             print("start loss", start_loss)
                             if self.old_il_loss is not None:
                                 if self.old_il_loss < start_loss - 1e-6:
@@ -450,7 +456,7 @@ class BatchMAMLPolopt(RLAlgorithm):
 
 
 
-                    if itr in TESTING_ITRS:
+                    if itr in self.testing_itrs:
                         self.process_samples(itr, flatten_list(all_postupdate_paths), prefix="1",log=True,fast_process=True,testitr=True,metalearn_baseline=self.metalearn_baseline)
                     logger.log("Saving snapshot...")
                     params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
