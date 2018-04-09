@@ -83,6 +83,29 @@ for goals_suffix in goals_suffixes:
                                                     np.random.seed(seed)
                                                     rd.seed(seed)
                                                     env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
+
+                                                    ###
+                                                    seed %= 4294967294
+                                                    global seed_
+                                                    seed_ = seed
+                                                    import lasagne
+
+                                                    rd.seed(seed)
+                                                    np.random.seed(seed)
+                                                    lasagne.random.set_rng(np.random.RandomState(seed))
+                                                    try:
+                                                        import tensorflow as tf
+
+                                                        tf.set_random_seed(seed)
+                                                    except Exception as e:
+                                                        print(e)
+                                                    print((
+                                                        colorize(
+                                                            'using seed %s' % (str(seed)),
+                                                            'green'
+                                                        )
+                                                    ))
+                                                    ##
                                                     exp_name = str('R7_IL_'
                                                     # +time.strftime("%D").replace("/", "")[0:4]
                                                     + goals_suffix
