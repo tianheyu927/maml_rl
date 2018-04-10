@@ -75,10 +75,15 @@ class VectorizedSampler(BaseSampler):
             t = time.time()
             policy.reset(dones)
             actions, agent_infos = policy.get_actions(obses)
+            # if itr == -1:
+            #     print("debug", actions, agent_infos)
 
             policy_time += time.time() - t
             t = time.time()
             next_obses, rewards, dones, env_infos = self.vec_env.step(actions, reset_args)
+            # if itr == -1:
+            #     print("debug2", next_obses)
+            #     assert False
             env_time += time.time() - t
 
             t = time.time()

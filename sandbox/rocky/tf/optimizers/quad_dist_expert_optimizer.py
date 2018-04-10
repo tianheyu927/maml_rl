@@ -176,8 +176,8 @@ class QuadDistExpertOptimizer(Serializable):
             # BREAKER: limit the amount of adam steps you take by measuring the reduction in loss. Quite costly.
             # loss_val = sess.run(self._loss, feed_dict=feed_dict)
             # print("currentloss", loss_val, i)
-            # dummy_loss_val = sess.run(self._dummy_loss, feed_dict=feed_dict)
-            # print("current dummy_loss",dummy_loss_val)
+            # # dummy_loss_val = sess.run(self._dummy_loss, feed_dict=feed_dict)
+            # # print("current dummy_loss",dummy_loss_val)
             # min_loss = min(min_loss,loss_val)
             # if loss_val > min_loss + 0.0*(init_loss-min_loss):
             #     print("breaking at", i)
