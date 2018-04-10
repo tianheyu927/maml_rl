@@ -20,7 +20,8 @@ from rllab.envs.mujoco.pusher_env import PusherEnv
 from maml_examples.r7dof_2distract_env import Reacher7Dof2DistractEnv
 from maml_examples.r7dof_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, default_r7dof_env_option
 from maml_examples.maml_experiment_vars import MOD_FUNC
-
+import numpy as np
+import random as rd
 
 #from examples.trpo_push_obj import
 
@@ -28,9 +29,9 @@ from maml_examples.maml_experiment_vars import MOD_FUNC
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,250)]
-beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
-adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
+beta_adam_steps_list = [(1,50)]
+# beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
+# adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 
 
 fast_learning_rates = [1.0]
@@ -60,7 +61,7 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1] #,2,3,4,5]
+seeds = [4] #,2,3,4,5]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
@@ -77,8 +78,11 @@ for goals_suffix in goals_suffixes:
                                             for beta_steps, adam_steps in beta_adam_steps_list:
                                                 for bas in baselines:
                                                     stub(globals())
+                                                    tf.set_random_seed(seed)
+                                                    np.random.seed(seed)
+                                                    rd.seed(seed)
                                                     env = TfEnv(normalize(Reacher7Dof2DistractEnv()))
-                                                    exp_name = str('R7_IL_'
+                                                    exp_name = str('R7_IL_DIST'
                                                     # +time.strftime("%D").replace("/", "")[0:4]
                                                     + goals_suffix
                                                     + str(seed)
@@ -190,7 +194,7 @@ for goals_suffix in goals_suffixes:
                                                         step_size=meta_step_size,
                                                         plot=False,
                                                         beta_steps=beta_steps,
-                                                        beta_curve=beta_curve,
+                                                        # beta_curve=beta_curve,
                                                         adam_steps=adam_steps,
                                                         pre_std_modifier=pre_std_modifier,
                                                         l2loss_std_mult=l2loss_std_mult,
@@ -205,7 +209,7 @@ for goals_suffix in goals_suffixes:
                                                         snapshot_mode="last",
                                                         python_command='python3',
                                                         seed=seed,
-                                                        exp_prefix=str('R7_IL_'
+                                                        exp_prefix=str('R7_IL_DIST'
                                                         +time.strftime("%D").replace("/", "")[0:4]),
                                                         exp_name=exp_name,
                                                         plot=False,

@@ -2,7 +2,9 @@ import numpy as np
 from rllab.envs.mujoco import mujoco_env
 from rllab.misc.overrides import overrides
 from rllab.envs.base import Step
-
+import copy
+import joblib
+from rllab.sampler.utils import rollout, joblib_dump_safe
 
 
 from rllab.core.serializable import Serializable
@@ -39,9 +41,9 @@ class Reacher7Dof2DistractEnv(
             self.model.data.qpos.flat[:7],
             self.model.data.qvel.flat[:7],
             self.get_body_com("tips_arm"),
-            self.get_body_com(self.objects[self.shuffle_order[0][0]]),
-            self.get_body_com(self.objects[self.shuffle_order[1][0]]),
-            self.get_body_com(self.objects[self.shuffle_order[2][0]]),
+            self.get_body_com(self.objects[int(self.shuffle_order[0][0])]),
+            self.get_body_com(self.objects[int(self.shuffle_order[1][0])]),
+            self.get_body_com(self.objects[int(self.shuffle_order[2][0])]),
         ])
 
     def step(self, action):
@@ -80,6 +82,28 @@ class Reacher7Dof2DistractEnv(
         new_goals_pool['idxs_dict'] = goals_pool['idxs_dict']
         return new_goals_pool
 
+    def enrich_expert_trajectories(self, goal_folder, goal_number):
+        trajs_for_goal = joblib.load(goal_folder+str(goal_number) + ".pkl")
+        goal_distractions_and_shuffle_order = joblib.load(goal_folder+"goals_pool.pkl")['goals_pool'][goal_number]
+        shuffle_order = goal_distractions_and_shuffle_order[-1].reshape((3,))
+        goal_and_distractions = np.concatenate((
+            goal_distractions_and_shuffle_order[int(shuffle_order[0])],
+            goal_distractions_and_shuffle_order[int(shuffle_order[1])],
+            goal_distractions_and_shuffle_order[int(shuffle_order[2])]
+        ))
+        print("goals for index", goal_number, ":\n", goal_and_distractions)
+        new_trajs_for_goal = []
+        for traj in trajs_for_goal:
+            obs = traj['observations']
+            new_obs = [np.concatenate((obs_step,goal_and_distractions.reshape((9,)))) for obs_step in obs]
+            new_traj = copy.deepcopy(traj)
+            new_traj['observations'] = new_obs
+            new_trajs_for_goal.append(new_traj)
+        joblib_dump_safe(new_trajs_for_goal,goal_folder+str(goal_number)+"dist.pkl")
+
+
+
+
     @overrides
     def reset(self, reset_args=None, **kwargs):
 
@@ -96,6 +120,9 @@ class Reacher7Dof2DistractEnv(
             self.distract1 = goal[1]
             self.distract2 = goal[2]
             self.shuffle_order = goal[3]
+            print("debug, resetting with goal", self.goal)
+            print("and distract1", self.distract1)
+            print("and distract2", self.distract2)
         # elif self.goal is None: # do not change goal between resets, only at initialization and when explicitly given a new goal
         elif reset_args is None: # change goal between resets
             self.goal =np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
