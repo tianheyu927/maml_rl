@@ -76,7 +76,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             goals_pickle_to=None,
             goals_pool_size=None,
             use_pooled_goals=True,
-
+            seed=1,
             **kwargs
     ):
         """
@@ -102,6 +102,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         :param store_paths: Whether to save all paths data to the snapshot.
         :return:
         """
+        self.seed=seed
         self.env = env
         self.policy = policy
         self.load_policy = load_policy
@@ -324,7 +325,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         flatten_list = lambda l: [item for sublist in l for item in sublist]
 
         with tf.Session() as sess:
-
+            tf.set_random_seed(1)
             # Code for loading a previous policy. Somewhat hacky because needs to be in sess.
             if self.load_policy is not None:
                 self.policy = joblib.load(self.load_policy)['policy']
@@ -342,8 +343,10 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
-                # file_writer = tf.summary.FileWriter("/home/rosen/temp12/", sess.graph)
                 itr_start_time = time.time()
+                np.random.seed(self.seed+itr)
+                tf.set_random_seed(self.seed+itr)
+                rd.seed(self.seed+itr)
                 with logger.prefix('itr #%d | ' % itr):
                     all_paths_for_plotting = []
                     all_postupdate_paths = []

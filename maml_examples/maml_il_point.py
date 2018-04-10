@@ -14,7 +14,8 @@ import tensorflow as tf
 import time
 from maml_examples.point_vars import POINT_GOALS_LOCATION, EXPERT_TRAJ_LOCATION_DICT
 from maml_examples.maml_experiment_vars import MOD_FUNC
-
+import numpy as np
+import random as rd
 beta_adam_steps_list = [(3,1)] #,(1,100)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
 fast_learning_rates = [1.0]  #1.0 seems to work best
@@ -32,7 +33,7 @@ l2loss_std_mult_list = [1.0]
 env_options = ["box"]
 
 use_maml = True
-
+seed=1
 for env_option in env_options:
     for l2loss_std_mult in l2loss_std_mult_list:
         for post_std_modifier_train in post_std_modifier_train_list:
@@ -42,7 +43,23 @@ for env_option in env_options:
                         for beta_steps, adam_steps in beta_adam_steps_list:
                             for bas in baselines:
                                 stub(globals())
+                                tf.set_random_seed(seed)
+                                np.random.seed(seed)
+                                rd.seed(seed)
 
+                                ###
+                                seed %= 4294967294
+                                global seed_
+                                seed_ = seed
+                                rd.seed(seed)
+                                np.random.seed(seed)
+                                try:
+                                    import tensorflow as tf
+
+                                    tf.set_random_seed(seed)
+                                except Exception as e:
+                                    print(e)
+                                print('using seed %s' % (str(seed)))
                                 env = TfEnv(normalize(PointEnvRandGoal()))
                                 policy = MAMLGaussianMLPPolicy(
                                     name="policy",
@@ -70,6 +87,7 @@ for env_option in env_options:
                                     num_grad_updates=num_grad_updates, ## number of alpha grad updates per beta update
                                     n_itr=4, #100
                                     use_maml=use_maml,
+                                    use_pooled_goals=False,
                                     step_size=meta_step_size,
                                     plot=False,
                                     beta_steps=beta_steps,
@@ -80,7 +98,6 @@ for env_option in env_options:
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
                                     expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
-                                    use_pooled_goals=True,
                                 )
 
                                 run_experiment_lite(

@@ -29,14 +29,14 @@ import random as rd
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,250)]
+beta_adam_steps_list = [(1,50)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
-beta_curve = [1000] # make sure to check maml_experiment_vars
+# beta_curve = [1000] # make sure to check maml_experiment_vars
 # adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 
 
 fast_learning_rates = [1.0]
-baselines = ['linear','MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -88,23 +88,15 @@ for goals_suffix in goals_suffixes:
                                                     seed %= 4294967294
                                                     global seed_
                                                     seed_ = seed
-                                                    import lasagne
-
                                                     rd.seed(seed)
                                                     np.random.seed(seed)
-                                                    lasagne.random.set_rng(np.random.RandomState(seed))
                                                     try:
                                                         import tensorflow as tf
 
                                                         tf.set_random_seed(seed)
                                                     except Exception as e:
                                                         print(e)
-                                                    print((
-                                                        colorize(
-                                                            'using seed %s' % (str(seed)),
-                                                            'green'
-                                                        )
-                                                    ))
+                                                    print('using seed %s' % (str(seed)))
                                                     ##
                                                     exp_name = str('R7_IL_'
                                                     # +time.strftime("%D").replace("/", "")[0:4]
@@ -218,7 +210,7 @@ for goals_suffix in goals_suffixes:
                                                         step_size=meta_step_size,
                                                         plot=False,
                                                         beta_steps=beta_steps,
-                                                        beta_curve=beta_curve,
+                                                        # beta_curve=beta_curve,
                                                         adam_steps=adam_steps,
                                                         pre_std_modifier=pre_std_modifier,
                                                         l2loss_std_mult=l2loss_std_mult,
@@ -226,6 +218,7 @@ for goals_suffix in goals_suffixes:
                                                         post_std_modifier_train=post_std_modifier_train,
                                                         post_std_modifier_test=post_std_modifier_test,
                                                         expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix],
+                                                        seed=seed,
                                                     )
                                                     run_experiment_lite(
                                                         algo.train(),

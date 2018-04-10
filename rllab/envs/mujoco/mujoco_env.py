@@ -43,7 +43,7 @@ class MujocoEnv(Env):
     def __init__(self, action_noise=0.0, file_path=None, template_args=None):
         # compile template
 
-        self._seed()
+        self._seed(1)
         if file_path is None:
             if self.__class__.FILE is None:
                 raise "Mujoco file not specified"
@@ -123,7 +123,7 @@ class MujocoEnv(Env):
                                  #  np.random.normal(size=self.init_qpos.shape) * 0.00001
             else:
                 self.model.data.qpos = self.init_qpos + \
-                                       np.random.normal(size=self.init_qpos.shape) * 0.01
+                                       np.random.normal(size=self.init_qpos.shape) * 0.00
             self.model.data.qvel = self.init_qvel #+ \
             # np.random.normal(size=self.init_qvel.shape) * 0.1
             self.model.data.qacc = self.init_qacc
