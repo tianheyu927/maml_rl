@@ -18,7 +18,8 @@ class Reacher7Dof2DistractEnv(
         self.shuffle_order = None
         self.objects = ["goal","distract1","distract2"]
         self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distract.xml'
-        super().__init__()
+        seed = kwargs["envseed"]
+        super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 
         # Serializable.quick_init(self, locals())
