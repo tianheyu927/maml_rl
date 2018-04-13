@@ -61,8 +61,8 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1,2,3,4,5,6,7,8,9,10] #,2,3,4,5]
-envseeds = [1,2,3,4]
+seeds = [1,2,3,4,5] #,2,3,4,5]
+envseeds = [6,7,8,9]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
