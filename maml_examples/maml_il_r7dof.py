@@ -38,8 +38,8 @@ beta_adam_steps_list = [(1,50)]
 fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-# mode = "ec2"
-mode = "local"
+mode = "ec2"
+# mode = "local"
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
