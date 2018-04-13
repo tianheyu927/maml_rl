@@ -261,9 +261,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
                     assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
-                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+"dist.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
             else:
-                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+".pkl")
+                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+"dist.pkl")
 
             offpol_trajs = {tasknum:offpol_trajs[tasknum] for tasknum in range(self.meta_batch_size)}
 
@@ -356,9 +356,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
-                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+".pkl")
+                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+"dist.pkl")
                         else:
-                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+"dist.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
                         if self.limit_expert_traj_num is not None:
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_expert_traj_num] for t in expert_traj_for_metaitr.keys()}

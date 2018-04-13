@@ -13,12 +13,12 @@ from rllab.core.serializable import Serializable
 class Reacher7Dof2DistractEnv(
     mujoco_env.MujocoEnv, Serializable
 ):
-    def __init__(self, distance_metric_order=None, *args, **kwargs):
+    def __init__(self, distance_metric_order=None, envseed=0, *args, **kwargs):
         self.goal = None
         self.shuffle_order = None
         self.objects = ["goal","distract1","distract2"]
         self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distract.xml'
-        seed = kwargs["envseed"]
+        seed = envseed
         super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 

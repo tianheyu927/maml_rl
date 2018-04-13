@@ -87,9 +87,10 @@ for goals_suffix in goals_suffixes:
                                                         env = TfEnv(normalize(Reacher7DofMultitaskEnv(envseed=envseed)))
                                                         exp_name = str('R7_IL_'
                                                         # +time.strftime("%D").replace("/", "")[0:4]
-                                                        + goals_suffix
+                                                        + goals_suffix + "_"
                                                         + str(seed)
-                                                        + ("corr" if use_corr_term else "")
+                                                        + str(envseed)
+                                                        + ("" if use_corr_term else "nocorr")
                                                         # + str(int(use_maml))
                                                         + '_fbs' + str(fast_batch_size)
                                                         + '_mbs' + str(meta_batch_size)

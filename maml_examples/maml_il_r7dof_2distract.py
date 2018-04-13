@@ -85,10 +85,11 @@ for goals_suffix in goals_suffixes:
                                                         rd.seed(seed)
                                                         env = TfEnv(normalize(Reacher7Dof2DistractEnv(envseed=envseed)))
                                                         exp_name = str('R7_IL_DIST'
-                                                        # +time.strftime("%D").replace("/", "")[0:4]
-                                                        + goals_suffix
-                                                        + str(seed)
-                                                        + ("corr" if use_corr_term else "")
+                                                       # +time.strftime("%D").replace("/", "")[0:4]
+                                                       + goals_suffix + "_"
+                                                       + str(seed)
+                                                       + str(envseed)
+                                                       + ("" if use_corr_term else "nocorr")
                                                         # + str(int(use_maml))
                                                         + '_fbs' + str(fast_batch_size)
                                                         + '_mbs' + str(meta_batch_size)
