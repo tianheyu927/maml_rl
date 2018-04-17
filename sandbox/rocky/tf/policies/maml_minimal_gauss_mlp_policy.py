@@ -44,6 +44,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             std_parametrization='exp',
             grad_step_size=1.0,
             stop_grad=False,
+            extra_input_dim = 0,
             # metalearn_baseline=False,
     ):
         """
@@ -75,7 +76,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
-        self.input_shape = (None, obs_dim,)
+        self.input_shape = (None, obs_dim + extra_input_dim,)
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
         # self.metalearn_baseline = metalearn_baseline

@@ -8,6 +8,7 @@ from rllab.misc import tensor_utils
 from rllab.sampler.base import BaseSampler
 from rllab.sampler.stateful_pool import ProgBarCounter
 from sandbox.rocky.tf.envs.vec_env_executor import VecEnvExecutor
+from rllab.sampler.utils import joblib_dump_safe
 
 
 class VectorizedSampler(BaseSampler):
@@ -41,12 +42,27 @@ class VectorizedSampler(BaseSampler):
         self.vec_env.terminate()
 
 
-    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix=''):
+    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix='', extra_input=None, extra_input_dim=20, preupdate=False):
         # reset_args: arguments to pass to the environments to reset
         # return_dict: whether or not to return a dictionary or list form of paths
 
         logger.log("Obtaining samples for iteration %d..." % itr)
 
+        if extra_input is not None:
+            if extra_input == "onehot_exploration":
+                if preupdate:
+                    def expand_obs(obses, path_nums):
+                        extra = np.diag(extra_input_dim,1)
+                        return np.concatenate(obses, extra)
+                else:
+                    def expand_obs(obses, path_nums):
+                        extra = np.zeros((extra_input_dim,extra_input_dim))
+                        return np.concatenate(obses, extra)
+
+
+        else:
+            def expand_obs(obses, path_nums):
+                return obses
         #paths = []
         paths = {}
         for i in range(self.vec_env.num_envs):
@@ -58,8 +74,11 @@ class VectorizedSampler(BaseSampler):
             print("WARNING, will vectorize reset_args")
             reset_args = [reset_args]*self.vec_env.num_envs
 
+
         n_samples = 0
+        path_nums = [0] * self.vec_env.num_envs # keeps track on which rollout we are for each environment instance
         obses = self.vec_env.reset(reset_args)
+        obses = expand_obs(obses, path_nums)
         dones = np.asarray([True] * self.vec_env.num_envs)
         running_paths = [None] * self.vec_env.num_envs
 
@@ -75,15 +94,10 @@ class VectorizedSampler(BaseSampler):
             t = time.time()
             policy.reset(dones)
             actions, agent_infos = policy.get_actions(obses)
-            # if itr == -1:
-            #     print("debug", actions, agent_infos)
-
             policy_time += time.time() - t
             t = time.time()
             next_obses, rewards, dones, env_infos = self.vec_env.step(actions, reset_args)
-            # if itr == -1:
-            #     print("debug2", next_obses)
-            #     assert False
+            next_obses = expand_obs(next_obses)
             env_time += time.time() - t
 
             t = time.time()
@@ -120,6 +134,8 @@ class VectorizedSampler(BaseSampler):
                     ))
                     n_samples += len(running_paths[idx]["rewards"])  # TODO: let's also add the incomplete running_paths to paths
                     running_paths[idx] = None
+                    path_nums[idx] += 1
+                    print("debug, path_nums", path_nums)
             process_time += time.time() - t
             pbar.inc(len(obses))
             obses = next_obses
