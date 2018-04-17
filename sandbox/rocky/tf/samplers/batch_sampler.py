@@ -32,7 +32,9 @@ class BatchSampler(BaseSampler):
     def shutdown_worker(self):
         parallel_sampler.terminate_task(scope=self.algo.scope)
 
-    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix=''):
+    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix='',extra_input=None):
+        if extra_input is not None:
+            assert False, "not implemented"
         init_policy_params = cur_policy_params = self.algo.policy.get_param_values()
         if hasattr(self.algo.env,"get_param_values"):
             try:

@@ -76,6 +76,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             goals_pickle_to=None,
             goals_pool_size=None,
             use_pooled_goals=True,
+            extra_input=None,
             seed=1,
             **kwargs
     ):
@@ -144,6 +145,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         #   self.action_limiter_multiplier = action_limiter_multiplier
         self.expert_trajs_dir = expert_trajs_dir
         self.use_pooled_goals = use_pooled_goals
+        self.extra_input = extra_input
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
         assert goals_to_load is None, "deprecated"
@@ -249,7 +251,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         # This obtains samples using self.policy, and calling policy.get_actions(obses)
         # return_dict specifies how the samples should be returned (dict separates samples
         # by task)
-        paths = self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, log_prefix=log_prefix)
+        paths = self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, log_prefix=log_prefix, extra_input=self.extra_input)
         assert type(paths) == dict
         return paths
 
