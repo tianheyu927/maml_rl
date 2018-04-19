@@ -41,6 +41,10 @@ class MAMLIL(BatchMAMLPolopt):
         self.ism = importance_sampling_modifier
         self.old_start_il_loss = None
         self.metalearn_baseline = metalearn_baseline
+        if "extra_input" in kwargs.keys():
+            self.extra_input = kwargs["extra_input"]
+        else:
+            self.extra_input = ""
         super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, metalearn_baseline=metalearn_baseline, **kwargs)
 
 
@@ -52,6 +56,7 @@ class MAMLIL(BatchMAMLPolopt):
             obs_vars.append(self.env.observation_space.new_tensor_variable(
                 'obs' + stepnum + '_' + str(i),
                 extra_dims=1,
+                add_to_flat_dim=(20 if self.extra_input == "onehot_exploration" else 0),
             ))
             action_vars.append(self.env.action_space.new_tensor_variable(
                 'action' + stepnum + '_' + str(i),

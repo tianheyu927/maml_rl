@@ -67,7 +67,7 @@ class Reacher7DofMultitaskEnv(
 
 
         qpos = np.copy(self.init_qpos)
-        qvel = np.copy(self.init_qvel) + self.np_random.uniform(
+        qvel = np.copy(self.init_qvel) + 0.0*self.np_random.uniform(
             low=-0.005, high=0.005, size=self.model.nv
         )
 

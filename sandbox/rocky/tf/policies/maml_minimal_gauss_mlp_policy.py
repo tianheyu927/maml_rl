@@ -44,7 +44,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             std_parametrization='exp',
             grad_step_size=1.0,
             stop_grad=False,
-            extra_input_dim = 0,
+            extra_input_dim=0,
             # metalearn_baseline=False,
     ):
         """

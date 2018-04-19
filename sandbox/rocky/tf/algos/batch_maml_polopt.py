@@ -247,11 +247,11 @@ class BatchMAMLPolopt(RLAlgorithm):
     def shutdown_worker(self):
         self.sampler.shutdown_worker()
 
-    def obtain_samples(self, itr, reset_args=None, log_prefix='',testitr=False):
+    def obtain_samples(self, itr, reset_args=None, log_prefix='',testitr=False, preupdate=False):
         # This obtains samples using self.policy, and calling policy.get_actions(obses)
         # return_dict specifies how the samples should be returned (dict separates samples
         # by task)
-        paths = self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, log_prefix=log_prefix, extra_input=self.extra_input)
+        paths = self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, log_prefix=log_prefix, extra_input=self.extra_input, extra_input_dim=(20 if self.extra_input=="onehot_exploration" else 0), preupdate=preupdate)
         assert type(paths) == dict
         return paths
 
@@ -263,9 +263,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
                     assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
-                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+"dist.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+"dist_20.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
             else:
-                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+"dist.pkl")
+                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+"dist_20.pkl")
 
             offpol_trajs = {tasknum:offpol_trajs[tasknum] for tasknum in range(self.meta_batch_size)}
 
@@ -358,9 +358,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
-                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+"dist.pkl")
+                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+"dist_20.pkl")
                         else:
-                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+"dist.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+"dist_20.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
                         if self.limit_expert_traj_num is not None:
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_expert_traj_num] for t in expert_traj_for_metaitr.keys()}
@@ -387,16 +387,19 @@ class BatchMAMLPolopt(RLAlgorithm):
                             logger.log("Obtaining samples...")
 
                             if itr in self.testing_itrs:
-                                print('debug12.0, test-time sampling')
-                                paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
-                                                                log_prefix=str(beta_step) + "_" + str(step),testitr=True)
-                                if step == 0:
+                                if step < self.num_grad_updates:
+                                    print('debug12.0.0, test-time sampling step=', step)
+                                    paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
+                                                                    log_prefix=str(beta_step) + "_" + str(step),testitr=True,preupdate=True)
                                     paths = store_agent_infos(paths)  # agent_infos_orig is populated here
-                                if step == self.num_grad_updates:
+                                elif step == self.num_grad_updates:
+                                    print('debug12.0.1, test-time sampling step=', step)
+                                    paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
+                                                                    log_prefix=str(beta_step) + "_" + str(step),testitr=True,preupdate=False)
                                     all_postupdate_paths.extend(paths.values())
                             elif self.expert_trajs_dir is None or (beta_step == 0 and step < self.num_grad_updates):
                                 print("debug12.1, regular sampling")
-                                paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step))
+                                paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step),preupdate=True)
                                 if beta_step == 0 and step == 0:
                                     paths = store_agent_infos(paths)  # agent_infos_orig is populated here
                                     beta0_step0_paths = deepcopy(paths)
@@ -408,6 +411,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                                                          log_prefix=str(beta_step)+"_"+str(step))
                             elif beta_step > 0 and step < self.num_grad_updates:
                                 print("debug12.3, own samples")
+                                assert False, "deprecated"
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
                                                                          offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0
                                                                          log_prefix=str(beta_step) + "_" + str(step))

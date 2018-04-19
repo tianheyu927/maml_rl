@@ -9,6 +9,7 @@ from rllab.sampler.base import BaseSampler
 from rllab.sampler.stateful_pool import ProgBarCounter
 from sandbox.rocky.tf.envs.vec_env_executor import VecEnvExecutor
 from rllab.sampler.utils import joblib_dump_safe
+from rllab.misc import special
 
 
 class VectorizedSampler(BaseSampler):
@@ -51,15 +52,19 @@ class VectorizedSampler(BaseSampler):
         if extra_input is not None:
             if extra_input == "onehot_exploration":
                 if preupdate:
+                    print("debug, using extra_input onehot")
                     def expand_obs(obses, path_nums):
-                        extra = np.diag(extra_input_dim,1)
-                        return np.concatenate(obses, extra)
+                        # extra = np.diag(extra_input_dim,1)
+                        extra = [special.to_onehot(path_num % extra_input_dim, extra_input_dim) for path_num in path_nums]
+                        return np.concatenate((obses, extra), axis=1)
                 else:
+                    print("debug, using extra_input zeros")
                     def expand_obs(obses, path_nums):
-                        extra = np.zeros((extra_input_dim,extra_input_dim))
-                        return np.concatenate(obses, extra)
-
-
+                        extra = [np.zeros(extra_input_dim) for path_num in path_nums]
+                        return np.concatenate((obses, extra),axis=1)
+            else:
+                def expand_obs(obses, path_nums):
+                    return obses
         else:
             def expand_obs(obses, path_nums):
                 return obses
@@ -97,7 +102,7 @@ class VectorizedSampler(BaseSampler):
             policy_time += time.time() - t
             t = time.time()
             next_obses, rewards, dones, env_infos = self.vec_env.step(actions, reset_args)
-            next_obses = expand_obs(next_obses)
+            next_obses = expand_obs(next_obses,path_nums)
             env_time += time.time() - t
 
             t = time.time()
@@ -135,7 +140,6 @@ class VectorizedSampler(BaseSampler):
                     n_samples += len(running_paths[idx]["rewards"])  # TODO: let's also add the incomplete running_paths to paths
                     running_paths[idx] = None
                     path_nums[idx] += 1
-                    print("debug, path_nums", path_nums)
             process_time += time.time() - t
             pbar.inc(len(obses))
             obses = next_obses

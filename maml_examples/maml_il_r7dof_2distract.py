@@ -39,6 +39,8 @@ baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
+extra_input = "onehot_exploration"
+# extra_input = ""
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
@@ -61,8 +63,8 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1,2,3,4,5] #,2,3,4,5]
-envseeds = [6,7,8,9]
+seeds = [5] #,2,3,4,5]
+envseeds = [9]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
@@ -127,6 +129,8 @@ for goals_suffix in goals_suffixes:
                                                             hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
+                                                            extra_input_dim=(20 if extra_input == "onehot_exploration" else 0),
+
                                                         )
                                                         if bas == 'zero':
                                                             baseline = ZeroBaseline(env_spec=env.spec)
@@ -205,6 +209,9 @@ for goals_suffix in goals_suffixes:
                                                             post_std_modifier_train=post_std_modifier_train,
                                                             post_std_modifier_test=post_std_modifier_test,
                                                             expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix],
+                                                            seed=seed,
+                                                            extra_input=extra_input,
+
                                                         )
                                                         run_experiment_lite(
                                                             algo.train(),

@@ -40,6 +40,8 @@ baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
+# extra_input = "onehot_exploration"
+extra_input = ""
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
@@ -107,7 +109,7 @@ for goals_suffix in goals_suffixes:
                                                         # + "_pstr" + str(post_std_modifier_train)
                                                         # + "_posm" + str(post_std_modifier_test)
                                                         #  + "_l2m" + str(l2loss_std_mult)
-                                                        + "_ism" + ism
+                                                        + ("_ism" + ism if len(ism) > 0 else "")
                                                         + "_bas" + bas[0]
                                                         # +"_tfbe" # TF backend for baseline
                                                         # +"_qdo" # quad dist optimizer
@@ -128,6 +130,7 @@ for goals_suffix in goals_suffixes:
                                                             hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
+                                                            extra_input_dim=(20 if extra_input=="onehot_exploration" else 0),
                                                         )
                                                         if bas == 'zero':
                                                             baseline = ZeroBaseline(env_spec=env.spec)
@@ -207,6 +210,7 @@ for goals_suffix in goals_suffixes:
                                                             post_std_modifier_test=post_std_modifier_test,
                                                             expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix],
                                                             seed=seed,
+                                                            extra_input=extra_input,
                                                         )
                                                         run_experiment_lite(
                                                             algo.train(),

@@ -10,7 +10,7 @@ from rllab.sampler.utils import rollout, joblib_dump_safe
 from rllab.core.serializable import Serializable
 
 
-class Reacher7Dof2DistractEnv(
+class Reacher7Dof2DistractSparseEnv(
     mujoco_env.MujocoEnv, Serializable
 ):
     def __init__(self, distance_metric_order=None, *args, **kwargs):
@@ -18,10 +18,7 @@ class Reacher7Dof2DistractEnv(
         self.shuffle_order = None
         self.objects = ["goal","distract1","distract2"]
         self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distract.xml'
-        if "envseed" in kwargs.keys():
-            seed = kwargs['envseed']
-        else:
-            seed=123456
+        seed = kwargs['envseed']
         super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 
@@ -55,8 +52,8 @@ class Reacher7Dof2DistractEnv(
         distance = np.linalg.norm(
             self.get_body_com("tips_arm") - self.get_body_com("goal")
         )
-        reward = - distance
-        # reward = 1.0 if distance < 0.1 else 0.0
+        # reward = - distance
+        reward = 1.0 if distance < 0.2 else 0.0
         self.forward_dynamics(action)
         # self.do_simulation(action, self.frame_skip)
         next_obs = self.get_current_obs()
@@ -105,19 +102,6 @@ class Reacher7Dof2DistractEnv(
             new_trajs_for_goal.append(new_traj)
         joblib_dump_safe(new_trajs_for_goal,goal_folder+str(goal_number)+"dist.pkl")
 
-    def attach_onehot_expert_trajectories(self, goal_folder, goal_number, extra_dim=0, suffix=""):
-        trajs_for_goal = joblib.load(goal_folder+str(goal_number) + suffix + ".pkl")
-        extra_input = np.array([0.]*extra_dim)
-        new_trajs_for_goal = []
-        for traj in trajs_for_goal:
-            obs = traj['observations']
-            new_obs = [np.concatenate((obs_step,extra_input)) for obs_step in obs]
-            new_traj = copy.deepcopy(traj)
-            new_traj['observations'] = new_obs
-            new_trajs_for_goal.append(new_traj)
-        joblib_dump_safe(new_trajs_for_goal,goal_folder+str(goal_number)+suffix+"_"+str(extra_dim)+".pkl")
-
-
 
 
 
@@ -159,34 +143,3 @@ class Reacher7Dof2DistractEnv(
         return self.get_current_obs()
 
 
-
-    # def reset_model(self):
-    #     qpos = np.copy(self.init_qpos)
-    #     qvel = np.copy(self.init_qvel) + self.np_random.uniform(
-    #         low=-0.005, high=0.005, size=self.model.nv
-    #     )
-    #     print(np.shape(qpos[-7:-4]))
-    #     qpos[-7:-4] = self._desired_xyz
-    #     qvel[-7:] = 0
-    #     self.set_state(qpos, qvel)
-    #     return self._get_obs()
-
-    # def _get_obs(self):
-    #     return np.concatenate([
-    #         self.model.data.qpos.flat[:7],
-    #         self.model.data.qvel.flat[:7],
-    #         self.get_body_com("tips_arm"),
-    #     ])
-
-    # def _step(self, a):
-    #     distance = np.linalg.norm(
-    #         self.get_body_com("tips_arm") - self.get_body_com("goal")
-    #     )
-    #     reward = - distance
-    #     self.do_simulation(a, self.frame_skip)
-    #     ob = self._get_obs()
-    #     done = False
-    #     return ob, reward, done, dict(distance=distance)
-
-    # def log_diagnostics(self, paths):
-    #     pass
