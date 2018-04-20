@@ -43,7 +43,7 @@ class VectorizedSampler(BaseSampler):
         self.vec_env.terminate()
 
 
-    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix='', extra_input=None, extra_input_dim=20, preupdate=False):
+    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix='', extra_input=None, extra_input_dim=0, preupdate=False):
         # reset_args: arguments to pass to the environments to reset
         # return_dict: whether or not to return a dictionary or list form of paths
 

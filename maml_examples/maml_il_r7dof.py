@@ -40,8 +40,9 @@ baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
-# extra_input = "onehot_exploration"
-extra_input = ""
+extra_input = "onehot_exploration"
+# extra_input = ""
+extra_input_dim = 5
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
@@ -130,7 +131,7 @@ for goals_suffix in goals_suffixes:
                                                             hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
-                                                            extra_input_dim=(20 if extra_input=="onehot_exploration" else 0),
+                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
                                                         )
                                                         if bas == 'zero':
                                                             baseline = ZeroBaseline(env_spec=env.spec)
@@ -211,6 +212,8 @@ for goals_suffix in goals_suffixes:
                                                             expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix],
                                                             seed=seed,
                                                             extra_input=extra_input,
+                                                            extra_input_dim=(
+                                                            extra_input_dim if extra_input == "onehot_exploration" else 0),
                                                         )
                                                         run_experiment_lite(
                                                             algo.train(),

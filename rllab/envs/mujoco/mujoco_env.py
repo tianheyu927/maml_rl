@@ -93,7 +93,6 @@ class MujocoEnv(Env):
 
 
     def _seed(self, seed=None):
-        print("setting MujocoEnv Seed to", seed)
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
