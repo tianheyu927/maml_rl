@@ -16,6 +16,7 @@ class GaussianMLPBaseline(Baseline, Parameterized, Serializable):
             subsample_factor=1.,
             num_seq_inputs=1,
             regressor_args=None,
+            extra_input_dim=0,
     ):
         Serializable.quick_init(self, locals())
         super(GaussianMLPBaseline, self).__init__(env_spec)
@@ -23,7 +24,7 @@ class GaussianMLPBaseline(Baseline, Parameterized, Serializable):
             regressor_args = dict()
 
         self._regressor = GaussianMLPRegressor(
-            input_shape=((2 *env_spec.observation_space.flat_dim + 3) * num_seq_inputs,),
+            input_shape=((2 *(env_spec.observation_space.flat_dim+extra_input_dim) + 3) * num_seq_inputs,),
             output_dim=1,
             name="vf",
             **regressor_args

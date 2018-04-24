@@ -35,7 +35,7 @@ beta_adam_steps_list = [(1,50)]
 
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
@@ -142,6 +142,8 @@ for goals_suffix in goals_suffixes:
                                                                                                repeat=basas,
                                                                                                repeat_sym=basas,
                                                                                                momentum=momentum,
+                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
+
                                                                                                # learn_std=False,
                                                                                                # use_trust_region=False,
                                                                                                # optimizer=QuadDistExpertOptimizer(
@@ -165,6 +167,8 @@ for goals_suffix in goals_suffixes:
                                                                                                hidden_sizes=baslayers,
                                                                                                hidden_nonlinearity=bas_hnl,
                                                                                                learn_std=False,
+                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
+
                                                                                                # use_trust_region=False,
                                                                                                # normalize_inputs=False,
                                                                                                # normalize_outputs=False,

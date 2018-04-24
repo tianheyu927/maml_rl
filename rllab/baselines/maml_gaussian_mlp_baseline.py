@@ -37,6 +37,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
             init_meta_constant=0.0,
             normalize_inputs=True,
             normalize_outputs=True,
+            extra_input_dim=0,
 
     ):
         Serializable.quick_init(self, locals())
@@ -47,7 +48,7 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
-        self.input_shape = (None, 2*obs_dim+3,)
+        self.input_shape = (None, 2*(obs_dim+extra_input_dim)+3,)
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self.max_path_length = 100
