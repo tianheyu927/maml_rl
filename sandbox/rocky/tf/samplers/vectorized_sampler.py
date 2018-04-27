@@ -62,6 +62,22 @@ class VectorizedSampler(BaseSampler):
                     def expand_obs(obses, path_nums):
                         extra = [np.zeros(extra_input_dim) for path_num in path_nums]
                         return np.concatenate((obses, extra),axis=1)
+            elif extra_input == "gaussian_exploration":
+                if preupdate:
+                    print("debug, using extra_input gaussian")
+
+                    def expand_obs(obses, path_nums):
+                        # extra = np.diag(extra_input_dim,1)
+                        extra = [special.to_onehot(path_num % extra_input_dim, extra_input_dim) for path_num in
+                                 path_nums]
+                        return np.concatenate((obses, extra), axis=1)
+                else:
+                    print("debug, using extra_input zeros")
+
+                    def expand_obs(obses, path_nums):
+                        extra = [np.zeros(extra_input_dim) for path_num in path_nums]
+                        return np.concatenate((obses, extra), axis=1)
+
             else:
                 def expand_obs(obses, path_nums):
                     return obses

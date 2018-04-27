@@ -29,7 +29,7 @@ import random as rd
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,50)]
+beta_adam_steps_list = [(1,1)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 
@@ -37,8 +37,8 @@ beta_adam_steps_list = [(1,50)]
 fast_learning_rates = [1.0]
 baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 extra_input = "onehot_exploration"
 # extra_input = ""
 extra_input_dim = 5
@@ -64,7 +64,7 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1,2,3,4,5,6,7,8,9,10] #,2,3,4,5]
+seeds = [2] #,2,3,4,5]
 envseeds = [9]
 use_maml = True
 test_on_training_goals = False
