@@ -35,7 +35,7 @@ beta_adam_steps_list = [(1,1)]
 
 
 fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
@@ -64,7 +64,7 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [2] #,2,3,4,5]
+seeds = [1] #,2,3,4,5]
 envseeds = [9]
 use_maml = True
 test_on_training_goals = False
@@ -87,38 +87,44 @@ for goals_suffix in goals_suffixes:
                                                         np.random.seed(seed)
                                                         rd.seed(seed)
                                                         env = TfEnv(normalize(Reacher7Dof2DistractEnv(envseed=envseed)))
-                                                        exp_name = str('R7_IL_DIST'
-                                                       # +time.strftime("%D").replace("/", "")[0:4]
-                                                       + goals_suffix + "_"
-                                                       + str(seed)
-                                                       + ("" if use_corr_term else "nocorr")
-                                                        # + str(int(use_maml))
-                                                        + '_fbs' + str(fast_batch_size)
-                                                        + '_mbs' + str(meta_batch_size)
-                                                        + '_flr_' + str(fast_learning_rate)
-                                                        + '_demo' + str(limit_expert_traj_num)
-                                                        # + '_tgm' + str(test_goals_mult)
-                                                        #     +'metalr_'+str(meta_step_size)
-                                                        #     +'_ngrad'+str(num_grad_updates)
-                                                        + "_bs" + str(beta_steps)
-                                                        + "_as" + str(adam_steps)
-                                                        # +"_net" + str(net_size[0])
-                                                        # +"_L2m" + str(l2loss_std_mult)
-                                                        + "_prsm" + str(pre_std_modifier)
-                                                        # + "_pstr" + str(post_std_modifier_train)
-                                                        # + "_posm" + str(post_std_modifier_test)
-                                                        #  + "_l2m" + str(l2loss_std_mult)
-                                                        + "_ism" + ism
-                                                        + "_bas" + bas[0]
-                                                        # +"_tfbe" # TF backend for baseline
-                                                        # +"_qdo" # quad dist optimizer
-                                                        + (("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
-                                                        # + "_" + str(baslayers)  # size
-                                                        + "_baslr" + str(bas_lr)
-                                                        + "_basas" + str(basas) if bas[0] in ["G","M"] else "")  # baseline adam steps
-                                                        + ("r" if test_on_training_goals else "")
-                                                        + "_" + time.strftime("%D_%H_%M").replace("/", "."))
-
+                                                        exp_name = str(
+                                                            'R7_IL_DIST'
+                                                            # +time.strftime("%D").replace("/", "")[0:4]
+                                                            + goals_suffix + "_"
+                                                            + str(seed)
+                                                            + str(envseed)
+                                                            + ("" if use_corr_term else "nocorr")
+                                                            # + str(int(use_maml))
+                                                            + '_fbs' + str(fast_batch_size)
+                                                            + '_mbs' + str(meta_batch_size)
+                                                            + '_flr_' + str(fast_learning_rate)
+                                                            + '_demo' + str(limit_expert_traj_num)
+                                                            + ('_ei' + str(extra_input_dim) if type(
+                                                                extra_input_dim) == int else "")
+                                                            # + '_tgm' + str(test_goals_mult)
+                                                            #     +'metalr_'+str(meta_step_size)
+                                                            #     +'_ngrad'+str(num_grad_updates)
+                                                            + ("_bs" + str(beta_steps) if beta_steps != 1 else "")
+                                                            + "_as" + str(adam_steps)
+                                                            # +"_net" + str(net_size[0])
+                                                            # +"_L2m" + str(l2loss_std_mult)
+                                                            + ("_prsm" + str(
+                                                                pre_std_modifier) if pre_std_modifier != 1 else "")
+                                                            # + "_pstr" + str(post_std_modifier_train)
+                                                            # + "_posm" + str(post_std_modifier_test)
+                                                            #  + "_l2m" + str(l2loss_std_mult)
+                                                            + ("_ism" + ism if len(ism) > 0 else "")
+                                                            + "_bas" + bas[0]
+                                                            # +"_tfbe" # TF backend for baseline
+                                                            # +"_qdo" # quad dist optimizer
+                                                            + (("_bi" if bas_hnl == tf.identity else (
+                                                            "_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
+                                                               # + "_" + str(baslayers)  # size
+                                                               + "_baslr" + str(bas_lr)
+                                                               + "_basas" + str(basas) if bas[0] in ["G",
+                                                                                                     "M"] else "")  # baseline adam steps
+                                                            + ("r" if test_on_training_goals else "")
+                                                            + "_" + time.strftime("%d%m_%H_%M"))
 
 
                                                         policy = MAMLGaussianMLPPolicy(
@@ -129,9 +135,7 @@ for goals_suffix in goals_suffixes:
                                                             hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
-
-                                                        )
+                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),)
                                                         if bas == 'zero':
                                                             baseline = ZeroBaseline(env_spec=env.spec)
                                                         elif bas == 'MAMLGaussianMLP':
@@ -142,23 +146,7 @@ for goals_suffix in goals_suffixes:
                                                                                                repeat=basas,
                                                                                                repeat_sym=basas,
                                                                                                momentum=momentum,
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
-
-                                                                                               # learn_std=False,
-                                                                                               # use_trust_region=False,
-                                                                                               # optimizer=QuadDistExpertOptimizer(
-                                                                                               #      name="bas_optimizer",
-                                                                                               #     #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
-                                                                                               #     #  tf_optimizer_args=dict(
-                                                                                               #     #      learning_rate=bas_lr,
-                                                                                               #     #  ),
-                                                                                               #     # # tf_optimizer_cls=tf.train.AdamOptimizer,
-                                                                                               #     # max_epochs=200,
-                                                                                               #     # batch_size=None,
-                                                                                               #      adam_steps=basas
-                                                                                               #     )
-                                                                                               )
-
+                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),)
                                                         elif bas == 'linear':
                                                             baseline = LinearFeatureBaseline(env_spec=env.spec)
                                                         elif "GaussianMLP" in bas:
@@ -168,19 +156,8 @@ for goals_suffix in goals_suffixes:
                                                                                                hidden_nonlinearity=bas_hnl,
                                                                                                learn_std=False,
                                                             extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
-
-                                                                                               # use_trust_region=False,
-                                                                                               # normalize_inputs=False,
-                                                                                               # normalize_outputs=False,
                                                                                                optimizer=QuadDistExpertOptimizer(
                                                                                                     name="bas_optimizer",
-                                                                                                   #  tf_optimizer_cls=tf.train.GradientDescentOptimizer,
-                                                                                                   #  tf_optimizer_args=dict(
-                                                                                                   #      learning_rate=bas_lr,
-                                                                                                   #  ),
-                                                                                                   # # tf_optimizer_cls=tf.train.AdamOptimizer,
-                                                                                                   # max_epochs=200,
-                                                                                                   # batch_size=None,
                                                                                                     adam_steps=basas,
                                                                                                     use_momentum_optimizer=True,
                                                                                                )))
@@ -212,10 +189,12 @@ for goals_suffix in goals_suffixes:
                                                             importance_sampling_modifier=MOD_FUNC[ism],
                                                             post_std_modifier_train=post_std_modifier_train,
                                                             post_std_modifier_test=post_std_modifier_test,
-                                                            expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix],
+                                                            expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix+"dist"+("_"+str(extra_input_dim) if type(extra_input_dim) == int else "")],
+                                                            expert_trajs_suffix="dist"+("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
                                                             seed=seed,
                                                             extra_input=extra_input,
                                                             extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
+
 
                                                         )
                                                         run_experiment_lite(

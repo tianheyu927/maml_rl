@@ -29,7 +29,7 @@ import random as rd
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,1),(1,10),(1,50),(1,250)]
+beta_adam_steps_list = [(1,50)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
 # adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
@@ -46,7 +46,7 @@ extra_input_dim = 5
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [5,10,20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -56,7 +56,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']  #'', 'clip0.5_'
-limit_expert_traj_num_list = [5,10,20,40]  # 40
+limit_expert_traj_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -88,38 +88,44 @@ for goals_suffix in goals_suffixes:
                                                         np.random.seed(seed)
                                                         rd.seed(seed)
                                                         env = TfEnv(normalize(Reacher7DofMultitaskEnv(envseed=envseed)))
-                                                        exp_name = str('R7_IL_'
-                                                        # +time.strftime("%D").replace("/", "")[0:4]
-                                                        + goals_suffix + "_"
-                                                        + str(seed)
-                                                        + str(envseed)
-                                                        + ("" if use_corr_term else "nocorr")
-                                                        # + str(int(use_maml))
-                                                        + '_fbs' + str(fast_batch_size)
-                                                        + '_mbs' + str(meta_batch_size)
-                                                        + '_flr_' + str(fast_learning_rate)
-                                                        + '_demo' + str(limit_expert_traj_num)
-                                                        # + '_tgm' + str(test_goals_mult)
-                                                        #     +'metalr_'+str(meta_step_size)
-                                                        #     +'_ngrad'+str(num_grad_updates)
-                                                        + "_bs" + str(beta_steps)
-                                                        + "_as" + str(adam_steps)
-                                                        # +"_net" + str(net_size[0])
-                                                        # +"_L2m" + str(l2loss_std_mult)
-                                                        + "_prsm" + str(pre_std_modifier)
-                                                        # + "_pstr" + str(post_std_modifier_train)
-                                                        # + "_posm" + str(post_std_modifier_test)
-                                                        #  + "_l2m" + str(l2loss_std_mult)
-                                                        + ("_ism" + ism if len(ism) > 0 else "")
-                                                        + "_bas" + bas[0]
-                                                        # +"_tfbe" # TF backend for baseline
-                                                        # +"_qdo" # quad dist optimizer
-                                                        + (("_bi" if bas_hnl == tf.identity else ("_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
-                                                        # + "_" + str(baslayers)  # size
-                                                        + "_baslr" + str(bas_lr)
-                                                        + "_basas" + str(basas) if bas[0] in ["G","M"] else "")  # baseline adam steps
-                                                        + ("r" if test_on_training_goals else "")
-                                                        + "_" + time.strftime("%D_%H_%M").replace("/", "."))
+                                                        exp_name = str(
+                                                            'R7_IL'
+                                                            # +time.strftime("%D").replace("/", "")[0:4]
+                                                            + goals_suffix + "_"
+                                                            + str(seed)
+                                                            + str(envseed)
+                                                            + ("" if use_corr_term else "nocorr")
+                                                            # + str(int(use_maml))
+                                                            + '_fbs' + str(fast_batch_size)
+                                                            + '_mbs' + str(meta_batch_size)
+                                                            + '_flr_' + str(fast_learning_rate)
+                                                            + '_demo' + str(limit_expert_traj_num)
+                                                            + ('_ei' + str(extra_input_dim) if type(
+                                                                extra_input_dim) == int else "")
+                                                            # + '_tgm' + str(test_goals_mult)
+                                                            #     +'metalr_'+str(meta_step_size)
+                                                            #     +'_ngrad'+str(num_grad_updates)
+                                                            + ("_bs" + str(beta_steps) if beta_steps != 1 else "")
+                                                            + "_as" + str(adam_steps)
+                                                            # +"_net" + str(net_size[0])
+                                                            # +"_L2m" + str(l2loss_std_mult)
+                                                            + ("_prsm" + str(
+                                                                pre_std_modifier) if pre_std_modifier != 1 else "")
+                                                            # + "_pstr" + str(post_std_modifier_train)
+                                                            # + "_posm" + str(post_std_modifier_test)
+                                                            #  + "_l2m" + str(l2loss_std_mult)
+                                                            + ("_ism" + ism if len(ism) > 0 else "")
+                                                            + "_bas" + bas[0]
+                                                            # +"_tfbe" # TF backend for baseline
+                                                            # +"_qdo" # quad dist optimizer
+                                                            + (("_bi" if bas_hnl == tf.identity else (
+                                                            "_brel" if bas_hnl == tf.nn.relu else "_bth"))  # identity or relu or tanh for baseline
+                                                               # + "_" + str(baslayers)  # size
+                                                               + "_baslr" + str(bas_lr)
+                                                               + "_basas" + str(basas) if bas[0] in ["G",
+                                                                                                     "M"] else "")  # baseline adam steps
+                                                            + ("r" if test_on_training_goals else "")
+                                                            + "_" + time.strftime("%d%m_%H_%M"))
 
 
 
@@ -209,7 +215,8 @@ for goals_suffix in goals_suffixes:
                                                             importance_sampling_modifier=MOD_FUNC[ism],
                                                             post_std_modifier_train=post_std_modifier_train,
                                                             post_std_modifier_test=post_std_modifier_test,
-                                                            expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix],
+                                                            expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix+("_"+str(extra_input_dim) if type(extra_input_dim) == int else "")],
+                                                            expert_trajs_suffix=("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
                                                             seed=seed,
                                                             extra_input=extra_input,
                                                             extra_input_dim=(

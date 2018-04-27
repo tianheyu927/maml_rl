@@ -73,6 +73,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             goals_to_load=None,
             goals_pool_to_load=None,
             expert_trajs_dir=None,
+            expert_trajs_suffix="",
             goals_pickle_to=None,
             goals_pool_size=None,
             use_pooled_goals=True,
@@ -145,6 +146,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.post_std_modifier_test = post_std_modifier_test
         #   self.action_limiter_multiplier = action_limiter_multiplier
         self.expert_trajs_dir = expert_trajs_dir
+        self.expert_trajs_suffix = expert_trajs_suffix
         self.use_pooled_goals = use_pooled_goals
         self.extra_input = extra_input
         # Next, we will set up the goals and potentially trajectories that we plan to use.
@@ -264,9 +266,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
                     assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
-                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+"_5.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
             else:
-                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+"_5.pkl")
+                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+self.expert_trajs_suffix+".pkl")
 
             offpol_trajs = {tasknum:offpol_trajs[tasknum] for tasknum in range(self.meta_batch_size)}
 
@@ -360,9 +362,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
-                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+"_5.pkl")
+                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+self.expert_trajs_suffix+".pkl")
                         else:
-                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+"_5.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
                         if self.limit_expert_traj_num is not None:
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_expert_traj_num] for t in expert_traj_for_metaitr.keys()}
