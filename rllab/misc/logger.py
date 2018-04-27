@@ -15,6 +15,7 @@ import joblib
 import json
 import pickle
 import base64
+from collections import OrderedDict
 
 _prefixes = []
 _prefix_str = ''
@@ -129,8 +130,11 @@ def log(s, with_prefix=True, with_timestamp=True, color=None):
         sys.stdout.flush()
 
 
-def record_tabular(key, val):
-    _tabular.append((_tabular_prefix_str + str(key), str(val)))
+def record_tabular(key, val, front=False):
+    if not front:
+        _tabular.append((_tabular_prefix_str + str(key), str(val)))
+    elif front:
+        _tabular.insert(0,(_tabular_prefix_str + str(key), str(val)))
 
 
 def push_tabular_prefix(key):
@@ -194,7 +198,7 @@ def dump_tabular(*args, **kwargs):
         else:
             for line in tabulate(_tabular).split('\n'):
                 log(line, *args, **kwargs)
-        tabular_dict = dict(_tabular)
+        tabular_dict = OrderedDict(_tabular)
         # Also write to the csv files
         # This assumes that the keys in each iteration won't change!
         for tabular_fd in list(_tabular_fds.values()):

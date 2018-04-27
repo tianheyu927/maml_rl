@@ -264,9 +264,9 @@ class BatchMAMLPolopt(RLAlgorithm):
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
                     assert np.array_equal(self.goals_pool[taskidx], self.goals_to_use_dict[itr][t]), "fail"
-                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+"dist_5.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                offpol_trajs = {t : joblib.load(expert_trajs_dir+str(taskidx)+"_5.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
             else:
-                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+"dist_5.pkl")
+                offpol_trajs = joblib.load(expert_trajs_dir+str(itr)+"_5.pkl")
 
             offpol_trajs = {tasknum:offpol_trajs[tasknum] for tasknum in range(self.meta_batch_size)}
 
@@ -345,6 +345,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             sess.run(tf.variables_initializer(uninit_vars))
             self.start_worker()
             start_time = time.time()
+            self.metaitr=0
             for itr in range(self.start_itr, self.n_itr):
                 itr_start_time = time.time()
                 np.random.seed(self.seed+itr)
@@ -359,9 +360,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
-                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+"dist_5.pkl")
+                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+"_5.pkl")
                         else:
-                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+"dist_5.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+"_5.pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
                         if self.limit_expert_traj_num is not None:
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_expert_traj_num] for t in expert_traj_for_metaitr.keys()}
@@ -437,6 +438,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                             all_samples_data_for_betastep.append(samples_data)
                             # for logging purposes only
                             self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=True, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
+                            if step == self.num_grad_updates:
+                                logger.record_tabular("AverageReturnLastTest", self.sampler.memory["AverageReturnLastTest"],front=True)
+                                logger.record_tabular("TestItr", ("1" if testitr else "0"),front=True)
+                                logger.record_tabular("MetaItr", self.metaitr,front=True)
                             logger.log("Logging diagnostics...")
                             #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
@@ -468,6 +473,8 @@ class BatchMAMLPolopt(RLAlgorithm):
 
                     if itr in self.testing_itrs:
                         self.process_samples(itr, flatten_list(all_postupdate_paths), prefix="1",log=True,fast_process=True,testitr=True,metalearn_baseline=self.metalearn_baseline)
+                    else:
+                        self.metaitr += 1
                     logger.log("Saving snapshot...")
                     params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
                     if self.store_paths:
