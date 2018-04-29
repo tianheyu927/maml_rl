@@ -50,7 +50,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
-limit_expert_traj_num_list = [40]  # 40
+limit_demos_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -67,7 +67,7 @@ for goals_suffix in goals_suffixes:
         for baslayers in baslayers_list:
             for fast_batch_size in fast_batch_size_list:
                 for ism in importance_sampling_modifier_list:
-                    for limit_expert_traj_num in limit_expert_traj_num_list:
+                    for limit_demos_num in limit_demos_num_list:
                         for l2loss_std_mult in l2loss_std_mult_list:
                             for post_std_modifier_train in post_std_modifier_train_list:
                                 for post_std_modifier_test in post_std_modifier_test_list:
@@ -86,7 +86,7 @@ for goals_suffix in goals_suffixes:
                                                     + '_fbs' + str(fast_batch_size)
                                                     + '_mbs' + str(meta_batch_size)
                                                     + '_flr_' + str(fast_learning_rate)
-                                                    + '_demo' + str(limit_expert_traj_num)
+                                                    + '_demo' + str(limit_demos_num)
                                                     # + '_tgm' + str(test_goals_mult)
                                                     #     +'metalr_'+str(meta_step_size)
                                                     #     +'_ngrad'+str(num_grad_updates)
@@ -183,7 +183,7 @@ for goals_suffix in goals_suffixes:
                                                         test_on_training_goals=test_on_training_goals,
                                                         metalearn_baseline=(bas=="MAMLGaussianMLP"),
                                                         # metalearn_baseline=False,
-                                                        limit_expert_traj_num=limit_expert_traj_num,
+                                                        limit_demos_num=limit_demos_num,
                                                         test_goals_mult=test_goals_mult,
                                                         step_size=meta_step_size,
                                                         plot=False,

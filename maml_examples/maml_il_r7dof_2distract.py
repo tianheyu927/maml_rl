@@ -29,7 +29,7 @@ import random as rd
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,1)]
+beta_adam_steps_list = [(1,50)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 
@@ -40,7 +40,7 @@ env_option = ''
 # mode = "ec2"
 mode = "local"
 extra_input = "onehot_exploration"
-# extra_input = ""
+# extra_input = None
 extra_input_dim = 5
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
@@ -55,7 +55,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']
-limit_expert_traj_num_list = [40]  # 40
+limit_demos_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -74,7 +74,7 @@ for goals_suffix in goals_suffixes:
             for baslayers in baslayers_list:
                 for fast_batch_size in fast_batch_size_list:
                     for ism in importance_sampling_modifier_list:
-                        for limit_expert_traj_num in limit_expert_traj_num_list:
+                        for limit_demos_num in limit_demos_num_list:
                             for l2loss_std_mult in l2loss_std_mult_list:
                                 for post_std_modifier_train in post_std_modifier_train_list:
                                     for post_std_modifier_test in post_std_modifier_test_list:
@@ -92,13 +92,13 @@ for goals_suffix in goals_suffixes:
                                                             # +time.strftime("%D").replace("/", "")[0:4]
                                                             + goals_suffix + "_"
                                                             + str(seed)
-                                                            + str(envseed)
+                                                            # + str(envseed)
                                                             + ("" if use_corr_term else "nocorr")
                                                             # + str(int(use_maml))
                                                             + '_fbs' + str(fast_batch_size)
                                                             + '_mbs' + str(meta_batch_size)
                                                             + '_flr_' + str(fast_learning_rate)
-                                                            + '_demo' + str(limit_expert_traj_num)
+                                                            + '_demo' + str(limit_demos_num)
                                                             + ('_ei' + str(extra_input_dim) if type(
                                                                 extra_input_dim) == int else "")
                                                             # + '_tgm' + str(test_goals_mult)
@@ -113,7 +113,7 @@ for goals_suffix in goals_suffixes:
                                                             # + "_pstr" + str(post_std_modifier_train)
                                                             # + "_posm" + str(post_std_modifier_test)
                                                             #  + "_l2m" + str(l2loss_std_mult)
-                                                            + ("_ism" + ism if len(ism) > 0 else "")
+                                                            + ("_" + ism if len(ism) > 0 else "")
                                                             + "_bas" + bas[0]
                                                             # +"_tfbe" # TF backend for baseline
                                                             # +"_qdo" # quad dist optimizer
@@ -135,28 +135,29 @@ for goals_suffix in goals_suffixes:
                                                             hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),)
+                                                            extra_input_dim=(0 if extra_input is None else extra_input_dim),)
                                                         if bas == 'zero':
                                                             baseline = ZeroBaseline(env_spec=env.spec)
                                                         elif bas == 'MAMLGaussianMLP':
-                                                            baseline = MAMLGaussianMLPBaseline(env_spec=env.spec,
-                                                                                               learning_rate=bas_lr,
-                                                                                               hidden_sizes=baslayers,
-                                                                                               hidden_nonlinearity=bas_hnl,
-                                                                                               repeat=basas,
-                                                                                               repeat_sym=basas,
-                                                                                               momentum=momentum,
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),)
+                                                            baseline = MAMLGaussianMLPBaseline(
+                                                                env_spec=env.spec,
+                                                                learning_rate=bas_lr,
+                                                                hidden_sizes=baslayers,
+                                                                hidden_nonlinearity=bas_hnl,
+                                                                repeat=basas,
+                                                                repeat_sym=basas,
+                                                                momentum=momentum,
+                                                                extra_input_dim=(0 if extra_input is None else extra_input_dim),)
                                                         elif bas == 'linear':
                                                             baseline = LinearFeatureBaseline(env_spec=env.spec)
                                                         elif "GaussianMLP" in bas:
-                                                            baseline = GaussianMLPBaseline(env_spec=env.spec,
+                                                            baseline = GaussianMLPBaseline(
+                                                                env_spec=env.spec,
                                                                                                regressor_args=dict(
                                                                                                hidden_sizes=baslayers,
                                                                                                hidden_nonlinearity=bas_hnl,
                                                                                                learn_std=False,
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
-                                                                                               optimizer=QuadDistExpertOptimizer(
+                                                            optimizer=QuadDistExpertOptimizer(
                                                                                                     name="bas_optimizer",
                                                                                                     adam_steps=basas,
                                                                                                     use_momentum_optimizer=True,
@@ -177,7 +178,7 @@ for goals_suffix in goals_suffixes:
                                                             test_on_training_goals=test_on_training_goals,
                                                             metalearn_baseline=(bas=="MAMLGaussianMLP"),
                                                             # metalearn_baseline=False,
-                                                            limit_expert_traj_num=limit_expert_traj_num,
+                                                            limit_demos_num=limit_demos_num,
                                                             test_goals_mult=test_goals_mult,
                                                             step_size=meta_step_size,
                                                             plot=False,
@@ -193,9 +194,7 @@ for goals_suffix in goals_suffixes:
                                                             expert_trajs_suffix="dist"+("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
                                                             seed=seed,
                                                             extra_input=extra_input,
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
-
-
+                                                            extra_input_dim=(0 if extra_input is None else extra_input_dim),
                                                         )
                                                         run_experiment_lite(
                                                             algo.train(),

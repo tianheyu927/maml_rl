@@ -64,7 +64,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             use_maml=True,
             use_maml_il=False,
             test_on_training_goals=False,
-            limit_expert_traj_num=None,
+            limit_demos_num=None,
             test_goals_mult=1,
             load_policy=None,
             pre_std_modifier=1.0,
@@ -139,7 +139,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         if self.metalearn_baseline:
             self.testing_itrs.insert(0,0)
         print("test_on_training_goals", self.test_on_training_goals)
-        self.limit_expert_traj_num = limit_expert_traj_num
+        self.limit_demos_num = limit_demos_num
         self.test_goals_mult = test_goals_mult
         self.pre_std_modifier = pre_std_modifier
         self.post_std_modifier_train = post_std_modifier_train
@@ -149,6 +149,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.expert_trajs_suffix = expert_trajs_suffix
         self.use_pooled_goals = use_pooled_goals
         self.extra_input = extra_input
+        self.extra_input_dim = extra_input_dim
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
         assert goals_to_load is None, "deprecated"
@@ -254,7 +255,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         # This obtains samples using self.policy, and calling policy.get_actions(obses)
         # return_dict specifies how the samples should be returned (dict separates samples
         # by task)
-        paths = self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, log_prefix=log_prefix, extra_input=self.extra_input, extra_input_dim=(self.extra_input_dim if self.extra_input=="onehot_exploration" else 0), preupdate=preupdate)
+        paths = self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, log_prefix=log_prefix, extra_input=self.extra_input, extra_input_dim=(self.extra_input_dim if self.extra_input is not None else 0), preupdate=preupdate)
         assert type(paths) == dict
         return paths
 
@@ -366,8 +367,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                         else:
                             expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
-                        if self.limit_expert_traj_num is not None:
-                            expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_expert_traj_num] for t in expert_traj_for_metaitr.keys()}
+                        if self.limit_demos_num is not None:
+                            expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_demos_num] for t in expert_traj_for_metaitr.keys()}
                         for t in expert_traj_for_metaitr.keys():
                             for path in expert_traj_for_metaitr[t]:
                                 if 'expert_actions' not in path.keys():

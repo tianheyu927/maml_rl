@@ -61,7 +61,7 @@ class MAMLIL(BatchMAMLPolopt):
             obs_vars.append(self.env.observation_space.new_tensor_variable(
                 'obs' + stepnum + '_' + str(i),
                 extra_dims=1,
-                add_to_flat_dim=(self.extra_input_dim if self.extra_input == "onehot_exploration" else 0),
+                add_to_flat_dim=(0 if self.extra_input is None else self.extra_input_dim),
             ))
             action_vars.append(self.env.action_space.new_tensor_variable(
                 'action' + stepnum + '_' + str(i),

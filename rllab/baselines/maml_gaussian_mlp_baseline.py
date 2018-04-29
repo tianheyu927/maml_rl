@@ -49,11 +49,14 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
         self.input_shape = (None, 2*(obs_dim+extra_input_dim)+3,)
+        self.input_to_discard = extra_input_dim
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self.max_path_length = 100
         self._normalize_inputs = normalize_inputs
         self._normalize_outputs = normalize_outputs
+
+
         #
         # self._enh_obs_mean_var = tf.Variable(
         #     tf.zeros((1,) + self.input_shape, dtype=tf.float32),

@@ -36,17 +36,17 @@ beta_adam_steps_list = [(1,50)]
 
 
 fast_learning_rates = [1.0]
-baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
-extra_input = "onehot_exploration"
-# extra_input = ""
+# mode = "ec2"
+mode = "local"
+extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
+# extra_input = None
 extra_input_dim = 5
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [10]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [20]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -56,7 +56,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']  #'', 'clip0.5_'
-limit_expert_traj_num_list = [40]  # 40
+limit_demos_num_list = [10]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -75,7 +75,7 @@ for goals_suffix in goals_suffixes:
             for baslayers in baslayers_list:
                 for fast_batch_size in fast_batch_size_list:
                     for ism in importance_sampling_modifier_list:
-                        for limit_expert_traj_num in limit_expert_traj_num_list:
+                        for limit_demos_num in limit_demos_num_list:
                             for l2loss_std_mult in l2loss_std_mult_list:
                                 for post_std_modifier_train in post_std_modifier_train_list:
                                     for post_std_modifier_test in post_std_modifier_test_list:
@@ -93,13 +93,13 @@ for goals_suffix in goals_suffixes:
                                                             # +time.strftime("%D").replace("/", "")[0:4]
                                                             + goals_suffix + "_"
                                                             + str(seed)
-                                                            + str(envseed)
+                                                            # + str(envseed)
                                                             + ("" if use_corr_term else "nocorr")
                                                             # + str(int(use_maml))
                                                             + '_fbs' + str(fast_batch_size)
                                                             + '_mbs' + str(meta_batch_size)
-                                                            + '_flr_' + str(fast_learning_rate)
-                                                            + '_demo' + str(limit_expert_traj_num)
+                                                            + '_flr' + str(fast_learning_rate)
+                                                            + '_dem' + str(limit_demos_num)
                                                             + ('_ei' + str(extra_input_dim) if type(
                                                                 extra_input_dim) == int else "")
                                                             # + '_tgm' + str(test_goals_mult)
@@ -114,7 +114,7 @@ for goals_suffix in goals_suffixes:
                                                             # + "_pstr" + str(post_std_modifier_train)
                                                             # + "_posm" + str(post_std_modifier_test)
                                                             #  + "_l2m" + str(l2loss_std_mult)
-                                                            + ("_ism" + ism if len(ism) > 0 else "")
+                                                            + ("_" + ism if len(ism) > 0 else "")
                                                             + "_bas" + bas[0]
                                                             # +"_tfbe" # TF backend for baseline
                                                             # +"_qdo" # quad dist optimizer
@@ -137,7 +137,7 @@ for goals_suffix in goals_suffixes:
                                                             hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
-                                                            extra_input_dim=(extra_input_dim if extra_input == "onehot_exploration" else 0),
+                                                            extra_input_dim=(0 if extra_input is None else extra_input_dim),
                                                         )
                                                         if bas == 'zero':
                                                             baseline = ZeroBaseline(env_spec=env.spec)
@@ -149,7 +149,9 @@ for goals_suffix in goals_suffixes:
                                                                                                repeat=basas,
                                                                                                repeat_sym=basas,
                                                                                                momentum=momentum,
-                                                                                               # learn_std=False,
+                                                                                               extra_input_dim=( 0 if extra_input is None else extra_input_dim),
+
+                                                            # learn_std=False,
                                                                                                # use_trust_region=False,
                                                                                                # optimizer=QuadDistExpertOptimizer(
                                                                                                #      name="bas_optimizer",
@@ -203,7 +205,7 @@ for goals_suffix in goals_suffixes:
                                                             test_on_training_goals=test_on_training_goals,
                                                             metalearn_baseline=(bas=="MAMLGaussianMLP"),
                                                             # metalearn_baseline=False,
-                                                            limit_expert_traj_num=limit_expert_traj_num,
+                                                            limit_demos_num=limit_demos_num,
                                                             test_goals_mult=test_goals_mult,
                                                             step_size=meta_step_size,
                                                             plot=False,
@@ -219,8 +221,8 @@ for goals_suffix in goals_suffixes:
                                                             expert_trajs_suffix=("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
                                                             seed=seed,
                                                             extra_input=extra_input,
-                                                            extra_input_dim=(
-                                                            extra_input_dim if extra_input == "onehot_exploration" else 0),
+                                                            extra_input_dim=(0 if extra_input is None else extra_input_dim),
+
                                                         )
                                                         run_experiment_lite(
                                                             algo.train(),
