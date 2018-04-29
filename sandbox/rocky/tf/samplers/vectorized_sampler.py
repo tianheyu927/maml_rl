@@ -43,7 +43,7 @@ class VectorizedSampler(BaseSampler):
         self.vec_env.terminate()
 
 
-    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix='', extra_input=None, extra_input_dim=0, preupdate=False):
+    def obtain_samples(self, itr, reset_args=None, return_dict=False, log_prefix='', extra_input=None, extra_input_dim=None, preupdate=False):
         # reset_args: arguments to pass to the environments to reset
         # return_dict: whether or not to return a dictionary or list form of paths
 
@@ -61,6 +61,17 @@ class VectorizedSampler(BaseSampler):
                     def expand_obs(obses, path_nums):
                         extra = [np.zeros(extra_input_dim) for path_num in path_nums]
                         return np.concatenate((obses, extra),axis=1)
+            elif extra_input == "onehot_hacked":
+                if preupdate:
+                    print("debug, using extra_input onehot")
+                    def expand_obs(obses, path_nums):
+                        extra = [special.to_onehot(3, extra_input_dim) for path_num in path_nums]
+                        return np.concatenate((obses, extra), axis=1)
+                else:
+                    print("debug, using extra_input zeros")
+                    def expand_obs(obses, path_nums):
+                        extra = [np.zeros(extra_input_dim) for path_num in path_nums]
+                        return np.concatenate((obses, extra),axis=1)
             elif extra_input == "gaussian_exploration":
                 if preupdate:
                     print("debug, using extra_input gaussian")
@@ -70,10 +81,10 @@ class VectorizedSampler(BaseSampler):
                         return np.concatenate((obses, extra), axis=1)
                 else:
                     print("debug, using extra_input zeros")
-
                     def expand_obs(obses, path_nums):
                         extra = [np.zeros(extra_input_dim) for path_num in path_nums]
                         return np.concatenate((obses, extra), axis=1)
+
 
             else:
                 def expand_obs(obses, path_nums):

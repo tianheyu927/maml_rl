@@ -358,7 +358,6 @@ class BatchMAMLPolopt(RLAlgorithm):
                     all_paths_for_plotting = []
                     all_postupdate_paths = []
                     self.beta_steps = min(self.beta_steps, self.beta_curve[min(itr,len(self.beta_curve)-1)])
-                    print("beta_steps", self.beta_steps)
                     beta_steps_range = range(self.beta_steps) if itr not in self.testing_itrs else range(self.test_goals_mult)
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in self.testing_itrs:

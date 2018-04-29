@@ -15,7 +15,7 @@ OUTPUT_NONLINEARITY = {
     'reluh':tf.nn.tanh,
 }
 
-TESTING_ITRS = [1,3,5,7,9,11,13,15,17,19] + [8*x-1 for x in range(1000)]
+TESTING_ITRS = [5,7,9,11,13,15,17,19] + [8*x-1 for x in range(1000)]
 # BASELINE_TRAINING_ITRS = [0,]
 BASELINE_TRAINING_ITRS = []
 assert set(BASELINE_TRAINING_ITRS).issubset(set(TESTING_ITRS))
@@ -55,5 +55,5 @@ MOD_FUNC={
     'clip0.5_':clip05_,
     'clip1.0_':clip1_,
     'clip1.0_1.0':clip1_1,
-    'clipX':clip_wide,
+    'clipX':clip_wide, # fwiw clipX seems to do the same
 }
