@@ -73,22 +73,25 @@ class Reacher7Dof2DistractEnv(
             goals_list.append([newgoal, distract1, distract2, shuffle_order])
         return np.array(goals_list)
 
-    def enrich_goals_pool(self, goals_pool):
+    def enrich_goals_pool(self, goals_pool, fake=False):
         new_goals_list = []
         goals_list = goals_pool['goals_pool']
         new_goals_pool = {}
         for goal in goals_list:
             distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
             distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-            shuffle_order = np.random.permutation([0,1,2]).reshape(3,1)
+            if not fake:
+                shuffle_order = np.random.permutation([0,1,2]).reshape(3,1)
+            elif fake:
+                shuffle_order = np.array([0,1,2]).reshape(3,1)
             new_goals_list.append([goal, distract1, distract2, shuffle_order])
         new_goals_pool['goals_pool'] = np.array(new_goals_list)
         new_goals_pool['idxs_dict'] = goals_pool['idxs_dict']
         return new_goals_pool
 
-    def enrich_expert_trajectories(self, goal_folder, goal_number):
-        trajs_for_goal = joblib.load(goal_folder+str(goal_number) + ".pkl")
-        goal_distractions_and_shuffle_order = joblib.load(goal_folder+"goals_pool.pkl")['goals_pool'][goal_number]
+    def enrich_expert_trajectories(self, origin_folder, goal_number, destination_folder,fake=False):
+        trajs_for_goal = joblib.load(origin_folder+str(goal_number) + ".pkl")
+        goal_distractions_and_shuffle_order = joblib.load(destination_folder+"goals_pool.pkl")['goals_pool'][goal_number]
         shuffle_order = goal_distractions_and_shuffle_order[-1].reshape((3,))
         goal_and_distractions = np.concatenate((
             goal_distractions_and_shuffle_order[int(shuffle_order[0])],
@@ -96,6 +99,7 @@ class Reacher7Dof2DistractEnv(
             goal_distractions_and_shuffle_order[int(shuffle_order[2])]
         ))
         print("goals for index", goal_number, ":\n", goal_and_distractions)
+        print("shuffle order for index", goal_number, ":\n", shuffle_order)
         new_trajs_for_goal = []
         for traj in trajs_for_goal:
             obs = traj['observations']
@@ -103,10 +107,10 @@ class Reacher7Dof2DistractEnv(
             new_traj = copy.deepcopy(traj)
             new_traj['observations'] = new_obs
             new_trajs_for_goal.append(new_traj)
-        joblib_dump_safe(new_trajs_for_goal,goal_folder+str(goal_number)+"dist.pkl")
+        joblib_dump_safe(new_trajs_for_goal,destination_folder+str(goal_number)+("" if not fake else "fake")+"dist.pkl")
 
-    def attach_onehot_expert_trajectories(self, goal_folder, goal_number, extra_dim=0, suffix=""):
-        trajs_for_goal = joblib.load(goal_folder+str(goal_number) + suffix + ".pkl")
+    def attach_zeros_expert_trajectories(self, origin_folder, goal_number, destination_folder, extra_dim=0, suffix=""):
+        trajs_for_goal = joblib.load(origin_folder+str(goal_number) + suffix + ".pkl")
         extra_input = np.array([0.]*extra_dim)
         new_trajs_for_goal = []
         for traj in trajs_for_goal:
@@ -115,7 +119,9 @@ class Reacher7Dof2DistractEnv(
             new_traj = copy.deepcopy(traj)
             new_traj['observations'] = new_obs
             new_trajs_for_goal.append(new_traj)
-        joblib_dump_safe(new_trajs_for_goal,goal_folder+str(goal_number)+suffix+"_"+str(extra_dim)+".pkl")
+        print("doing",destination_folder+str(goal_number)+suffix+"_"+str(extra_dim)+".pkl")
+        joblib_dump_safe(new_trajs_for_goal,destination_folder+str(goal_number)+suffix+"_"+str(extra_dim)+".pkl")
+
 
 
 

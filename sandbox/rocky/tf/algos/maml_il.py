@@ -144,7 +144,7 @@ class MAMLIL(BatchMAMLPolopt):
             else:
                 obs_vars, action_vars, adv_vars, rewards_vars, returns_vars, expert_action_vars = self.make_vars(str(grad_step))  # path_lengths_vars before expert actions
 
-            inner_surr_objs, inner_surr_objs_sym = [], []  # surrogate objectives
+            inner_surr_objs, inner_surr_objs_simple, inner_surr_objs_sym = [], [], []  # surrogate objectives
             # inner_surr_objs_slow = []  # surrogate objectives
 
             new_params = []
@@ -217,6 +217,7 @@ class MAMLIL(BatchMAMLPolopt):
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_by_path), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, 1.0), adv)))
                 inner_surr_objs.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_fast), adv)))
+                inner_surr_objs_simple.append(-tf.reduce_mean(tf.multiply(logli_i, adv)))
                 # inner_surr_objs_slow.append(-tf.reduce_mean(tf.multiply(tf.multiply(logli_i, lr_per_step_slow), adv)))
                 # inner_surr_objs.append(-tf.reduce_mean(tf.multiply(logli_i, adv)))
                 if self.metalearn_baseline:
@@ -228,7 +229,7 @@ class MAMLIL(BatchMAMLPolopt):
                 input_vars_list += obs_vars + action_vars + rewards_vars + returns_vars  # + path_lengths_vars
             # For computing the fast update for sampling
             # At this point, inner_input_vars_list is theta0 + theta_l + obs + action + adv
-            self.policy.set_init_surr_obj(inner_input_vars_list, inner_surr_objs)
+            self.policy.set_init_surr_obj(inner_input_vars_list, inner_surr_objs_simple)
 
             input_vars_list += expert_action_vars # TODO: is this pre-update expert action vars? Should we kill this?
             if not self.metalearn_baseline:
