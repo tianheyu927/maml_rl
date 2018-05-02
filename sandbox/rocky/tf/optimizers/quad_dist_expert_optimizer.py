@@ -162,7 +162,9 @@ class QuadDistExpertOptimizer(Serializable):
     def constraint_val(self, inputs):
         return self._opt_fun["f_constraint"](*inputs)
 
-    def optimize(self, input_vals_list,):
+    def optimize(self, input_vals_list, steps=None):
+        if steps is None:
+            steps = self._optimizer_steps
         sess = tf.get_default_session()
         feed_dict = dict(list(zip(self._inputs, input_vals_list)))
         # print("debug01, tf gradients", sess.run(self._gradients, feed_dict=feed_dict)[0][0][0][0:4])
@@ -172,7 +174,7 @@ class QuadDistExpertOptimizer(Serializable):
         init_loss = sess.run(self._loss, feed_dict=feed_dict)
         print("init_loss", init_loss)
         min_loss = init_loss
-        for i in range(self._optimizer_steps):
+        for i in range(steps):
             # BREAKER: limit the amount of adam steps you take by measuring the reduction in loss. Quite costly.
             # loss_val = sess.run(self._loss, feed_dict=feed_dict)
             # print("currentloss", loss_val, i)

@@ -24,6 +24,7 @@ class MAMLIL(BatchMAMLPolopt):
             use_corr_term=True,
             beta_steps=1,
             adam_steps=1,
+            adam_curve=None,
             l2loss_std_mult=1.0,
             importance_sampling_modifier=tf.identity,
             metalearn_baseline=False,
@@ -34,6 +35,7 @@ class MAMLIL(BatchMAMLPolopt):
             optimizer = QuadDistExpertOptimizer("main_optimizer", adam_steps=adam_steps)  #  **optimizer_args)
         self.optimizer = optimizer
         self.step_size = step_size
+        self.adam_curve = adam_curve if adam_curve is not None else [adam_steps]
         self.use_maml = use_maml
         self.use_corr_term=use_corr_term
         self.kl_constrain_step = -1
@@ -415,8 +417,9 @@ class MAMLIL(BatchMAMLPolopt):
         logger.log("Computing loss before")
        # loss_before = self.optimizer.loss(input_vals_list)
         if itr not in TESTING_ITRS:
-            logger.log("Optimizing")
-            start_loss = self.optimizer.optimize(input_vals_list)
+            steps = self.adam_curve[min(itr,len(self.adam_curve)-1)]
+            logger.log("Optimizing using %s Adam steps on itr %s" % (steps, itr))
+            start_loss = self.optimizer.optimize(input_vals_list, steps=steps)
             # self.optimizer.optimize(input_vals_list)
             return start_loss
 

@@ -156,7 +156,6 @@ class BatchMAMLPolopt(RLAlgorithm):
         if self.use_pooled_goals:
             if expert_trajs_dir is not None:
                 assert goals_pool_to_load is None, "expert_trajs already comes with its own goals, please disable goals_pool_to_load"
-                # extra
                 self.goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['goals_pool']
                 self.goals_idxs_for_itr_dict = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['idxs_dict']
                 print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys(), len(self.goals_pool))
@@ -208,19 +207,10 @@ class BatchMAMLPolopt(RLAlgorithm):
             self.goals_to_use_dict = joblib.load(self.expert_trajs_dir+"goals.pkl")
 
             assert set(range(self.start_itr, self.n_itr)).issubset(set(self.goals_to_use_dict.keys())), "Not all meta-iteration numbers have saved goals in %s" % expert_trajs_dir
-
         # chopping off unnecessary meta-iterations and goals
             self.goals_to_use_dict = {itr:self.goals_to_use_dict[itr][:self.meta_batch_size]
                                       for itr in range(self.start_itr,self.n_itr)}
-        # for itr in range(self.start_itr,self.n_itr):
-        #     if itr in self.testing_itrs:
-        #         while 'sample_goals' not in dir(env):
-        #             env = env.wrapped_env
-        #         self.goals_to_use_dict[itr] = env.sample_goals(self.test_goals)
-
-
-        # saving goals pool-
-
+        # saving goals pool
         if goals_pickle_to is not None:
             # logger.log("Saving goals to %s..." % goals_pickle_to)
             # joblib_dump_safe(self.goals_to_use_dict, goals_pickle_to)
