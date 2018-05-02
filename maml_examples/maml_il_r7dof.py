@@ -29,7 +29,7 @@ import random as rd
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,50)]
+beta_adam_steps_list = [(1,10)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
 # adam_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
@@ -40,9 +40,10 @@ baselines = ['MAMLGaussianMLP',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
-extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
-# extra_input = None
-extra_input_dim = 5
+# extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
+extra_input = None
+# extra_input_dim = 5
+extra_input_dim = None
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
