@@ -36,17 +36,17 @@ beta_adam_steps_list = [(1,10)]
 
 
 fast_learning_rates = [1.0]
-baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
 # extra_input = None
 extra_input_dim = 5
 goals_suffixes = ["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [120]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [4]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size = 40  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -56,7 +56,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']  #'', 'clip0.5_'
-limit_demos_num_list = [1]  # 40
+limit_demos_num_list = [4]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
