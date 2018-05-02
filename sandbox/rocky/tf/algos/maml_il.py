@@ -165,7 +165,9 @@ class MAMLIL(BatchMAMLPolopt):
 
 
                     # al = tf.concat([al_const]*int(self.batch_size/self.max_path_length/self.meta_batch_size),0)
-                    enh_obs_i = tf.concat([obs_vars[i], obs_vars[i] ** 2, al, al ** 2, al ** 3], axis=1)
+                    enh_obs_i = tf.concat([obs_vars[i]*self.baseline.obs_mask,
+                                           (obs_vars[i] ** 2)*self.baseline.obs_mask,
+                                           al, al ** 2, al ** 3], axis=1)
                     # enh_obs_i = tf.concat([al, al ** 2, al ** 3], axis=1)
 
                     if 'surr_obj' not in dir(self.baseline):

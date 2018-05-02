@@ -49,7 +49,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
         self.input_shape = (None, 2*(obs_dim+extra_input_dim)+3,)
-        self.input_to_discard = extra_input_dim
+        self.input_to_discard = extra_input_dim  #multiply by 0 the last extra_input_dim elements of obs vector
+        self.obs_mask = np.array([1.0]*obs_dim+[0.]*extra_input_dim)
         self.learning_rate = learning_rate
         self.algo_discount = algo_discount
         self.max_path_length = 100
@@ -202,7 +203,9 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
         self.init_accumulation_vals = sess.run(self.accumulation)
         # self.init_grad_vals = sess.run(self.last_grad)
         obs = np.concatenate([np.clip(p["observations"],-10,10) for p in paths])
+        obs = np.multiply(obs,self.obs_mask)
         obs2 = np.concatenate([np.square(np.clip(p["observations"],-10,10)) for p in paths])
+        obs2 = np.multiply(obs2, self.obs_mask)
         al = np.concatenate([np.arange(len(p["rewards"])).reshape(-1, 1)/100.0 for p in paths])
         al2 =al**2
         al3 = al**3
@@ -337,7 +340,8 @@ class MAMLGaussianMLPBaseline(Baseline, Parameterized, Serializable):
     def predict(self, path):
         # flat_obs = self.env_spec.observation_space.flatten_n(path['observations'])
         obs = np.clip(path['observations'],-10,10)
-        obs2 = np.square(obs)
+        obs = np.multiply(obs,self.obs_mask)
+        obs2 = np.square(obs) # no need to do the mask here
         # al = np.zeros(shape=(len(path["rewards"]),1))
         al = np.arange(len(path["rewards"])).reshape(-1, 1)/100.0
         al2 = al**2
