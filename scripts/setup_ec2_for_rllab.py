@@ -221,8 +221,8 @@ def setup_s3():
 
 
 def setup_ec2():
-    #for region in ["us-east-1", "us-west-1", "us-west-2"]:
-    for region in ["us-west-1"]:
+    for region in ["us-east-1", "us-west-1", "us-west-2"]:
+    #for region in ["us-west-1"]:
         print("Setting up region %s" % region)
 
         ec2 = boto3.resource(

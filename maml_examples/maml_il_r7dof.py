@@ -36,7 +36,7 @@ beta_adam_steps_list = [(1,50)]
 
 
 fast_learning_rates = [1.0]
-baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
+baselines = ['MAMLGaussianMLP',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
