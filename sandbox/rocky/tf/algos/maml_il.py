@@ -317,8 +317,8 @@ class MAMLIL(BatchMAMLPolopt):
             corr_term = None
 
         if self.metalearn_baseline:
-            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']]
-            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
+            target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']]
+            # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
         else:
             target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]

@@ -435,7 +435,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 logger.record_tabular("TestItr", ("1" if testitr else "0"),front=True)
                                 logger.record_tabular("MetaItr", self.metaitr,front=True)
                             logger.log("Logging diagnostics...")
-                            #self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
+                            self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
                             if step < self.num_grad_updates:
                                 if itr not in self.testing_itrs:
