@@ -89,7 +89,7 @@ for goals_suffix in goals_suffixes:
                                                             tf.set_random_seed(seed)
                                                             np.random.seed(seed)
                                                             rd.seed(seed)
-                                                            env = TfEnv(normalize(PusherEnv()))
+                                                            env = TfEnv(normalize(PusherEnv(distractors=True)))
                                                             exp_name = str(
                                                                 'R7_IL'
                                                                 # +time.strftime("%D").replace("/", "")[0:4]

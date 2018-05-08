@@ -14,7 +14,10 @@ class Reacher7DofMultitaskEnv(
     def __init__(self, distance_metric_order=None, *args, **kwargs):
         self.goal = None
         self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
-        seed = kwargs['envseed']
+        if "envseed" in kwargs.keys():
+            seed = kwargs['envseed']
+        else:
+            seed=0
         super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 

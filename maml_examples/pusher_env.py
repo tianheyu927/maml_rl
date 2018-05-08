@@ -2,6 +2,9 @@ import numpy as np
 from gym import utils
 from rllab.envs.mujoco import mujoco_env
 from rllab.core.serializable import Serializable
+from rllab.misc.overrides import overrides
+
+from rllab.envs.base import Step
 
 # import mujoco_py
 # from mujoco_py.mjlib import mjlib
@@ -10,20 +13,42 @@ from PIL import Image
 class PusherEnv(mujoco_env.MujocoEnv, utils.EzPickle, Serializable):
     def __init__(self, xml_file=None, distractors=False, *args, **kwargs):
         utils.EzPickle.__init__(self)
-        print(xml_file)
+        print("using xml_file", xml_file)
         if xml_file is None:
             xml_file = 'pusher.xml'
         self.__class__.FILE = xml_file
         self.include_distractors = distractors
         super().__init__()
         Serializable.__init__(self, *args, **kwargs)
-        # mujoco_env.MujocoEnv.__init__(self, xml_file, 5)
+        # mujoco_env.MujocoEnv.__init__(self, file_path=xml_file)
+
+    def viewer_setup(self):
+        if self.viewer is None:
+            self.start_viewer()
+        self.viewer.cam.trackbodyid = -1
+        self.viewer.cam.distance = 4.0
 
     def get_current_obs(self):
         return self._get_obs()
 
     def step(self, action):
-        return self._step(a=action)
+        self.frame_skip = 5
+        ob, reward, done, reward_dict = self._step(a=action)
+        return Step(ob, reward, done)
+    #
+    # def sample_goals(self, num_goals, test=False):
+    #     out = []
+    #         for _ in range(num_goals):
+    #
+    #
+    #     else:
+    #         return np choice from 1 to 200
+
+    # @overrides
+    # def reset(self, reset_args=None, **kwargs):
+        xml_file = load_the_xml_file(reset_args, test=False)
+        self.__init__(xml_file=xml_file,distractors=self.include_distractors)
+
 
     def _step(self, a):
         # normalize actions
@@ -49,16 +74,10 @@ class PusherEnv(mujoco_env.MujocoEnv, utils.EzPickle, Serializable):
         return ob, reward, done, dict(reward_dist=reward_dist,
                 reward_ctrl=reward_ctrl)
 
-    def viewer_setup(self):
-        if self.viewer is None:
-            self.start_viewer()
-        self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = 4.0
-
     def reset_model(self):
-        qpos = self.init_qpos
+        qpos = np.copy(self.init_qpos)
 
-        self.goal_pos = np.asarray([0, 0])
+        self.goal_pos = np.asarray([0., 0.])
         while True:
             self.obj_pos = np.concatenate([
                     np.random.uniform(low=-0.3, high=0, size=1),
@@ -74,14 +93,16 @@ class PusherEnv(mujoco_env.MujocoEnv, utils.EzPickle, Serializable):
             while True:
                 self.distractor_pos = np.concatenate([
                         np.random.uniform(low=-0.3, high=0, size=1),
-                        np.random.uniform(low=y_range[0], high=y_range[1], size=1)])
+                        np.random.uniform(low=y_range[0], high=y_range[1], size=1)]).reshape(2,1)
                 if np.linalg.norm(self.distractor_pos - self.goal_pos) > 0.17 and np.linalg.norm(self.obj_pos - self.distractor_pos) > 0.1:
                     break
+            print(np.shape(self.distractor_pos))
+            print(np.shape(qpos[-6:-4]))
             qpos[-6:-4] = self.distractor_pos
 
 
-        qpos[-4:-2] = self.obj_pos
-        qpos[-2:] = self.goal_pos
+        qpos[-4:-2] = self.obj_pos.reshape(2,1)
+        qpos[-2:] = self.goal_pos.reshape(2,1)
         qvel = self.init_qvel + np.random.uniform(low=-0.005,
                 high=0.005, size=(self.model.nv))
 

@@ -48,6 +48,7 @@ class MujocoEnv(Env):
             if self.__class__.FILE is None:
                 raise "Mujoco file not specified"
             file_path = osp.join(MODEL_DIR, self.__class__.FILE)
+        print("debug, filepath", file_path)
         if file_path.endswith(".mako"):
             lookup = mako.lookup.TemplateLookup(directories=[MODEL_DIR])
             with open(file_path) as template_file:
