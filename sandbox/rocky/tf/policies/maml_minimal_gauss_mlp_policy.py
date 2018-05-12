@@ -365,7 +365,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         action = rnd * np.exp(log_std) + mean
         return action, dict(mean=mean, log_std=log_std)
 
-    def get_actions(self, observations):
+    def get_actions(self, observations):   #TODO: make this work with the robot
         # this function takes a numpy array observations and outputs sampled actions.
         # Assumes that there is one observation per post-update policy distr
         flat_obs = self.observation_space.flatten_n(observations)
@@ -379,7 +379,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             log_stds = np.array([res[1] for res in result])[:,0,:]
         rnd = np.random.normal(size=np.shape(means))
         actions = rnd * np.exp(log_stds) + means
-        return actions, dict(mean=means, log_std=log_stds)
+        return actions, dict(mean=means, log_std=log_stds)  #TODO: obtain_samples needs to receive the observations from this as well
 
     @property
     def distribution(self):

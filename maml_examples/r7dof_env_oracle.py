@@ -1,21 +1,34 @@
 import numpy as np
+import random as rd
 from rllab.envs.mujoco import mujoco_env
 from rllab.misc.overrides import overrides
 from rllab.core.serializable import Serializable
 from rllab.envs.base import Step
+from PIL import Image
 
 from copy import deepcopy
 
 class Reacher7DofMultitaskEnvOracle(
     mujoco_env.MujocoEnv, Serializable
 ):
-    def __init__(self, distance_metric_order=None, *args, **kwargs):
+    def __init__(self, xml_file=None, distance_metric_order=None, distractors=False, *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             noise = kwargs['noise']
         else:
             noise = 0.0
-        self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
+        self.include_distractors=distractors
+        if self.include_distractors:
+            self.shuffle_order = rd.sample([[0,1,2],[1,2,0],[2,0,1]],1)[0]
+
+        if xml_file is not None:
+            self.__class__.FILE = xml_file
+        else:
+            if not self.include_distractors:
+                self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
+            else:
+                self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
+
         super().__init__(action_noise=noise)
         Serializable.__init__(self, *args, **kwargs)
 
@@ -31,16 +44,24 @@ class Reacher7DofMultitaskEnvOracle(
         if self.viewer is None:
             self.start_viewer()
         self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = 3.5
-        self.viewer.azimuth = -30
+        self.viewer.cam.distance = 2.5
+        self.viewer.cam.azimuth = -90
+        self.viewer.cam.elevation = -60
 
     def get_current_obs(self):
-        return np.concatenate([
+        return self._get_obs()
+
+    def get_current_image_obs(self):
+        image = self.viewer.get_image()
+        pil_image = Image.frombytes('RGB', (image[1], image[2]), image[0])
+        pil_image = pil_image.resize((64,64), Image.ANTIALIAS)
+        image = np.flipud(np.array(pil_image))
+        return image, np.concatenate([  #this is the oracle environment so no need for distractors
             self.model.data.qpos.flat[:7],
             self.model.data.qvel.flat[:7],
-            self.get_body_com("tips_arm"),
-            self.model.data.qpos.flat[-7:-4]
-        ])
+            self.get_body_com('tips_arm'),
+            self.get_body_com('goal'),
+            ])
 
     def step(self, action):
         self.frame_skip = 5
@@ -81,8 +102,14 @@ class Reacher7DofMultitaskEnvOracle(
         if goal_pos is not None:
             self.goal = goal_pos
         else:  # change goal between resets
-            self.goal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-
+            if not self.include_distractors:
+                self.goal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+            else:
+                self.goal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+                self.distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+                self.distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+                qpos[-14:-11] = self.distract1
+                qpos[-21:-18] = self.distract2
         qpos[-7:-4] = self.goal
         qvel[-7:] = 0
         setattr(self.model.data, 'qpos', qpos)
@@ -114,12 +141,24 @@ class Reacher7DofMultitaskEnvOracle(
     #     self.set_state(qpos, qvel)
     #     return self._get_obs()
 
-    # def _get_obs(self):
-    #     return np.concatenate([
-    #         self.model.data.qpos.flat[:7],
-    #         self.model.data.qvel.flat[:7],
-    #         self.get_body_com("tips_arm"),
-    #     ])
+    def _get_obs(self):
+        # if self.include_distractors:
+        #     return np.concatenate([
+        #         self.model.data.qpos.flat[:7],
+        #         self.model.data.qvel.flat[:7],
+        #         self.get_body_com("tips_arm"),
+        #         self.get_body_com("distractor2"),
+        #         self.get_body_com("distractor1"),
+        #         self.get_body_com("goal"),
+        #     ])
+        # else:
+        # this is the oracle environment, so no need for distractors
+        return np.concatenate([
+            self.model.data.qpos.flat[:7],
+            self.model.data.qvel.flat[:7],
+            self.get_body_com("tips_arm"),
+            self.get_body_com('goal'),
+        ])
 
     # def _step(self, a):
     #     distance = np.linalg.norm(

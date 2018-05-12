@@ -7,6 +7,7 @@ import rllab.plotter as plotter
 from rllab.algos.base import RLAlgorithm
 from sandbox.rocky.tf.policies.base import Policy
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
+from sandbox.rocky.tf.samplers.vectorized_sampler import VectorizedSampler
 
 import joblib
 import matplotlib.pyplot as plt
@@ -51,6 +52,7 @@ class BatchPolopt(RLAlgorithm):
             reset_arg=None,
             save_expert_traj_dir=None,
             expert_traj_itrs_to_pickle=[],
+            save_img_obs=False,
             goals_to_load=None,
             goals_pool_to_load=None,
             **kwargs
@@ -98,7 +100,7 @@ class BatchPolopt(RLAlgorithm):
         self.fixed_horizon = fixed_horizon
         if sampler_cls is None:
             #if self.policy.vectorized and not force_batch_sampler:
-            #sampler_cls = VectorizedSampler
+            # sampler_cls = VectorizedSampler
             #else:
             sampler_cls = BatchSampler
         if sampler_args is None:
@@ -109,6 +111,7 @@ class BatchPolopt(RLAlgorithm):
         self.action_noise_test = action_noise_test
         self.make_video = make_video
         self.save_expert_traj_dir = save_expert_traj_dir
+        self.save_img_obs = save_img_obs
         assert goals_to_load is None, "deprecated"
         assert len(expert_traj_itrs_to_pickle) == 0, "deprecated"
         if goals_pool_to_load is not None:
@@ -139,7 +142,7 @@ class BatchPolopt(RLAlgorithm):
     def obtain_samples(self, itr, reset_args=None):
         if reset_args is None:
             reset_args = self.reset_arg
-        return self.sampler.obtain_samples(itr, reset_args=reset_args)
+        return self.sampler.obtain_samples(itr, reset_args=reset_args, save_img_obs=self.save_img_obs)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
