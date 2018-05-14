@@ -48,7 +48,7 @@ class PusherEnv(utils.EzPickle, Serializable):
         return self._get_obs()
 
     def step(self, action):
-        self.frame_skip = 5
+        self.mujoco.frame_skip = 5
         ob, reward, done, reward_dict = self._step(a=action)
         return Step(ob, reward, done)
 
@@ -78,6 +78,7 @@ class PusherEnv(utils.EzPickle, Serializable):
             if (goal_num != self.goal_num) or (test != self.test):
                 if self.mujoco.viewer is not None:
                     self.mujoco.stop_viewer()
+                    self.mujoco.terminate()
                 self.goal_num, self.test = goal
                 demo_path = (self.train_dir + str(self.goal_num) + ".pkl") if not self.test else (
                 self.test_dir + str(self.goal_num) + ".pkl")
@@ -92,6 +93,7 @@ class PusherEnv(utils.EzPickle, Serializable):
             xml_file = demo_data["xml"]
             xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/",self.xml_dir)
             self.mujoco =  mujoco_env.MujocoEnv(file_path=xml_file)
+            self.viewer_setup()
         self.reset_model()
         return self.get_current_obs()
 
@@ -110,7 +112,7 @@ class PusherEnv(utils.EzPickle, Serializable):
         reward_ctrl = - np.square(a).sum()
         reward = reward_dist + 0.1 * reward_ctrl + 0.5 * reward_near
 
-        self.mujoco.do_simulation(a, self.frame_skip)
+        self.mujoco.do_simulation(a, n_frames=self.mujoco.frame_skip)
         # extra added to copy rllab forward_dynamics.
         self.mujoco.model.forward()
 

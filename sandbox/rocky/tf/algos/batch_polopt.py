@@ -193,6 +193,7 @@ class BatchPolopt(RLAlgorithm):
                         joblib_dump_safe(paths_to_save[0], self.save_expert_traj_dir+str(itr)+".pkl")
                         logger.log("Fast-processing returns...")
                         undiscounted_returns = [sum(path['rewards']) for path in paths]
+                        print("debug", undiscounted_returns)
                         logger.record_tabular('AverageReturn', np.mean(undiscounted_returns))
 
                     else:
@@ -245,14 +246,20 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                        if self.make_video and itr % 80 == 0 and itr in self.goals_for_ET_dict.keys() == 0:
-                            logger.log("Saving videos...")
-                            self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
-                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s.mp4' % itr)
-                            rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
-                                    animated=True, speedup=2, save_video=True, video_filename=video_filename,
-                                    reset_arg=self.goals_for_ET_dict[itr][0],
-                                    use_maml=False,)
+                    if self.make_video and itr % 2 == 0 and itr in [0,2,4,6,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
+                        logger.log("Saving videos...")
+                        self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
+                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_0.mp4' % itr)
+                        rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                reset_arg=self.goals_for_ET_dict[itr][0],
+                                use_maml=False,)
+                        self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
+                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_1.mp4' % itr)
+                        rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                reset_arg=self.goals_for_ET_dict[itr][0],
+                                use_maml=False, )
 
                     # debugging
                     """

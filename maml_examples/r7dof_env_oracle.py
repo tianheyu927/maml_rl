@@ -5,13 +5,14 @@ from rllab.misc.overrides import overrides
 from rllab.core.serializable import Serializable
 from rllab.envs.base import Step
 from PIL import Image
+from rllab import spaces
 
 from copy import deepcopy
+BIG = 1e6
 
-class Reacher7DofMultitaskEnvOracle(
-    mujoco_env.MujocoEnv, Serializable
+class Reacher7DofMultitaskEnvOracle( Serializable
 ):
-    def __init__(self, xml_file=None, distance_metric_order=None, distractors=False, *args, **kwargs):
+    def __init__(self, xml_file=None, distance_metric_order=None, distractors=True, *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
             noise = kwargs['noise']
@@ -19,19 +20,23 @@ class Reacher7DofMultitaskEnvOracle(
             noise = 0.0
         self.include_distractors=distractors
         if self.include_distractors:
-            self.shuffle_order = rd.sample([[0,1,2],[1,2,0],[2,0,1]],1)[0]
+            self.shuffle_order = [[0,1,2],[1,2,0],[2,0,1]][2]
+            # self.shuffle_order = rd.sample([[0,1,2],[1,2,0],[2,0,1]],1)[0]
 
-        if xml_file is not None:
-            self.__class__.FILE = xml_file
-        else:
+        if xml_file is None:
             if not self.include_distractors:
-                self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
+                xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof.xml'
             else:
-                self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
+                xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
 
-        super().__init__(action_noise=noise)
+        # super().__init__(action_noise=noise)
+        print("xml file", xml_file)
+        self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file,action_noise=noise)
+        self.action_space = self.mujoco.action_space
+        self.get_viewer = self.mujoco.get_viewer
+        self.log_diagnostics = self.mujoco.log_diagnostics
         Serializable.__init__(self, *args, **kwargs)
-
+        self.viewer_setup()
         # Serializable.quick_init(self, locals())
         # mujoco_env.MujocoEnv.__init__(
         #     self,
@@ -41,35 +46,36 @@ class Reacher7DofMultitaskEnvOracle(
         # )
 
     def viewer_setup(self):
-        if self.viewer is None:
-            self.start_viewer()
-        self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = 2.5
-        self.viewer.cam.azimuth = -90
-        self.viewer.cam.elevation = -60
+        if self.mujoco.viewer is None:
+            self.mujoco.start_viewer()
+        self.mujoco.viewer.cam.trackbodyid = -1
+        self.mujoco.viewer.cam.distance = 2.5
+        self.mujoco.viewer.cam.azimuth = -90
+        self.mujoco.viewer.cam.elevation = -60
 
     def get_current_obs(self):
         return self._get_obs()
 
     def get_current_image_obs(self):
-        image = self.viewer.get_image()
+        image = self.mujoco.viewer.get_image()
         pil_image = Image.frombytes('RGB', (image[1], image[2]), image[0])
         pil_image = pil_image.resize((64,64), Image.ANTIALIAS)
         image = np.flipud(np.array(pil_image))
         return image, np.concatenate([  #this is the oracle environment so no need for distractors
-            self.model.data.qpos.flat[:7],
-            self.model.data.qvel.flat[:7],
-            self.get_body_com('tips_arm'),
-            self.get_body_com('goal'),
+            self.mujoco.model.data.qpos.flat[:7],
+            self.mujoco.model.data.qvel.flat[:7],
+            self.mujoco.get_body_com('tips_arm'),
+            self.mujoco.get_body_com('goal'),
             ])
 
     def step(self, action):
-        self.frame_skip = 5
+        self.mujoco.frame_skip = 5
         distance = np.linalg.norm(
-            self.get_body_com("tips_arm") - self.get_body_com("goal")
+            self.mujoco.get_body_com("tips_arm") - self.mujoco.get_body_com("goal")
         )
+        # print("debug, distance", distance)
         reward = - distance
-        self.forward_dynamics(action)
+        self.mujoco.do_simulation(action, n_frames=self.mujoco.frame_skip)
         # self.do_simulation(action, self.frame_skip)
         # next_obs = self.get_current_obs()
         next_img, next_obs = self.get_current_image_obs()
@@ -86,39 +92,53 @@ class Reacher7DofMultitaskEnvOracle(
 
     @overrides
     def reset(self, reset_args=None, **kwargs):
-        qpos = np.copy(self.init_qpos)
-        qvel = np.copy(self.init_qvel) + self.np_random.uniform(
-            low=-0.005, high=0.005, size=self.model.nv
+        qpos = np.copy(self.mujoco.init_qpos)
+        qvel = np.copy(self.mujoco.init_qvel) + self.mujoco.np_random.uniform(
+            low=-0.005, high=0.005, size=self.mujoco.model.nv
         )
 
         if type(reset_args) is dict:
-            goal_pos = reset_args['goal']
+            new_goal_pos = reset_args['goal']
             noise = reset_args['noise']
-            if self.action_noise != noise:
-                print("debug action noise changing")
-                self.action_noise = noise
+            if self.mujoco.action_noise != noise:
+                print("debug action noise changing from %s to %s" % (self.mujoco.action_noise, noise))
+                self.mujoco.action_noise = noise
         else:
-            goal_pos = reset_args
+            new_goal_pos = reset_args
 
-        if goal_pos is not None:
-            self.goal = goal_pos
+        if new_goal_pos is not None:
+            if np.equal(self.goal,new_goal_pos).all():
+                self.goal = new_goal_pos
+            else:
+                print("debug env changing")
+                self.goal = new_goal_pos
+                # self.shuffle_order = rd.sample([[0, 1, 2], [1, 2, 0], [2, 0, 1]], 1)[0]
+                # xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml' % tuple(
+                #     self.shuffle_order)
+                # self.mujoco.stop_viewer()
+                # self.mujoco.terminate()
+                # self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file, action_noise=noise)
+                # self.viewer_setup()
         else:  # change goal between resets
+            print("debug, resetting goal de novo, shouldn't happen during demo collection")
             if not self.include_distractors:
                 self.goal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
             else:
                 self.goal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-                self.distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-                self.distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
-                qpos[-14:-11] = self.distract1
-                qpos[-21:-18] = self.distract2
+        # reset distractors even if goal is same
+        self.distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+        self.distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+        qpos[-14:-11] = self.distract1
+        qpos[-21:-18] = self.distract2
+
         qpos[-7:-4] = self.goal
         qvel[-7:] = 0
-        setattr(self.model.data, 'qpos', qpos)
-        setattr(self.model.data, 'qvel', qvel)
-        self.model.data.qvel = qvel
-        self.model._compute_subtree()
-        self.model.forward()
-        self.current_com = self.model.data.com_subtree[0]
+        setattr(self.mujoco.model.data, 'qpos', qpos)
+        setattr(self.mujoco.model.data, 'qvel', qvel)
+        self.mujoco.model.data.qvel = qvel
+        self.mujoco.model._compute_subtree()
+        self.mujoco.model.forward()
+        self.current_com = self.mujoco.model.data.com_subtree[0]
         self.dcom = np.zeros_like(self.current_com)
         return self.get_current_obs()
 
@@ -155,10 +175,10 @@ class Reacher7DofMultitaskEnvOracle(
         # else:
         # this is the oracle environment, so no need for distractors
         return np.concatenate([
-            self.model.data.qpos.flat[:7],
-            self.model.data.qvel.flat[:7],
-            self.get_body_com("tips_arm"),
-            self.get_body_com('goal'),
+            self.mujoco.model.data.qpos.flat[:7],
+            self.mujoco.model.data.qvel.flat[:7],
+            self.mujoco.get_body_com("tips_arm"),
+            self.mujoco.get_body_com('goal'),
         ])
 
     # def _step(self, a):
@@ -173,4 +193,12 @@ class Reacher7DofMultitaskEnvOracle(
 
     # def log_diagnostics(self, paths):
     #     pass
+    @property
+    @overrides
+    def observation_space(self):
+        shp = self.get_current_obs().shape
+        ub = BIG * np.ones(shp)
+        return spaces.Box(ub * -1, ub)
 
+    def render(self):
+        self.mujoco.render()
