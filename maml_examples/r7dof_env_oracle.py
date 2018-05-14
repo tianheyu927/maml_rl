@@ -71,9 +71,10 @@ class Reacher7DofMultitaskEnvOracle(
         reward = - distance
         self.forward_dynamics(action)
         # self.do_simulation(action, self.frame_skip)
-        next_obs = self.get_current_obs()
+        # next_obs = self.get_current_obs()
+        next_img, next_obs = self.get_current_image_obs()
         done = False
-        return Step(next_obs, reward, done) #, dict(distance=distance)
+        return Step(observation=next_obs, reward=reward, done=done, img=next_img) #, dict(distance=distance)
 
     def sample_goals(self, num_goals):
         goals_list = []
