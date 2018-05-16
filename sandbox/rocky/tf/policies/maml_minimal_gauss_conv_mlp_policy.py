@@ -17,8 +17,9 @@ from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.policies.base import StochasticPolicy
 from sandbox.rocky.tf.spaces.box import Box
 from tensorflow.python.framework import dtypes
-
+from sandbox.rocky.tf.core.network import ConvNetwork
 load_params = True
+import sandbox.rocky.tf.core.layers as L
 
 
 
@@ -46,9 +47,13 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
             stop_grad=False,
             extra_input_dim=0,
             # metalearn_baseline=False,
-            cnn_output_dim=30,
-            cnn_hidden_sizes=(100,100),
-            cnn_conv_filters=None,
+            input_img_shape = (32,64,3),
+            conv_hidden_sizes=(),
+            conv_filters=[[[5,5]]*16]*4,
+            conv_filter_sizes=[5,5,5,5],
+            conv_strides=[2,2,2,1],
+            conv_pads='SAME',
+            conv_output_dim=None
     ):
         """
         :param env_spec:
@@ -79,7 +84,9 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
+        self.input_img_shape = input_img_shape
         self.input_shape = (None, obs_dim + extra_input_dim,)
+        # self.input_total_shape = (None, np.prod(self.input_img_shape) + obs_dim + extra_input_dim,)
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
         # self.metalearn_baseline = metalearn_baseline
@@ -88,21 +95,29 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
         # create network
         if mean_network is None:
-            self.all_params = self.create_CNN_MLP(  # TODO: this should not be a method of the policy! --> helper
+            self.all_params = self.create_MLP_params(  # TODO: this should not be a method of the policy! --> helper
                 name="mean_network",
                 output_dim=self.action_dim,
-                conv_filters=conv_filters,
-                conv_filter_sizes=conv_filter_sizes,
-                conv_strides=conv_strides,
-                conv_pads=conv_pads,
-                conv_output_dim=conv_output_dim,
                 hidden_sizes=hidden_sizes,
             )
-            self.input_tensor, _ = self.forward_MLP('mean_network', self.all_params,
-                reuse=None # Need to run this for batch norm
+            self.input_tensor, _ = self.forward_CNN_MLP(name='mean_network', all_params=self.all_params,
+                                                        conv_filters=conv_filters,
+                                                        conv_filter_sizes=conv_filter_sizes,
+                                                        conv_strides=conv_strides,
+                                                        conv_pads=conv_pads,
+                                                        conv_output_dim=conv_output_dim,
+                                                        conv_hidden_sizes=conv_hidden_sizes,
+                                                                               input_tensor=None,
+                                                                               reuse=None # Need to run this for batch norm
             )
-            forward_mean = lambda x, params, is_train: self.forward_MLP('mean_network', all_params=params,
-                input_tensor=x, is_training=is_train)[1]
+            forward_mean = lambda img, x, params, is_train: self.forward_CNN_MLP(name='mean_network', all_params=params,
+                                                                                 conv_filters=conv_filters,
+                                                                                 conv_filter_sizes=conv_filter_sizes,
+                                                                                 conv_strides=conv_strides,
+                                                                                 conv_pads=conv_pads,
+                                                                                 conv_output_dim=conv_output_dim,
+                                                                                 conv_hidden_sizes=conv_hidden_sizes,
+                input_tensor=x, is_training=is_train)[-1]
         else:
             raise NotImplementedError('Not supported.')
 
@@ -152,7 +167,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
             self._cached_params = {}
 
-            super(MAMLGaussianMLPPolicy, self).__init__(env_spec)
+            super(MAMLGaussianConvMLPPolicy, self).__init__(env_spec)
 
             dist_info_sym = self.dist_info_sym(self.input_tensor, dict(), is_training=False)
             mean_var = dist_info_sym["mean"]
@@ -406,16 +421,21 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
 
     # This makes all of the parameters.
-    def create_CNN_MLP(self, name, output_dim,
-                       conv_filters, conv_filter_sizes, conv_strides, conv_pads,hidden_sizes,
-                   hidden_W_init=tf_layers.xavier_initializer(dtype=dtypes.float32), hidden_b_init=tf.zeros_initializer(dtype=dtypes.float32),
-                   output_W_init=tf_layers.xavier_initializer(dtype=dtypes.float32), output_b_init=tf.zeros_initializer(dtype=dtypes.float32),
-                   weight_normalization=False,
-                   ):
+    def create_MLP_params(self, name, output_dim,
+                          hidden_sizes,
+                          hidden_W_init=tf_layers.xavier_initializer(dtype=dtypes.float32), hidden_b_init=tf.zeros_initializer(dtype=dtypes.float32),
+                          output_W_init=tf_layers.xavier_initializer(dtype=dtypes.float32), output_b_init=tf.zeros_initializer(dtype=dtypes.float32),
+                          weight_normalization=False,
+                          ):
         all_params = OrderedDict()
 
         cur_shape = self.input_shape
+
+        # TODO: generation of the CNN layers
+
         with tf.variable_scope(name):
+
+
             for idx, hidden_size in enumerate(hidden_sizes):
                 W, b, cur_shape = make_dense_layer(
                     cur_shape,
@@ -440,17 +460,27 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
         return all_params
 
-    def forward_MLP(self, name, all_params, input_tensor=None,
+    def forward_CNN_MLP(self, name, all_params,
+                        conv_filters, conv_filter_sizes, conv_strides, conv_pads, conv_output_dim, conv_hidden_sizes,  # new
+                        input_tensor=None,
                     batch_normalization=False, reuse=True, is_training=False):
         # is_training and reuse are for batch norm, irrelevant if batch_norm set to False
         # set reuse to False if the first time this func is called.
         with tf.variable_scope(name):
             if input_tensor is None:
-                l_in = make_input(shape=self.input_shape, input_var=None, name='input')
+                l_in = make_input(shape=np.prod(self.input_img_shape)+self.input_shape[-1], input_var=None, name='input')
             else:
                 l_in = input_tensor
 
-            l_hid = l_in
+            l_img_in = l_in[:np.prod(self.input_img_shape)]
+            l_state_in = l_in[np.prod(self.input_img_shape):]
+            l_normalized_img_in = tf.cast(l_img_in,tf.float32)/255
+            cnn = ConvNetwork(name=name+"cnn",input_shape=self.input_img_shape,output_dim=conv_output_dim,
+                              conv_filters=conv_filters,conv_filter_sizes=conv_filter_sizes,conv_strides=conv_strides,
+                              conv_pads=conv_pads, hidden_sizes=conv_hidden_sizes,hidden_nonlinearity=tf.nn.relu,output_nonlinearity=L.spatial_expected_softmax, input_var=l_normalized_img_in)  # TODO: output nonlinearity argmax?
+
+
+            l_hid = tf.concat([l_state_in,cnn.output_layer],-1,'post_conv_input')
 
             for idx in range(self.n_hidden):
                 l_hid = forward_dense_layer(l_hid, all_params['W'+str(idx)], all_params['b'+str(idx)],

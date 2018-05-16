@@ -10,8 +10,7 @@ from rllab import spaces
 from copy import deepcopy
 BIG = 1e6
 
-class Reacher7DofMultitaskEnvOracle( Serializable
-):
+class Reacher7DofMultitaskEnvOracle(Serializable):
     def __init__(self, xml_file=None, distance_metric_order=None, distractors=True, *args, **kwargs):
         self.goal = None
         if 'noise' in kwargs:
@@ -29,14 +28,13 @@ class Reacher7DofMultitaskEnvOracle( Serializable
             else:
                 xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
 
-        # super().__init__(action_noise=noise)
         print("xml file", xml_file)
         self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file,action_noise=noise)
         self.action_space = self.mujoco.action_space
         self.get_viewer = self.mujoco.get_viewer
         self.log_diagnostics = self.mujoco.log_diagnostics
         Serializable.__init__(self, *args, **kwargs)
-        self.viewer_setup()
+        # self.viewer_setup()
         # Serializable.quick_init(self, locals())
         # mujoco_env.MujocoEnv.__init__(
         #     self,
@@ -49,18 +47,25 @@ class Reacher7DofMultitaskEnvOracle( Serializable
         if self.mujoco.viewer is None:
             self.mujoco.start_viewer()
         self.mujoco.viewer.cam.trackbodyid = -1
-        self.mujoco.viewer.cam.distance = 2.5
+        self.mujoco.viewer.cam.distance = 1.2
         self.mujoco.viewer.cam.azimuth = -90
         self.mujoco.viewer.cam.elevation = -60
+        self.mujoco.viewer.cam.lookat = (0.0,0.0, 0.0)
 
     def get_current_obs(self):
         return self._get_obs()
 
     def get_current_image_obs(self):
+        # image = self.mujoco.get_viewer().get_image()
+        self.viewer_setup()
+        self.mujoco.render()
         image = self.mujoco.viewer.get_image()
         pil_image = Image.frombytes('RGB', (image[1], image[2]), image[0])
         pil_image = pil_image.resize((64,64), Image.ANTIALIAS)
+        pil_image = pil_image.crop((0,14,64,46))
+        # pil_image.save("/home/rosen/temp12/pil_image.bmp")
         image = np.flipud(np.array(pil_image))
+        # print("debug,norm of image", np.linalg.norm(np.array(pil_image)))
         return image, np.concatenate([  #this is the oracle environment so no need for distractors
             self.mujoco.model.data.qpos.flat[:7],
             self.mujoco.model.data.qvel.flat[:7],
@@ -70,10 +75,7 @@ class Reacher7DofMultitaskEnvOracle( Serializable
 
     def step(self, action):
         self.mujoco.frame_skip = 5
-        distance = np.linalg.norm(
-            self.mujoco.get_body_com("tips_arm") - self.mujoco.get_body_com("goal")
-        )
-        # print("debug, distance", distance)
+        distance = np.linalg.norm( self.mujoco.get_body_com("tips_arm") - self.mujoco.get_body_com("goal"))
         reward = - distance
         self.mujoco.do_simulation(action, n_frames=self.mujoco.frame_skip)
         # self.do_simulation(action, self.frame_skip)
@@ -126,6 +128,7 @@ class Reacher7DofMultitaskEnvOracle( Serializable
             else:
                 self.goal = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
         # reset distractors even if goal is same
+        self.goal = np.random.uniform(low=[-0.4, -0.4, -0.3], high=[0.4, 0.0, -0.3]).reshape(3, 1)
         self.distract1 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
         self.distract2 = np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
         qpos[-14:-11] = self.distract1

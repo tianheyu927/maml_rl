@@ -234,7 +234,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                 print("Using Vectorized Sampler")
         if sampler_args is None:
             sampler_args = dict()
-        sampler_args['n_envs'] = self.meta_batch_size
+        if 'n_envs' not in sampler_args.keys():
+            sampler_args['n_envs'] = self.meta_batch_size
         self.sampler = sampler_cls(self, **sampler_args)
 
 
@@ -255,10 +256,9 @@ class BatchMAMLPolopt(RLAlgorithm):
         return paths
 
     def obtain_agent_info_offpolicy(self, itr, expert_trajs_dir=None, offpol_trajs=None, treat_as_expert_traj=False, log_prefix=''):
-        # TODO: add usage of meta batch size and batch size as a way of sampling desired number
         assert expert_trajs_dir is None, "deprecated"
         start = time.time()
-        if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
+        if offpol_trajs is None:
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):

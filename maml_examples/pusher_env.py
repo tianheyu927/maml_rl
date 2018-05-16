@@ -78,7 +78,7 @@ class PusherEnv(utils.EzPickle, Serializable):
             if (goal_num != self.goal_num) or (test != self.test):
                 if self.mujoco.viewer is not None:
                     self.mujoco.stop_viewer()
-                    self.mujoco.terminate()
+                self.mujoco.terminate()
                 self.goal_num, self.test = goal
                 demo_path = (self.train_dir + str(self.goal_num) + ".pkl") if not self.test else (
                 self.test_dir + str(self.goal_num) + ".pkl")
