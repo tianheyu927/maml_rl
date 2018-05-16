@@ -21,7 +21,7 @@ import random
 local = True
 
 DOCKER_CODE_DIR = "/root/code/rllab/"
-LOCAL_CODE_DIR = '/home/rosen/rllab_copy/'
+LOCAL_CODE_DIR = '/home/kevin/rllab_copy/'
 if local:
     DOCKER_CODE_DIR = LOCAL_CODE_DIR
     mode = 'local'
@@ -65,7 +65,7 @@ def run_task(v):
     algo = TRPO(
         env=env,
         policy=policy,
-        #load_policy='/home/rosen/rllab_copy/data/local/rllab-fixed-push-experts/pretraining_policy3/itr_300.pkl',
+        #load_policy='/home/kevin/rllab_copy/data/local/rllab-fixed-push-experts/pretraining_policy3/itr_300.pkl',
         #load_policy='vendor/pretraining_policy3/itr_300.pkl',
         baseline=baseline,
         batch_size=100*500,

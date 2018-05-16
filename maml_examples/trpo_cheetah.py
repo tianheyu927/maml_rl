@@ -24,7 +24,7 @@ import random
 local = True
 
 DOCKER_CODE_DIR = "/root/code/rllab/"
-LOCAL_CODE_DIR = '/home/rosen/maml_rl_data/'
+LOCAL_CODE_DIR = '/home/kevin/maml_rl_data/'
 if local:
     DOCKER_CODE_DIR = LOCAL_CODE_DIR
     mode = 'local'
@@ -56,7 +56,7 @@ def run_task(v):
         env=env,
         # policy=policy,
         policy=None,
-        load_policy='/home/rosen/maml_rl/data/local/CH-ET-D5.6/CH_ET_D5.6_2017_10_24_18_32_56_0001/itr_-20.pkl',  # if you want to use this you need to comment out the definition of policy above
+        load_policy='/home/kevin/maml_rl/data/local/CH-ET-D5.6/CH_ET_D5.6_2017_10_24_18_32_56_0001/itr_-20.pkl',  # if you want to use this you need to comment out the definition of policy above
         baseline=baseline,
         batch_size=400*200,  # we divide this by #envs on every iteration
         batch_size_expert_traj=20*200,

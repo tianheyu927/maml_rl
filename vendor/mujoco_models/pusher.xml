@@ -149,61 +149,61 @@
 		</body>
 	</worldbody>
 	<asset >
-		<texture type="2d" name="table" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/table_textures/wpic_002.png"/>
+		<texture type="2d" name="table" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/table_textures/wpic_002.png"/>
 		<material name="table" specular="1" shininess="0.3" texture="table" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00140426448417 0.00140426448417 0.00140426448417" name="object_mesh" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Love_Box_1.stl"/>
-		<mesh scale="0.00497488357355 0.00497488357355 0.00497488357355" name="distractor_mesh_0" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/heXS34oh3pk.stl"/>
-		<texture name="distractor_0" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/fibrous_0154.png"/>
+		<mesh scale="0.00140426448417 0.00140426448417 0.00140426448417" name="object_mesh" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Love_Box_1.stl"/>
+		<mesh scale="0.00497488357355 0.00497488357355 0.00497488357355" name="distractor_mesh_0" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/heXS34oh3pk.stl"/>
+		<texture name="distractor_0" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/fibrous_0154.png"/>
 		<material name="distractor_0" specular="1" shininess="0.3" texture="distractor_0" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00167727542608 0.00167727542608 0.00167727542608" name="distractor_mesh_1" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Rabbit_Complete.stl"/>
-		<texture name="distractor_1" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/perforated_0130.png"/>
+		<mesh scale="0.00167727542608 0.00167727542608 0.00167727542608" name="distractor_mesh_1" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Rabbit_Complete.stl"/>
+		<texture name="distractor_1" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/perforated_0130.png"/>
 		<material name="distractor_1" specular="1" shininess="0.3" texture="distractor_1" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00876360642808 0.00876360642808 0.00876360642808" name="distractor_mesh_2" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/hubble_model_kit_5.stl"/>
-		<texture name="distractor_2" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/matted_0133.png"/>
+		<mesh scale="0.00876360642808 0.00876360642808 0.00876360642808" name="distractor_mesh_2" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/hubble_model_kit_5.stl"/>
+		<texture name="distractor_2" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/matted_0133.png"/>
 		<material name="distractor_2" specular="1" shininess="0.3" texture="distractor_2" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00293033089939 0.00293033089939 0.00293033089939" name="distractor_mesh_3" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Stackable_Square_Container.stl"/>
-		<texture name="distractor_3" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/stained_0032.png"/>
+		<mesh scale="0.00293033089939 0.00293033089939 0.00293033089939" name="distractor_mesh_3" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Stackable_Square_Container.stl"/>
+		<texture name="distractor_3" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/stained_0032.png"/>
 		<material name="distractor_3" specular="1" shininess="0.3" texture="distractor_3" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00229508855301 0.00229508855301 0.00229508855301" name="distractor_mesh_4" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/mug.stl"/>
-		<texture name="distractor_4" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/meshed_0130.png"/>
+		<mesh scale="0.00229508855301 0.00229508855301 0.00229508855301" name="distractor_mesh_4" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/mug.stl"/>
+		<texture name="distractor_4" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/meshed_0130.png"/>
 		<material name="distractor_4" specular="1" shininess="0.3" texture="distractor_4" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00120224188176 0.00120224188176 0.00120224188176" name="distractor_mesh_5" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/lspike2.stl"/>
-		<texture name="distractor_5" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/striped_0064.png"/>
+		<mesh scale="0.00120224188176 0.00120224188176 0.00120224188176" name="distractor_mesh_5" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/lspike2.stl"/>
+		<texture name="distractor_5" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/striped_0064.png"/>
 		<material name="distractor_5" specular="1" shininess="0.3" texture="distractor_5" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00390727281521 0.00390727281521 0.00390727281521" name="distractor_mesh_6" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Salty_Body.stl"/>
-		<texture name="distractor_6" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/bumpy_0154.png"/>
+		<mesh scale="0.00390727281521 0.00390727281521 0.00390727281521" name="distractor_mesh_6" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Salty_Body.stl"/>
+		<texture name="distractor_6" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/bumpy_0154.png"/>
 		<material name="distractor_6" specular="1" shininess="0.3" texture="distractor_6" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00148371184779 0.00148371184779 0.00148371184779" name="distractor_mesh_7" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Sunglasses.stl"/>
-		<texture name="distractor_7" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/pitted_0054.png"/>
+		<mesh scale="0.00148371184779 0.00148371184779 0.00148371184779" name="distractor_mesh_7" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Sunglasses.stl"/>
+		<texture name="distractor_7" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/pitted_0054.png"/>
 		<material name="distractor_7" specular="1" shininess="0.3" texture="distractor_7" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00478421371329 0.00478421371329 0.00478421371329" name="distractor_mesh_8" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Epic_Crift.stl"/>
-		<texture name="distractor_8" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/striped_0117.png"/>
+		<mesh scale="0.00478421371329 0.00478421371329 0.00478421371329" name="distractor_mesh_8" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Epic_Crift.stl"/>
+		<texture name="distractor_8" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/striped_0117.png"/>
 		<material name="distractor_8" specular="1" shininess="0.3" texture="distractor_8" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.0018458777319 0.0018458777319 0.0018458777319" name="distractor_mesh_9" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Body1.stl"/>
-		<texture name="distractor_9" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/lacelike_0011.png"/>
+		<mesh scale="0.0018458777319 0.0018458777319 0.0018458777319" name="distractor_mesh_9" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Body1.stl"/>
+		<texture name="distractor_9" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/lacelike_0011.png"/>
 		<material name="distractor_9" specular="1" shininess="0.3" texture="distractor_9" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00175658236646 0.00175658236646 0.00175658236646" name="distractor_mesh_10" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Tree_2_tree.stl"/>
-		<texture name="distractor_10" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/frilly_0042.png"/>
+		<mesh scale="0.00175658236646 0.00175658236646 0.00175658236646" name="distractor_mesh_10" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Tree_2_tree.stl"/>
+		<texture name="distractor_10" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/frilly_0042.png"/>
 		<material name="distractor_10" specular="1" shininess="0.3" texture="distractor_10" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00715806021225 0.00715806021225 0.00715806021225" name="distractor_mesh_11" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Trophy.stl"/>
-		<texture name="distractor_11" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/flecked_0056.png"/>
+		<mesh scale="0.00715806021225 0.00715806021225 0.00715806021225" name="distractor_mesh_11" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Trophy.stl"/>
+		<texture name="distractor_11" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/flecked_0056.png"/>
 		<material name="distractor_11" specular="1" shininess="0.3" texture="distractor_11" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00105686612417 0.00105686612417 0.00105686612417" name="distractor_mesh_12" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Recycle_Bin_For_Cans.stl"/>
-		<texture name="distractor_12" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/pitted_0133.png"/>
+		<mesh scale="0.00105686612417 0.00105686612417 0.00105686612417" name="distractor_mesh_12" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Recycle_Bin_For_Cans.stl"/>
+		<texture name="distractor_12" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/pitted_0133.png"/>
 		<material name="distractor_12" specular="1" shininess="0.3" texture="distractor_12" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00306406402045 0.00306406402045 0.00306406402045" name="distractor_mesh_13" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Tree_2_pot.stl"/>
-		<texture name="distractor_13" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/paisley_0082.png"/>
+		<mesh scale="0.00306406402045 0.00306406402045 0.00306406402045" name="distractor_mesh_13" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Tree_2_pot.stl"/>
+		<texture name="distractor_13" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/paisley_0082.png"/>
 		<material name="distractor_13" specular="1" shininess="0.3" texture="distractor_13" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00117213235976 0.00117213235976 0.00117213235976" name="distractor_mesh_14" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/galan_trémolet_.stl"/>
-		<texture name="distractor_14" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/wrinkled_0036.png"/>
+		<mesh scale="0.00117213235976 0.00117213235976 0.00117213235976" name="distractor_mesh_14" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/galan_trémolet_.stl"/>
+		<texture name="distractor_14" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/wrinkled_0036.png"/>
 		<material name="distractor_14" specular="1" shininess="0.3" texture="distractor_14" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00703987608955 0.00703987608955 0.00703987608955" name="distractor_mesh_15" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/famicon-port-cover.stl"/>
-		<texture name="distractor_15" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/blotchy_0022.png"/>
+		<mesh scale="0.00703987608955 0.00703987608955 0.00703987608955" name="distractor_mesh_15" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/famicon-port-cover.stl"/>
+		<texture name="distractor_15" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/blotchy_0022.png"/>
 		<material name="distractor_15" specular="1" shininess="0.3" texture="distractor_15" rgba="0.9 0.9 0.9 1"/>
-		<mesh scale="0.00308640266356 0.00308640266356 0.00308640266356" name="distractor_mesh_16" file="/home/rosen/FaReLI_data/pushing/push_textures/train_objs/Tree_1_pot.stl"/>
-		<texture name="distractor_16" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/veined_0133.png"/>
+		<mesh scale="0.00308640266356 0.00308640266356 0.00308640266356" name="distractor_mesh_16" file="/home/kevin/FaReLI_data/pushing/push_textures/train_objs/Tree_1_pot.stl"/>
+		<texture name="distractor_16" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/veined_0133.png"/>
 		<material name="distractor_16" specular="1" shininess="0.3" texture="distractor_16" rgba="0.9 0.9 0.9 1"/>
-		<texture name="object" file="/home/rosen/FaReLI_data/pushing/push_textures/textures/obj_textures/grid_0132.png"/>
+		<texture name="object" file="/home/kevin/FaReLI_data/pushing/push_textures/textures/obj_textures/grid_0132.png"/>
 		<material name="object" specular="1" shininess="0.3" texture="object" rgba="0.9 0.9 0.9 1"/>
 	</asset>
 	<actuator >

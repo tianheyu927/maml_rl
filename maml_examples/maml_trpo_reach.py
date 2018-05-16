@@ -43,8 +43,8 @@ for post_std_modifier_train in post_std_modifier_train_list:
 
                     seed = 1
                     #env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))  #TODO: force_reset was True
-                    #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
-                  #  env = Monitor(TfEnv(normalize(ReacherEnv(option=env_option))), '/home/rosen/temp/')
+                    #xml_filepath ='home/kevin/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
+                  #  env = Monitor(TfEnv(normalize(ReacherEnv(option=env_option))), '/home/kevin/temp/')
                     env = TfEnv(normalize(ReacherEnv(option=env_option)))
                   #  env = TfEnv(normalize(GymEnv("Reacher-v1", force_reset=True, record_video=True)))
 

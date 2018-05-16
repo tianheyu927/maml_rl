@@ -18,7 +18,7 @@ class Reacher7Dof2DistractEnv(
         self.shuffle_order = None
         self.objects = ["goal","distract1","distract2"]
         self.__class__.FILE = 'r7dof_versions/reacher_7dof_2distract.xml'
-        # self.__class__.FILE = '/home/rosen/FaReLI_data/pushing/push_textures/sim_push_xmls/train_ensure_woodtable_distractor_pusher25.xml'
+        # self.__class__.FILE = '/home/kevin/FaReLI_data/pushing/push_textures/sim_push_xmls/train_ensure_woodtable_distractor_pusher25.xml'
         if "envseed" in kwargs.keys():
             seed = kwargs['envseed']
         else:

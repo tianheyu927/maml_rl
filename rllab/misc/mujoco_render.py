@@ -358,7 +358,7 @@ if __name__ == '__main__':
                     string = line[line.index('xml:'):]
                     xml_file = string[5:-1]
                     suffix = xml_file[xml_file.index('pusher'):]
-                    xml_file = '/home/rosen/rllab_copy/vendor/local_mujoco_models/' + suffix
+                    xml_file = '/home/kevin/rllab_copy/vendor/local_mujoco_models/' + suffix
                 if (mass and scale and obj and damp) or xml_file:
                     break
         if not xml_file:

@@ -570,11 +570,11 @@ def unitdoctest():
         mean solution:  [ -4.63614606e-08  -3.42761465e-10   1.59957987e-11]
         std deviation: [  6.96066282e-08   2.28704425e-09   7.63875911e-11]
 
-    Test on the Rosenbrock function with 3 restarts. The first trial only
+    Test on the kevinbrock function with 3 restarts. The first trial only
     finds the local optimum, which happens in about 20% of the cases.
 
         >>> import cma
-        >>> res = cma.fmin(cma.fcts.rosen, 4*[-1], 1,
+        >>> res = cma.fmin(cma.fcts.kevin, 4*[-1], 1,
         ...                options={'ftarget':1e-6, 'verb_time':0,
         ...                    'verb_disp':500, 'seed':3},
         ...                restarts=3)
@@ -613,7 +613,7 @@ def unitdoctest():
         >>> # rescaling of third variable: for searching in  roughly
         >>> #   x0 plus/minus 1e3*sigma0 (instead of plus/minus sigma0)
         >>> opts['scaling_of_variables'] = [1, 1, 1e3, 1]
-        >>> res = cma.fmin(cma.fcts.rosen, 4 * [0.1], 0.1, opts)
+        >>> res = cma.fmin(cma.fcts.kevin, 4 * [0.1], 0.1, opts)
         termination on tolfun : 1e-11
         final/bestever f-value = 2.68096173031e-14 1.09714829146e-14
         mean solution:  [ 1.00000001  1.00000002  1.00000004  1.00000007]
@@ -2040,7 +2040,7 @@ class OOOptimizer(object):
         -------
         >>> import cma
         >>> es = cma.CMAEvolutionStrategy(7 * [0.1], 0.5
-        ...              ).optimize(cma.fcts.rosen, verb_disp=100)
+        ...              ).optimize(cma.fcts.kevin, verb_disp=100)
         (4_w,9)-CMA-ES (mu_w=2.8,w_1=49%) in dimension 7 (seed=630721393)
         Iterat #Fevals   function value    axis ratio  sigma   minstd maxstd min:sec
             1       9 3.163954777181882e+01 1.0e+00 4.12e-01  4e-01  4e-01 0:0.0
@@ -2332,7 +2332,7 @@ class CMAAdaptSigmaTPA(CMAAdaptSigmaBase):
     >>> import cma
     >>> cma.CMAOptions('adapt').pprint()
     >>> es = cma.CMAEvolutionStrategy(10 * [0.2], 0.1, {'AdaptSigma': cma.CMAAdaptSigmaTPA, 'ftarget': 1e-8})
-    >>> es.optimize(cma.fcts.rosen)
+    >>> es.optimize(cma.fcts.kevin)
     >>> assert 'ftarget' in es.stop()
     >>> assert es.result()[1] <= 1e-8
     >>> assert es.result()[2] < 6500  # typically < 5500
@@ -2473,14 +2473,14 @@ class CMAEvolutionStrategy(OOOptimizer):
 
         while not es.stop():
             solutions = es.ask()
-            es.tell(solutions, [cma.fcts.rosen(s) for s in solutions])
+            es.tell(solutions, [cma.fcts.kevin(s) for s in solutions])
             es.disp()
         es.result_pretty()
 
 
     where ``ask`` delivers new candidate solutions and ``tell`` updates
     the ``optim`` instance by passing the respective function values
-    (the objective function ``cma.fcts.rosen`` can be replaced by any
+    (the objective function ``cma.fcts.kevin`` can be replaced by any
     properly defined objective function, see ``cma.fcts`` for more
     examples).
 
@@ -2591,9 +2591,9 @@ class CMAEvolutionStrategy(OOOptimizer):
 
     >>> es = cma.CMAEvolutionStrategy(5 * [3], 1,
     ...                 {"transformation": [lambda x: x**2+2, None]})
-    >>> es.optimize(cma.fcts.rosen)
+    >>> es.optimize(cma.fcts.kevin)
     <output omitted>
-    >>> assert cma.fcts.rosen(es.result()[0]) < 1e-6 + 5.530760944396627e+02
+    >>> assert cma.fcts.kevin(es.result()[0]) < 1e-6 + 5.530760944396627e+02
     >>> assert es.result()[2] < 3300
 
     The inverse transformation is (only) necessary if the `BoundPenalty`
@@ -2682,14 +2682,14 @@ class CMAEvolutionStrategy(OOOptimizer):
     >>>
     >>> es = cma.CMAEvolutionStrategy(12 * [0.1],  # a new instance, 12-D
     ...                               0.5)         # initial std sigma0
-    >>> es.optimize(cma.fcts.rosen, iterations=100)
+    >>> es.optimize(cma.fcts.kevin, iterations=100)
     >>> pickle.dump(es, open('saved-cma-object.pkl', 'wb'))
     >>> print('saved')
     >>> del es  # let's start fresh
     >>>
     >>> es = pickle.load(open('saved-cma-object.pkl', 'rb'))
     >>> print('resumed')
-    >>> es.optimize(cma.fcts.rosen, verb_disp=200)
+    >>> es.optimize(cma.fcts.kevin, verb_disp=200)
     >>> assert es.result()[2] < 15000
     >>> cma.pprint(es.result())
 
@@ -2986,7 +2986,7 @@ class CMAEvolutionStrategy(OOOptimizer):
         >>> es = cma.CMAEvolutionStrategy([0,0,0,0], 0.3)
         >>> while not es.stop() and es.best.f > 1e-6:  # my_desired_target_f_value
         ...     X = es.ask()  # get list of new solutions
-        ...     fit = [cma.fcts.rosen(x) for x in X]  # call function rosen with each solution
+        ...     fit = [cma.fcts.kevin(x) for x in X]  # call function kevin with each solution
         ...     es.tell(X, fit)  # feed values
 
         :See: `ask_and_eval`, `ask_geno`, `tell`
@@ -5275,7 +5275,7 @@ def fmin(objective_function, x0, sigma0,
 
     Examples
     ========
-    The following example calls `fmin` optimizing the Rosenbrock function
+    The following example calls `fmin` optimizing the kevinbrock function
     in 10-D with initial solution 0.1 and initial step-size 0.5. The
     options are specified for the usage with the `doctest` module.
 
@@ -5283,7 +5283,7 @@ def fmin(objective_function, x0, sigma0,
     >>> # cma.CMAOptions()  # returns all possible options
     >>> options = {'CMA_diagonal':100, 'seed':1234, 'verb_time':0}
     >>>
-    >>> res = cma.fmin(cma.fcts.rosen, [0.1] * 10, 0.5, options)
+    >>> res = cma.fmin(cma.fcts.kevin, [0.1] * 10, 0.5, options)
     (5_w,10)-CMA-ES (mu_w=3.2,w_1=45%) in dimension 10 (seed=1234)
        Covariance matrix is diagonal for 10 iterations (1/ccov=29.0)
     Iterat #Fevals   function value     axis ratio  sigma   minstd maxstd min:sec
@@ -5312,7 +5312,7 @@ def fmin(objective_function, x0, sigma0,
     verbose call::
 
         es = cma.CMAEvolutionStrategy([0.1] * 10, 0.5,
-                    options=options).optimize(cma.fcts.rosen)
+                    options=options).optimize(cma.fcts.kevin)
 
     The following example calls `fmin` optimizing the Rastrigin function
     in 3-D with random initial solution in [-2,2], initial step-size 0.5
@@ -5366,11 +5366,11 @@ def fmin(objective_function, x0, sigma0,
     We can use the gradient like
 
     >>> import cma
-    >>> res = cma.fmin(cma.fcts.rosen, np.zeros(10), 0.1,
+    >>> res = cma.fmin(cma.fcts.kevin, np.zeros(10), 0.1,
     ...             options = {'ftarget':1e-8,},
-    ...             gradf=cma.fcts.grad_rosen,
+    ...             gradf=cma.fcts.grad_kevin,
     ...         )
-    >>> assert cma.fcts.rosen(res[0]) < 1e-8
+    >>> assert cma.fcts.kevin(res[0]) < 1e-8
     >>> assert res[2] < 3600  # 1% are > 3300
     >>> assert res[3] < 3600  # 1% are > 3300
 
@@ -7135,7 +7135,7 @@ class Sections(object):
     --------
 
     >>> import cma, numpy as np
-    >>> s = cma.Sections(cma.Fcts.rosen, np.zeros(3)).do(plot=False)
+    >>> s = cma.Sections(cma.Fcts.kevin, np.zeros(3)).do(plot=False)
     >>> s.do(plot=False)  # evaluate the same points again, i.e. check for noise
     >> try:
     ...     s.plot()
@@ -8442,12 +8442,12 @@ class FitnessFunctions(object):
         else:
             f += cfac * sum(max(0, c + 1e-3)**2 for c in cvals)
         return f
-    def rosen(self, x, alpha=1e2):
-        """Rosenbrock test objective function"""
+    def kevin(self, x, alpha=1e2):
+        """kevinbrock test objective function"""
         x = [x] if isscalar(x[0]) else x  # scalar into list
         f = [sum(alpha * (x[:-1]**2 - x[1:])**2 + (1. - x[:-1])**2) for x in x]
         return f if len(f) > 1 else f[0]  # 1-element-list into scalar
-    def grad_rosen(self, x, *args):
+    def grad_kevin(self, x, *args):
         N = len(x)
         grad = np.zeros(N)
         grad[0] = 2 * (x[0] - 1) + 200 * (x[1] - x[0]**2) * -2 * x[0]
@@ -8461,9 +8461,9 @@ class FitnessFunctions(object):
         if rot:
             x = rotate(x)
         return sum(np.abs(x)**(2. + 4.*np.arange(N) / (N - 1.)))**0.5
-    def rosenelli(self, x):
+    def kevinelli(self, x):
         N = len(x)
-        return self.rosen(x[:N / 2]) + self.elli(x[N / 2:], cond=1)
+        return self.kevin(x[:N / 2]) + self.elli(x[N / 2:], cond=1)
     def ridge(self, x, expo=2):
         x = [x] if isscalar(x[0]) else x  # scalar into list
         f = [x[0] + 100 * np.sum(x[1:]**2)**(expo / 2.) for x in x]
@@ -8531,11 +8531,11 @@ class FitnessFunctions(object):
         if x[0] < 0:
             return np.NaN
         return theta * x[1] + x[0]
-    def rosen_nesterov(self, x, rho=100):
+    def kevin_nesterov(self, x, rho=100):
         """needs exponential number of steps in a non-increasing f-sequence.
 
         x_0 = (-1,1,...,1)
-        See Jarre (2011) "On Nesterov's Smooth Chebyshev-Rosenbrock Function"
+        See Jarre (2011) "On Nesterov's Smooth Chebyshev-kevinbrock Function"
 
         """
         f = 0.25 * (x[0] - 1)**2
@@ -8644,7 +8644,7 @@ def main(argv=None):
         cma.main('--test')
         help(cma)
         help(cma.fmin)
-        res = fmin(cma.fcts.rosen, 10 * [0], 1)
+        res = fmin(cma.fcts.kevin, 10 * [0], 1)
         cma.plot()
 
     Examples
@@ -8654,9 +8654,9 @@ def main(argv=None):
 
         python cma.py --test
 
-    And a single run on the Rosenbrock function::
+    And a single run on the kevinbrock function::
 
-        python cma.py rosen 10 1  # dimension initial_sigma
+        python cma.py kevin 10 1  # dimension initial_sigma
         python cma.py plot
 
     In the python shell::
@@ -8706,7 +8706,7 @@ def main(argv=None):
                 try:
                     import os
                     for name in os.listdir('.'):
-                        if (name.startswith('bound_method_FitnessFunctions.rosen_of_cma.FitnessFunctions_object_at_')
+                        if (name.startswith('bound_method_FitnessFunctions.kevin_of_cma.FitnessFunctions_object_at_')
                             and name.endswith('.pkl')):
                             os.remove(name)
                 except:
