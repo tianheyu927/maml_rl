@@ -43,7 +43,7 @@ for post_std_modifier_train in post_std_modifier_train_list:
 
                     seed = 4
                     #env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))  #TODO: force_reset was True
-                    #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
+                    #xml_filepath ='home/kevin/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
                     env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
 
                     policy = MAMLGaussianMLPPolicy(

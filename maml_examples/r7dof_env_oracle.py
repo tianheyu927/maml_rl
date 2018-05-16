@@ -24,9 +24,9 @@ class Reacher7DofMultitaskEnvOracle(Serializable):
 
         if xml_file is None:
             if not self.include_distractors:
-                xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof.xml'
+                xml_file = '/home/kevin/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof.xml'
             else:
-                xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
+                xml_file = '/home/kevin/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
 
         print("xml file", xml_file)
         self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file,action_noise=noise)
@@ -63,7 +63,7 @@ class Reacher7DofMultitaskEnvOracle(Serializable):
         pil_image = Image.frombytes('RGB', (image[1], image[2]), image[0])
         pil_image = pil_image.resize((64,64), Image.ANTIALIAS)
         pil_image = pil_image.crop((0,14,64,46))
-        # pil_image.save("/home/rosen/temp12/pil_image.bmp")
+        # pil_image.save("/home/kevin/temp12/pil_image.bmp")
         image = np.flipud(np.array(pil_image))
         # print("debug,norm of image", np.linalg.norm(np.array(pil_image)))
         return image, np.concatenate([  #this is the oracle environment so no need for distractors
@@ -115,7 +115,7 @@ class Reacher7DofMultitaskEnvOracle(Serializable):
                 print("debug env changing")
                 self.goal = new_goal_pos
                 # self.shuffle_order = rd.sample([[0, 1, 2], [1, 2, 0], [2, 0, 1]], 1)[0]
-                # xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml' % tuple(
+                # xml_file = '/home/kevin/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml' % tuple(
                 #     self.shuffle_order)
                 # self.mujoco.stop_viewer()
                 # self.mujoco.terminate()

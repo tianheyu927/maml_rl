@@ -21,7 +21,7 @@ class Reacher7Dof2DistractVisionEnv(Serializable):
 
 
         if xml_file is None:
-                xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
+                xml_file = '/home/kevin/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
 
         print("xml file", xml_file)
         self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
@@ -99,7 +99,7 @@ class Reacher7Dof2DistractVisionEnv(Serializable):
                     # self.mujoco.release()
                     # self.mujoco.terminate()
                 # self.mujoco.terminate()
-                xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml' % tuple(
+                xml_file = '/home/kevin/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml' % tuple(
                     self.shuffle_order)
                 self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
                 self.viewer_setup()
@@ -110,7 +110,7 @@ class Reacher7Dof2DistractVisionEnv(Serializable):
                 self.mujoco.stop_viewer()
                 self.mujoco.release()
                 self.mujoco.terminate()
-            xml_file = '/home/rosen/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
+            xml_file = '/home/kevin/maml_rl/vendor/mujoco_models/r7dof_versions/reacher_7dof_2distr_%s%s%s.xml'%tuple(self.shuffle_order)
             self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
             self.viewer_setup()
         self.goal = np.random.uniform(low=[-0.4, -0.4, -0.3], high=[0.4, 0.0, -0.3]).reshape(3, 1)

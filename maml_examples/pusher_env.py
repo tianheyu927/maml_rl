@@ -24,9 +24,9 @@ class PusherEnv(utils.EzPickle, Serializable):
 
         self.__class__.FILE = xml_file
         self.include_distractors = distractors
-        self.test_dir = "/home/rosen/FaReLI_data/pushing/test2_paired_push_demos_noimg/"
-        self.train_dir = "/home/rosen/FaReLI_data/pushing/paired_push_demos_noimg/"
-        self.xml_dir = "/home/rosen/FaReLI_data/pushing/push_textures/sim_push_xmls/"
+        self.test_dir = "/home/kevin/FaReLI_data/pushing/test2_paired_push_demos_noimg/"
+        self.train_dir = "/home/kevin/FaReLI_data/pushing/paired_push_demos_noimg/"
+        self.xml_dir = "/home/kevin/FaReLI_data/pushing/push_textures/sim_push_xmls/"
         self.goal_num = None
         self.test = False
         self.reset()
