@@ -131,8 +131,8 @@ for goals_suffix in goals_suffixes:
 
 
 
-                                                        # policy = MAMLGaussianConvMLPPolicy(
-                                                        policy = MAMLGaussianMLPPolicy(
+                                                        policy = MAMLGaussianConvMLPPolicy(
+                                                        # policy = MAMLGaussianMLPPolicy(
                                                             name="policy",
                                                             env_spec=env.spec,
                                                             grad_step_size=fast_learning_rate,

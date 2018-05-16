@@ -56,13 +56,12 @@ class Reacher7Dof2DistractVisionEnv(Serializable):
         pil_image = pil_image.resize((64,64), Image.ANTIALIAS)
         pil_image = pil_image.crop((0,14,64,46))
         image = np.flipud(np.array(pil_image))
-        return image, np.concatenate([image.flatten(),
-               np.concatenate([
-        # return 0, np.concatenate([
+        state = np.concatenate([
             self.mujoco.model.data.qpos.flat[:7],
             self.mujoco.model.data.qvel.flat[:7],
             self.mujoco.get_body_com('tips_arm'),
-            ])])
+            ])
+        return state, np.concatenate([image.flatten(),state])
 
     def step(self, action):
         self.mujoco.frame_skip = 5
@@ -71,11 +70,11 @@ class Reacher7Dof2DistractVisionEnv(Serializable):
         # reward = 1.0 if distance < 0.1 else 0.0
         self.mujoco.forward_dynamics(action)
         # self.do_simulation(action, self.frame_skip)  <- forward dynamics produces better RL results as per AG 5/14/18
-        next_img, next_obs = self.get_current_image_obs()
+        next_state, next_obs = self.get_current_image_obs()
         # next_obs = self.get_current_obs()
         done = False
         # return Step(observation=next_obs, reward=reward, done=done, img=next_img)
-        return Step(observation=next_obs, reward=reward, done=done, img=next_img)
+        return Step(observation=next_obs, reward=reward, done=done, state=next_state)
 
     def sample_goals(self, num_goals):
         goals_list = []

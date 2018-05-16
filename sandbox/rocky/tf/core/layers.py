@@ -878,7 +878,7 @@ class ReshapeLayer(Layer):
             if isinstance(o, list):
                 output_shape[dim] = tf.shape(input)[o[0]]
         # Everything else is handled by Theano
-        return tf.reshape(input, tf.pack(output_shape))
+        return tf.reshape(input, tf.stack(output_shape))
 
 
 reshape = ReshapeLayer  # shortcut

@@ -123,6 +123,7 @@ class VectorizedSampler(BaseSampler):
             t = time.time()
             policy.reset(dones)
             actions, agent_infos = policy.get_actions(obses)
+            # print("debug, agent_infos", agent_infos)
             policy_time += time.time() - t
             t = time.time()
             next_obses, rewards, dones, env_infos = self.vec_env.step(actions, reset_args)   # TODO: instead of receive obs from env, we'll receive it from the policy as a feed_dict

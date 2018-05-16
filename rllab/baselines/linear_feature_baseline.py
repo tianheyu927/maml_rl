@@ -17,7 +17,8 @@ class LinearFeatureBaseline(Baseline):
         self._coeffs = val
 
     def _features(self, path):
-        o = np.clip(path["observations"], -10, 10)
+        # o = np.clip(path["observations"], -10, 10)
+        o = np.clip(path['env_infos']['state'], -10, 10)
         l = len(path["rewards"])
         al = np.arange(l).reshape(-1, 1) / 100.0
         return np.concatenate([o, o ** 2, al, al ** 2, al ** 3, np.ones((l, 1))], axis=1)
