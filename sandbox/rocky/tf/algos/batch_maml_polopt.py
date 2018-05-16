@@ -369,13 +369,15 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     converted_demos = []
                                     for i,demoU in enumerate(demos['demoU']):
                                         converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
+                                    print("debug, using xml for demos", demos['xml'])
+                                    # if int(demos['xml'][-5]) % 2 == 0:
+
                                     expert_traj_for_metaitr[t] = converted_demos
                                 else:
                                     expert_traj_for_metaitr[t] = demos
                             # expert_traj_for_metaitr = {t : joblib.load(self.demos_path+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
 
-                        # TODO: need to have a middle step for places where demos are saved in demoU and demoX format
                         if self.limit_demos_num is not None:
                             print(self.limit_demos_num)
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_demos_num] for t in expert_traj_for_metaitr.keys()}
