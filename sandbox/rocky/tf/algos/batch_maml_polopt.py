@@ -156,9 +156,14 @@ class BatchMAMLPolopt(RLAlgorithm):
         if self.use_pooled_goals:
             if expert_trajs_dir is not None:
                 assert goals_pool_to_load is None, "expert_trajs already comes with its own goals, please disable goals_pool_to_load"
-                self.goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['goals_pool']
-                self.goals_idxs_for_itr_dict = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")['idxs_dict']
-                print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys(), len(self.goals_pool))
+                goals_pool = joblib.load(self.expert_trajs_dir+"goals_pool.pkl")
+                self.goals_pool = goals_pool['goals_pool']
+                self.goals_idxs_for_itr_dict = goals_pool['idxs_dict']
+                if "demos_path" in goals_pool.keys():
+                    self.demos_path = goals_pool["demos_path"]
+                else:
+                    self.demos_path = expert_trajs_dir
+                print("successfully extracted goals pool", self.goals_idxs_for_itr_dict.keys())
             elif goals_pool_to_load is not None:
                 logger.log("Loading goals pool from %s ..." % goals_pool_to_load)
                 self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
@@ -184,7 +189,7 @@ class BatchMAMLPolopt(RLAlgorithm):
             while 'sample_goals' not in dir(env):
                 env = env.wrapped_env
             reset_dimensions = env.sample_goals(1).shape[1:]
-            dimensions = np.shape(self.goals_pool[0])
+            dimensions = np.shape(self.goals_pool[self.goals_idxs_for_itr_dict[0][0]])
             assert reset_dimensions == dimensions, "loaded dimensions are %s, do not match with environment's %s" % (
             dimensions, reset_dimensions)
             # inspecting goals_idxs_for_itr_dict
@@ -229,7 +234,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                 print("Using Vectorized Sampler")
         if sampler_args is None:
             sampler_args = dict()
-        sampler_args['n_envs'] = self.meta_batch_size
+        if 'n_envs' not in sampler_args.keys():
+            sampler_args['n_envs'] = self.meta_batch_size
         self.sampler = sampler_cls(self, **sampler_args)
 
 
@@ -250,9 +256,9 @@ class BatchMAMLPolopt(RLAlgorithm):
         return paths
 
     def obtain_agent_info_offpolicy(self, itr, expert_trajs_dir=None, offpol_trajs=None, treat_as_expert_traj=False, log_prefix=''):
-        # TODO: add usage of meta batch size and batch size as a way of sampling desired number
+        assert expert_trajs_dir is None, "deprecated"
         start = time.time()
-        if offpol_trajs is None:  # TODO: get rid of expert_trajs_dir
+        if offpol_trajs is None:
             assert expert_trajs_dir is not None, "neither offpol_trajs nor expert_trajs_dir is provided"
             if self.use_pooled_goals:
                 for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
@@ -352,13 +358,29 @@ class BatchMAMLPolopt(RLAlgorithm):
                     beta0_step0_paths = None
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
-                            expert_traj_for_metaitr = joblib.load(self.expert_trajs_dir+str(itr)+self.expert_trajs_suffix+".pkl")
+                            assert False, "deprecated"
+                            expert_traj_for_metaitr = joblib.load(self.demos_path+str(itr)+self.expert_trajs_suffix+".pkl")
                         else:
-                            expert_traj_for_metaitr = {t : joblib.load(self.expert_trajs_dir+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
+                            expert_traj_for_metaitr = {}
+                            for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
+                                demos = joblib.load(self.demos_path+str(taskidx)+self.expert_trajs_suffix+".pkl")
+                                # conversion code from Chelsea's format
+                                if type(demos) is dict and 'demoU' in demos.keys():
+                                    converted_demos = []
+                                    for i,demoU in enumerate(demos['demoU']):
+                                        converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
+                                    expert_traj_for_metaitr[t] = converted_demos
+                                else:
+                                    expert_traj_for_metaitr[t] = demos
+                            # expert_traj_for_metaitr = {t : joblib.load(self.demos_path+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
+
+                        # TODO: need to have a middle step for places where demos are saved in demoU and demoX format
                         if self.limit_demos_num is not None:
+                            print(self.limit_demos_num)
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_demos_num] for t in expert_traj_for_metaitr.keys()}
                         for t in expert_traj_for_metaitr.keys():
+
                             for path in expert_traj_for_metaitr[t]:
                                 if 'expert_actions' not in path.keys():
                                     path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
@@ -434,8 +456,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 logger.record_tabular("AverageReturnLastTest", self.sampler.memory["AverageReturnLastTest"],front=True)
                                 logger.record_tabular("TestItr", ("1" if testitr else "0"),front=True)
                                 logger.record_tabular("MetaItr", self.metaitr,front=True)
-                            logger.log("Logging diagnostics...")
-                            self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
+                            # logger.log("Logging diagnostics...")
+                            # self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
                             if step < self.num_grad_updates:
                                 if itr not in self.testing_itrs:

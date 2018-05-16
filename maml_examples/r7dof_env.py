@@ -4,6 +4,7 @@ from rllab.misc.overrides import overrides
 from rllab.envs.base import Step
 
 
+from PIL import Image
 
 from rllab.core.serializable import Serializable
 
@@ -42,6 +43,18 @@ class Reacher7DofMultitaskEnv(
             self.model.data.qvel.flat[:7],
             self.get_body_com("tips_arm"),
         ])
+
+    def get_current_image_obs(self):
+        image = self.viewer.get_image()
+        pil_image = Image.frombytes('RGB', (image[1], image[2]), image[0])
+        pil_image = pil_image.resize((125,125), Image.ANTIALIAS)
+        image = np.flipud(np.array(pil_image))
+        return image, np.concatenate([
+            self.model.data.qpos.flat[:7],
+            self.model.data.qvel.flat[:7],
+            self.get_body_com('tips_arm'),
+            self.get_body_com('goal'),
+            ])
 
     def step(self, action):
         self.frame_skip = 5

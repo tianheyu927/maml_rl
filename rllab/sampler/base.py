@@ -55,9 +55,9 @@ class BaseSampler(Sampler):
         if testitr:
             metalearn_baseline = False
         train_baseline = (itr in BASELINE_TRAINING_ITRS)
-
-        for idx, path in enumerate(paths):
-            path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
+        if not fast_process:
+            for idx, path in enumerate(paths):
+                path["returns"] = special.discount_cumsum(path["rewards"], self.algo.discount)
         if not fast_process and not metalearn_baseline:
             if log:
                 logger.log("fitting baseline...")
@@ -99,7 +99,8 @@ class BaseSampler(Sampler):
                 path["advantages"] = special.discount_cumsum(
                     deltas, self.algo.discount * self.algo.gae_lambda)
                 baselines.append(path_baselines[:-1])
-            returns.append(path["returns"])
+            if not fast_process:
+                returns.append(path["returns"])
             if "expert_actions" not in path.keys():
                 if "expert_actions" in path["env_infos"].keys():
                     path["expert_actions"] = path["env_infos"]["expert_actions"]
@@ -118,15 +119,18 @@ class BaseSampler(Sampler):
         if not self.algo.policy.recurrent:
             observations = tensor_utils.concat_tensor_list([path["observations"] for path in paths])
             actions = tensor_utils.concat_tensor_list([path["actions"] for path in paths])
-            rewards = tensor_utils.concat_tensor_list([path["rewards"] for path in paths])
-            returns = tensor_utils.concat_tensor_list([path["returns"] for path in paths])
+
+            if not fast_process:
+                rewards = tensor_utils.concat_tensor_list([path["rewards"] for path in paths])
+                returns = tensor_utils.concat_tensor_list([path["returns"] for path in paths])
+                env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
+
             if not fast_process and not metalearn_baseline:
                 advantages = tensor_utils.concat_tensor_list([path["advantages"] for path in paths])
                 # print("debug, advantages are", advantages,)
                 # print("debug, shape of advantages is", type(advantages), np.shape(advantages))
 
             expert_actions = tensor_utils.concat_tensor_list([path["expert_actions"] for path in paths])
-            env_infos = tensor_utils.concat_tensor_dict_list([path["env_infos"] for path in paths])
             agent_infos = tensor_utils.concat_tensor_dict_list([path["agent_infos"] for path in paths])
 
             if not fast_process and not metalearn_baseline:
@@ -145,16 +149,13 @@ class BaseSampler(Sampler):
             # average_discounted_return = \
             #     np.mean([path["returns"][0] for path in paths])
 
-            undiscounted_returns = [sum(path["rewards"]) for path in paths]
+            undiscounted_returns = [sum(path.get("rewards",[0])) for path in paths]
 
             # ent = np.mean(self.algo.policy.distribution.entropy(agent_infos))
             if fast_process:
                 samples_data = dict(
                     observations=observations,
                     actions=actions,
-                    rewards=rewards,
-                    returns=returns,
-                    env_infos=env_infos,
                     agent_infos=agent_infos,
                     paths=paths,
                     expert_actions=expert_actions,
@@ -165,7 +166,6 @@ class BaseSampler(Sampler):
                     actions=actions,
                     rewards=rewards,
                     returns=returns,
-                    env_infos=env_infos,
                     agent_infos=agent_infos,
                     paths=paths,
                     expert_actions=expert_actions,
@@ -231,7 +231,7 @@ class BaseSampler(Sampler):
             average_discounted_return = \
                 np.mean([path["returns"][0] for path in paths])
 
-            undiscounted_returns = [sum(path["rewards"]) for path in paths]
+            undiscounted_returns = [sum(path.get("rewards",[0])) for path in paths]
 
             # ent = np.sum(self.algo.policy.distribution.entropy(agent_infos) * valids) / np.sum(valids)
 

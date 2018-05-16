@@ -7,6 +7,7 @@ import rllab.plotter as plotter
 from rllab.algos.base import RLAlgorithm
 from sandbox.rocky.tf.policies.base import Policy
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
+from sandbox.rocky.tf.samplers.vectorized_sampler import VectorizedSampler
 
 import joblib
 import matplotlib.pyplot as plt
@@ -51,6 +52,7 @@ class BatchPolopt(RLAlgorithm):
             reset_arg=None,
             save_expert_traj_dir=None,
             expert_traj_itrs_to_pickle=[],
+            save_img_obs=False,
             goals_to_load=None,
             goals_pool_to_load=None,
             **kwargs
@@ -98,7 +100,7 @@ class BatchPolopt(RLAlgorithm):
         self.fixed_horizon = fixed_horizon
         if sampler_cls is None:
             #if self.policy.vectorized and not force_batch_sampler:
-            #sampler_cls = VectorizedSampler
+            # sampler_cls = VectorizedSampler
             #else:
             sampler_cls = BatchSampler
         if sampler_args is None:
@@ -109,6 +111,7 @@ class BatchPolopt(RLAlgorithm):
         self.action_noise_test = action_noise_test
         self.make_video = make_video
         self.save_expert_traj_dir = save_expert_traj_dir
+        self.save_img_obs = save_img_obs
         assert goals_to_load is None, "deprecated"
         assert len(expert_traj_itrs_to_pickle) == 0, "deprecated"
         if goals_pool_to_load is not None:
@@ -139,7 +142,7 @@ class BatchPolopt(RLAlgorithm):
     def obtain_samples(self, itr, reset_args=None):
         if reset_args is None:
             reset_args = self.reset_arg
-        return self.sampler.obtain_samples(itr, reset_args=reset_args)
+        return self.sampler.obtain_samples(itr, reset_args=reset_args, save_img_obs=self.save_img_obs)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
@@ -190,6 +193,7 @@ class BatchPolopt(RLAlgorithm):
                         joblib_dump_safe(paths_to_save[0], self.save_expert_traj_dir+str(itr)+".pkl")
                         logger.log("Fast-processing returns...")
                         undiscounted_returns = [sum(path['rewards']) for path in paths]
+                        print("debug", undiscounted_returns)
                         logger.record_tabular('AverageReturn', np.mean(undiscounted_returns))
 
                     else:
@@ -242,14 +246,20 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                        if self.make_video and itr % 80 == 0 and itr in self.goals_for_ET_dict.keys() == 0:
-                            logger.log("Saving videos...")
-                            self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
-                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s.mp4' % itr)
-                            rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
-                                    animated=True, speedup=2, save_video=True, video_filename=video_filename,
-                                    reset_arg=self.goals_for_ET_dict[itr][0],
-                                    use_maml=False,)
+                    if self.make_video and itr % 2 == 0 and itr in [0,2,4,6,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
+                        logger.log("Saving videos...")
+                        self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
+                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_0.mp4' % itr)
+                        rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                reset_arg=self.goals_for_ET_dict[itr][0],
+                                use_maml=False,)
+                        self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
+                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_1.mp4' % itr)
+                        rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                reset_arg=self.goals_for_ET_dict[itr][0],
+                                use_maml=False, )
 
                     # debugging
                     """

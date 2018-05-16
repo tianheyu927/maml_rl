@@ -321,7 +321,8 @@ class MAMLIL(BatchMAMLPolopt):
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
         else:
-            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
+            # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
+            target = [self.policy.get_params_internal()]
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
@@ -407,7 +408,7 @@ class MAMLIL(BatchMAMLPolopt):
         # Code to compute the kl distance, kind of pointless on non-testing iterations as agent_infos are zeroed out on expert traj samples
         dist_info_list = []
         for i in range(self.meta_batch_size):
-            agent_infos = all_samples_data[self.kl_constrain_step][i]['agent_infos']  ##kl_constrain_step default is -1, meaning post all alpha grad updates
+            agent_infos = {x:all_samples_data[self.kl_constrain_step][i]['agent_infos'][x] for x in ['mean','log_std']}  ##kl_constrain_step default is -1, meaning post all alpha grad updates
             dist_info_list += [agent_infos[k] for k in self.policy.distribution.dist_info_keys]
         input_vals_list += tuple(dist_info_list)  # This populates old_dist_info_vars_list
 

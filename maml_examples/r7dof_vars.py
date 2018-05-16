@@ -15,8 +15,11 @@ default_r7dof_env_option = ''
 
 EXPERT_TRAJ_LOCATION_DICT = {
     # ".local":          "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
+    # ".local_vision_2distr":"/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-vision-rgb/",
+    ".local_vision_2distr":"/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-vision-rgb_converted/",
     ".local_1000_40":  "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-individual_noise0.1/",
     ".local_100_40_1":   "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-100-40/",  # 100 goals, 40 goals per itr, 40 et per goal
+    ".local_test":   "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.0-test/", # 200 goals, 40 goals per itr, 40 et per goal
     ".local_200_40_1":   "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40-1/", # 200 goals, 40 goals per itr, 40 et per goal
     ".local_200_40_1dist":   "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40-1dist/", # 200 goals, 40 goals per itr, 40 et per goal
     ".local_200_40_1_1":   "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40-1_1/", # 200 goals, 40 goals per itr, 40 et per goal

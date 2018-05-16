@@ -17,12 +17,13 @@ from sandbox.rocky.tf.misc import tensor_utils
 from sandbox.rocky.tf.policies.base import StochasticPolicy
 from sandbox.rocky.tf.spaces.box import Box
 from tensorflow.python.framework import dtypes
-
+from sandbox.rocky.tf.core.network import ConvNetwork
 load_params = True
+import sandbox.rocky.tf.core.layers as L
 
 
 
-class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
+class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
     def __init__(
             self,
             name,
@@ -46,6 +47,13 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             stop_grad=False,
             extra_input_dim=0,
             # metalearn_baseline=False,
+            input_img_shape = (32,64,3),
+            conv_hidden_sizes=(),
+            conv_filters=[16,16,16,16],
+            conv_filter_sizes=[5,5,5,5],
+            conv_strides=[2,2,2,1],
+            conv_pads=['SAME','SAME','SAME','SAME'],
+            conv_output_dim=32,
     ):
         """
         :param env_spec:
@@ -70,30 +78,46 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         """
         Serializable.quick_init(self, locals())
         #assert isinstance(env_spec.action_space, Box)
-
-        obs_dim = env_spec.observation_space.flat_dim
+        assert len(input_img_shape)>0, "input_img_shape needs to be bigger"
+        obs_dim = env_spec.observation_space.flat_dim - np.prod(input_img_shape)
         self.action_dim = env_spec.action_space.flat_dim
         self.n_hidden = len(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
-        self.input_shape = (None, obs_dim + extra_input_dim,)
+        self.input_img_shape = input_img_shape
+        self.input_shape = (None, obs_dim + extra_input_dim + conv_output_dim,)
+        self.input_total_shape = (None, np.prod(self.input_img_shape) + obs_dim + extra_input_dim,)
+        print("debug432", self.input_img_shape,self.input_shape,self.input_total_shape)
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
         # self.metalearn_baseline = metalearn_baseline
         if type(self.step_size) == list:
             raise NotImplementedError('removing this since it didnt work well')
-
+        self.cnn=None
         # create network
         if mean_network is None:
-            self.all_params = self.create_MLP(  # TODO: this should not be a method of the policy! --> helper
+            self.all_params = self.create_MLP_params(  # TODO: this should not be a method of the policy! --> helper
                 name="mean_network",
                 output_dim=self.action_dim,
                 hidden_sizes=hidden_sizes,
             )
-            self.input_tensor, _ = self.forward_MLP('mean_network', self.all_params,
-                reuse=None # Need to run this for batch norm
+            self.input_tensor, _ = self.forward_CNN_MLP(name='mean_network', all_params=self.all_params,
+                                                        conv_filters=conv_filters,
+                                                        conv_filter_sizes=conv_filter_sizes,
+                                                        conv_strides=conv_strides,
+                                                        conv_pads=conv_pads,
+                                                        conv_output_dim=conv_output_dim,
+                                                        conv_hidden_sizes=conv_hidden_sizes,
+                                                                               input_tensor=None,
+                                                                               reuse=None # Need to run this for batch norm
             )
-            forward_mean = lambda x, params, is_train: self.forward_MLP('mean_network', all_params=params,
+            forward_mean = lambda x, params, is_train: self.forward_CNN_MLP(name='mean_network', all_params=params,
+                                                                                 conv_filters=conv_filters,
+                                                                                 conv_filter_sizes=conv_filter_sizes,
+                                                                                 conv_strides=conv_strides,
+                                                                                 conv_pads=conv_pads,
+                                                                                 conv_output_dim=conv_output_dim,
+                                                                                 conv_hidden_sizes=conv_hidden_sizes,
                 input_tensor=x, is_training=is_train)[1]
         else:
             raise NotImplementedError('Not supported.')
@@ -144,7 +168,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
             self._cached_params = {}
 
-            super(MAMLGaussianMLPPolicy, self).__init__(env_spec)
+            super(MAMLGaussianConvMLPPolicy, self).__init__(env_spec)
 
             dist_info_sym = self.dist_info_sym(self.input_tensor, dict(), is_training=False)
             mean_var = dist_info_sym["mean"]
@@ -156,7 +180,10 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
                 outputs=[mean_var, log_std_var],
             )
             self._cur_f_dist = self._init_f_dist
-
+            self._cur_f_dist_cnn = tensor_utils.compile_function(
+                inputs=[self.input_tensor],
+                outputs=L.get_output(self.cnn._l_out)
+            )
 
     @property
     def vectorized(self):
@@ -370,7 +397,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         # Assumes that there is one observation per post-update policy distr
         flat_obs = self.observation_space.flatten_n(observations)
         result = self._cur_f_dist(flat_obs)
-
+        visual_features = self._cur_f_dist_cnn(flat_obs)
         if len(result) == 2:
             # NOTE - this code assumes that there aren't 2 meta tasks in a batch
             means, log_stds = result
@@ -379,7 +406,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             log_stds = np.array([res[1] for res in result])[:,0,:]
         rnd = np.random.normal(size=np.shape(means))
         actions = rnd * np.exp(log_stds) + means
-        return actions, dict(mean=means, log_std=log_stds)  #TODO: obtain_samples needs to receive the observations from this as well
+
+        return actions, dict(mean=means, log_std=log_stds, cnn_out=visual_features)  #TODO: obtain_samples needs to receive the observations from this as well
 
     @property
     def distribution(self):
@@ -398,15 +426,21 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
 
     # This makes all of the parameters.
-    def create_MLP(self, name, output_dim, hidden_sizes,
-                   hidden_W_init=tf_layers.xavier_initializer(dtype=dtypes.float64), hidden_b_init=tf.zeros_initializer(dtype=dtypes.float64),
-                   output_W_init=tf_layers.xavier_initializer(dtype=dtypes.float64), output_b_init=tf.zeros_initializer(dtype=dtypes.float64),
-                   weight_normalization=False,
-                   ):
+    def create_MLP_params(self, name, output_dim,
+                          hidden_sizes,
+                          hidden_W_init=tf_layers.xavier_initializer(dtype=dtypes.float32), hidden_b_init=tf.zeros_initializer(dtype=dtypes.float32),
+                          output_W_init=tf_layers.xavier_initializer(dtype=dtypes.float32), output_b_init=tf.zeros_initializer(dtype=dtypes.float32),
+                          weight_normalization=False,
+                          ):
         all_params = OrderedDict()
 
         cur_shape = self.input_shape
+
+        # TODO: generation of the CNN layers
+
         with tf.variable_scope(name):
+
+
             for idx, hidden_size in enumerate(hidden_sizes):
                 W, b, cur_shape = make_dense_layer(
                     cur_shape,
@@ -431,17 +465,31 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
         return all_params
 
-    def forward_MLP(self, name, all_params, input_tensor=None,
+    def forward_CNN_MLP(self, name, all_params,
+                        conv_filters, conv_filter_sizes, conv_strides, conv_pads, conv_output_dim, conv_hidden_sizes,  # new
+                        input_tensor=None,
                     batch_normalization=False, reuse=True, is_training=False):
         # is_training and reuse are for batch norm, irrelevant if batch_norm set to False
         # set reuse to False if the first time this func is called.
         with tf.variable_scope(name):
             if input_tensor is None:
-                l_in = make_input(shape=self.input_shape, input_var=None, name='input')
+                l_in = make_input(shape=self.input_total_shape, input_var=None, name='input')
             else:
                 l_in = input_tensor
 
-            l_hid = l_in
+            # l_img_in = l_in[:][:np.prod(self.input_img_shape)]
+            l_img_in =tf.slice(l_in, [0,0],[-1,np.prod(self.input_img_shape)])
+            # l_state_in = l_in[:][np.prod(self.input_img_shape):]
+            l_state_in = tf.slice(l_in,[0,np.prod(self.input_img_shape)],[-1,-1])
+            # print("Debug212",l_img_in, l_state_in)
+            l_normalized_img_in = tf.cast(l_img_in,tf.float32)/255
+            if self.cnn is None:
+                self.cnn = ConvNetwork(name=name+"cnn",input_shape=self.input_img_shape,output_dim=conv_output_dim,
+                              conv_filters=conv_filters,conv_filter_sizes=conv_filter_sizes,conv_strides=conv_strides,
+                              conv_pads=conv_pads, hidden_sizes=conv_hidden_sizes,hidden_nonlinearity=tf.nn.relu,output_nonlinearity=L.spatial_expected_softmax, input_var=l_normalized_img_in)
+
+            # print("debug234, cnn output layer", L.get_output(self.cnn._l_out))
+            l_hid = tf.concat([l_state_in,L.get_output(self.cnn._l_out)],-1,'post_conv_input')
 
             for idx in range(self.n_hidden):
                 l_hid = forward_dense_layer(l_hid, all_params['W'+str(idx)], all_params['b'+str(idx)],

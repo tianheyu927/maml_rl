@@ -7,7 +7,7 @@ from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.misc.instrument import stub, run_experiment_lite
 from rllab.envs.mujoco.half_cheetah_env_rand import HalfCheetahEnvRand
-from maml_examples.r7dof_oracle_env import Reacher7DofMultitaskEnvOracle
+from maml_examples.r7dof_env_oracle import Reacher7DofMultitaskEnvOracle
 from maml_examples.r7dof_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, R7DOF_GOALS_LOCATION, \
     default_r7dof_env_option
 import pickle
@@ -44,7 +44,7 @@ variants = VG().variants()
 env_option = default_r7dof_env_option
 
 def run_task(v):
-    env = TfEnv(normalize(Reacher7DofMultitaskEnvOracle()))
+    env = TfEnv(normalize(Reacher7DofMultitaskEnvOracle(distractors=True)))
     # policy = GaussianMLPPolicy(
     #    name="policy",
     #    env_spec=env.spec,
@@ -58,18 +58,19 @@ def run_task(v):
         policy=None,
         load_policy='/home/kevin/maml_rl/data/local/R7DOF-ET-E3.3/R7DOF_ET_E3.3_2018_01_01_14_27_38_0001/itr_-140.pkl',  # if you want to use this you need to comment out the definition of policy above
         baseline=baseline,
-        batch_size=200*200,  # 400 * 200 we divide this by #envs on every iteration
-        batch_size_expert_traj=40*100,
-        max_path_length=100,
+        batch_size=10*30,  # 400 * 200 we divide this by #envs on every iteration
+        batch_size_expert_traj=100*30,
+        max_path_length=30,
         start_itr=-1,
         n_itr=201,  # actually last iteration number, not total iterations
         discount=0.99,
-        step_size=0.01,  # 0.01
+        step_size=0.00,  # 0.01
         force_batch_sampler=True,
         # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5)),
         action_noise_train=0.0,
         action_noise_test=0.1,
-        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local_200_40_4"],
+        make_video=True,
+        save_expert_traj_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+".local_test"],
         goals_pool_to_load=R7DOF_GOALS_LOCATION,
     )
     algo.train()
@@ -80,7 +81,7 @@ for v in variants:
         #algo.train(),
         run_task,
         # Number of parallel workers for sampling
-        n_parallel=10, #10,
+        n_parallel=1, #10,
         # Only keep the snapshot parameters for the last iteration
         snapshot_mode="gap",
         snapshot_gap=20,
