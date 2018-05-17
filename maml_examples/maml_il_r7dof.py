@@ -35,7 +35,7 @@ beta_adam_steps_list = [(1,50)]
 adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
 # adam_curve = None
 
-fast_learning_rates = [1.0]
+fast_learning_rates = [1.0,0.0]
 baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
@@ -57,7 +57,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']  #'', 'clip0.5_'
-limit_demos_num_list = [1]  # 40
+limit_demos_num_list = [10]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -66,12 +66,10 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1] #,2,3,4,5]
-envseeds = [6]
+seeds = [1, 2,3,4,5,6,7,8]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
-    for envseed in envseeds:
         for seed in seeds:
             for baslayers in baslayers_list:
                 for fast_batch_size in fast_batch_size_list:
