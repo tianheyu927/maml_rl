@@ -438,8 +438,6 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         with tf.variable_scope(name):
             if input_tensor is None:
                 l_in = make_input(shape=self.input_shape, input_var=None, name='input')
-                print("debug, making input", l_in)
-
             else:
                 l_in = input_tensor
 
