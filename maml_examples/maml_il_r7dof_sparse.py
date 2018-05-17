@@ -33,8 +33,8 @@ beta_adam_steps_list = [(1,10)]
 # adam_curve = [250,249,50,50,50,50,10] # make sure to check maml_experiment_vars
 adam_curve = None
 
-fast_learning_rates = [1.0]
-baselines = ['MAMLGaussianMLP']  # linear GaussianMLP MAMLGaussianMLP zero
+fast_learning_rates = [1.0,0.0]
+baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 mode = "ec2"
 # mode = "local"
@@ -65,12 +65,10 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1,2,3,4,5] #,2,3,4,5]
-envseeds = [6]
+seeds = [1,2,3,4,5,6,7,8] #,2,3,4,5]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
-    for envseed in envseeds:
         for seed in seeds:
             for baslayers in baslayers_list:
                 for fast_batch_size in fast_batch_size_list:
@@ -93,9 +91,7 @@ for goals_suffix in goals_suffixes:
                                                                            # +time.strftime("%D").replace("/", "")[0:4]
                                                                            + goals_suffix + "_"
                                                                            + str(seed)
-                                                                           # + str(envseed)
                                                                            + ("" if use_corr_term else "nocorr")
-                                                                           # + str(int(use_maml))
                                                                            + ('_fbs' + str(
                                                                 fast_batch_size) if fast_batch_size != 20 else "")
                                                                            + ('_mbs' + str(
@@ -105,8 +101,6 @@ for goals_suffix in goals_suffixes:
                                                                            + '_dem' + str(limit_demos_num)
                                                                            + ('_ei' + str(extra_input_dim) if type(
                                                                 extra_input_dim) == int else "")
-                                                                           # + '_tgm' + str(test_goals_mult)
-                                                                           #     +'metalr_'+str(meta_step_size)
                                                                            #     +'_ngrad'+str(num_grad_updates)
                                                                            + ("_bs" + str(
                                                                 beta_steps) if beta_steps != 1 else "")
