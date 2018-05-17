@@ -49,7 +49,7 @@ extra_input_dim = None
 goals_suffixes = ["_vision_2distr"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [4]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [40]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size_list = [5]  # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 30  # 100
 num_grad_updates = 1
@@ -59,7 +59,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']  #'', 'clip0.5_'
-limit_demos_num_list = [7]  # 40
+limit_demos_num_list = [100]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -137,7 +137,7 @@ for goals_suffix in goals_suffixes:
                                                             env_spec=env.spec,
                                                             grad_step_size=fast_learning_rate,
                                                             hidden_nonlinearity=tf.nn.relu,
-                                                            hidden_sizes=(100, 100),
+                                                            hidden_sizes=(100, 100,100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
                                                             extra_input_dim=(0 if extra_input is None else extra_input_dim),

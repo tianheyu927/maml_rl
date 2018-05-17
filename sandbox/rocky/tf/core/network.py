@@ -97,7 +97,7 @@ class ConvNetwork(LayersPowered, Serializable):
         hidden_nonlinearity: a nonlinearity from tf.nn, shared by all conv and fc layers
         hidden_sizes: a list of numbers of hidden units for all fc layers
         """
-        with tf.variable_scope(name):
+        with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
             if input_layer is not None:
                 l_in = input_layer
                 l_hid = l_in

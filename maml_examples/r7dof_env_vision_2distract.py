@@ -56,6 +56,7 @@ class Reacher7Dof2DistractVisionEnv(Serializable):
         pil_image = pil_image.resize((64,64), Image.ANTIALIAS)
         pil_image = pil_image.crop((0,14,64,46))
         image = np.flipud(np.array(pil_image))
+        image = image.astype(np.float32)
         state = np.concatenate([
             self.mujoco.model.data.qpos.flat[:7],
             self.mujoco.model.data.qvel.flat[:7],

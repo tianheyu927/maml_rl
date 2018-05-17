@@ -174,7 +174,7 @@ class QuadDistExpertOptimizer(Serializable):
         print("debug543", feed_dict.keys())
         for key in feed_dict.keys():
             if 'obs' in key.name:
-                print("debug567", key, feed_dict[key])
+                print("debug567", key, np.shape(feed_dict[key]))
         init_loss = sess.run(self._loss, feed_dict=feed_dict)
         print("init_loss", init_loss)
         min_loss = init_loss
