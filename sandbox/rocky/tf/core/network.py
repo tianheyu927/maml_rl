@@ -121,7 +121,7 @@ class ConvNetwork(LayersPowered, Serializable):
                     conv_strides,
                     conv_pads,
             ):
-                print("debug123",conv_filter,filter_size,stride,pad,hidden_nonlinearity,idx,weight_normalization)
+                # print("debug123",conv_filter,filter_size,stride,pad,hidden_nonlinearity,idx,weight_normalization)
                 l_hid = L.Conv2DLayer(
                     l_hid,
                     num_filters=conv_filter,

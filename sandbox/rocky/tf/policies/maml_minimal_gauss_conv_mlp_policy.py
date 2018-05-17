@@ -181,10 +181,10 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                 outputs=[mean_var, log_std_var],
             )
             self._cur_f_dist = self._init_f_dist
-            # self._cur_f_dist_cnn = tensor_utils.compile_function(
-            #     inputs=[self.input_tensor],
-            #     outputs=L.get_output(self.cnn._l_out)
-            # )
+            self._cur_f_dist_cnn = tensor_utils.compile_function(
+                inputs=[self.input_tensor],
+                outputs=L.get_output(self.cnn._l_out)
+            )
 
     @property
     def vectorized(self):
@@ -215,13 +215,13 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                 assert False, "agent_infos_orig is missing--this should have been handled by process_samples"
             else:
                 agent_infos_orig = samples[i]['agent_infos_orig']
-            theta0_dist_info_list += [agent_infos_orig[k] for k in agent_infos_orig.keys()]
+            theta0_dist_info_list += [agent_infos_orig[k] for k in self.distribution.dist_info_keys]
 
 
         theta_l_dist_info_list = []
         for i in range(num_tasks):
             agent_infos = samples[i]['agent_infos']
-            theta_l_dist_info_list += [agent_infos[k] for k in agent_infos.keys()]
+            theta_l_dist_info_list += [agent_infos[k] for k in self.distribution.dist_info_keys]
 
         obs_list, action_list, adv_list, rewards_list, returns_list = [], [], [], [], []
         for i in range(num_tasks):
@@ -398,7 +398,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
         # Assumes that there is one observation per post-update policy distr
         flat_obs = self.observation_space.flatten_n(observations)
         result = self._cur_f_dist(flat_obs)
-        # visual_features = self._cur_f_dist_cnn(flat_obs)
+        visual_features = self._cur_f_dist_cnn(flat_obs)
         if len(result) == 2:
             # NOTE - this code assumes that there aren't 2 meta tasks in a batch
             means, log_stds = result
@@ -408,7 +408,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
         rnd = np.random.normal(size=np.shape(means))
         actions = rnd * np.exp(log_stds) + means
 
-        return actions, dict(mean=means, log_std=log_stds)  #, cnn_out=visual_features)  #TODO: obtain_samples needs to receive the observations from this as well
+        return actions, dict(mean=means, log_std=log_stds, cnn_out=visual_features)  #TODO: obtain_samples needs to receive the observations from this as well
 
     @property
     def distribution(self):
