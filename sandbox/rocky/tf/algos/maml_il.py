@@ -343,7 +343,7 @@ class MAMLIL(BatchMAMLPolopt):
 #######################################
     @overrides
     def optimize_policy(self, itr, all_samples_data):
-        assert len(all_samples_data) == self.num_grad_updates + 1  # we collected the rollouts to compute the grads and then the test!
+        assert len(all_samples_data) >= self.num_grad_updates + 1  # we collected the rollouts to compute the grads and then the test!
         assert self.use_maml
 
         input_vals_list = []

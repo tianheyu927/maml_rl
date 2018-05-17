@@ -33,7 +33,7 @@ l2loss_std_mult_list = [1.0]
 env_options = ["box"]
 
 use_maml = True
-seeds=[1,2,3,4,5,6,7,8]
+seeds=[1]  #,2,3,4,5,6,7,8]
 for seed in seeds:
     for env_option in env_options:
         for l2loss_std_mult in l2loss_std_mult_list:
