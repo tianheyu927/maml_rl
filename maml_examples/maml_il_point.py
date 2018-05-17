@@ -87,14 +87,14 @@ for env_option in env_options:
                                     num_grad_updates=num_grad_updates, ## number of alpha grad updates per beta update
                                     n_itr=4, #100
                                     use_maml=use_maml,
-                                    use_pooled_goals=False,
+                                    use_pooled_goals=True,
                                     step_size=meta_step_size,
                                     plot=False,
                                     beta_steps=beta_steps,
                                     adam_steps=adam_steps,
                                     pre_std_modifier=pre_std_modifier,
                                     l2loss_std_mult=l2loss_std_mult,
-                                    importance_sampling_modifier=MOD_FUNC["clip0.5_2.0"],
+                                    importance_sampling_modifier=MOD_FUNC[""],
                                     post_std_modifier_train=post_std_modifier_train,
                                     post_std_modifier_test=post_std_modifier_test,
                                     expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
