@@ -114,8 +114,6 @@ class BaseSampler(Sampler):
                 np.concatenate(baselines),
                 np.concatenate(returns)
             )
-            print("debug123",np.shape(baselines))
-            print("debug123",np.shape(returns))
             l2 = np.linalg.norm(np.array(baselines)-np.array(returns))
 
         if not self.algo.policy.recurrent:
