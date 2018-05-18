@@ -368,15 +368,16 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 if type(demos) is dict and 'demoU' in demos.keys():
                                     converted_demos = []
                                     for i,demoU in enumerate(demos['demoU']):
-                                        if self.extra_input is not None:
-                                            extra = np.zeros((np.shape(demoU)[0],self.extra_input_dim))
-                                            demoU = np.concatenate((demoU,extra),-1)
                                         if int(demos['xml'][-5]) % 2 == 0:
                                             #flips the object and the distractor
-                                            shuffled_demoX = pusher_env.shuffle_demo(demos['demoX'][i])
-                                            converted_demos.append({'observations': shuffled_demoX, 'actions': demoU})
+                                            demoX = pusher_env.shuffle_demo(demos['demoX'][i])
                                         else:
-                                            converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
+                                            demoX = demos['demoX'][i]
+                                        if self.extra_input is not None:
+                                            extra = np.zeros((np.shape(demoX)[0], self.extra_input_dim))
+                                            demoX = np.concatenate((demoX, extra), -1)
+
+                                        converted_demos.append({'observations': demoX, 'actions': demoU})
                                     # print("debug, using xml for demos", demos['xml'])
 
 
