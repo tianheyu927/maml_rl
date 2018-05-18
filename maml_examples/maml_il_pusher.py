@@ -32,7 +32,7 @@ beta_adam_steps_list = [(1,50)]
 # adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
 adam_curve = None
 
-fast_learning_rates = [0.0]
+fast_learning_rates = [1.0]
 baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
