@@ -8,7 +8,8 @@ from rllab.misc import tensor_utils
 
 
 def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1, save_video=True,
-            video_filename='sim_out.mp4', reset_arg=None, use_maml=False, maml_task_index=None, maml_num_tasks=None):
+            video_filename='sim_out.mp4', reset_arg=None, use_maml=False, maml_task_index=None,
+            maml_num_tasks=None, use_rl2=False, new_trial=True):
     observations = []
     actions = []
     rewards = []
@@ -16,7 +17,10 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1, save_
     env_infos = []
     images = []
     o = env.reset(reset_args=reset_arg)
-    agent.reset()
+    if use_rl2:
+        agent.reset(new_trial=new_trial)
+    else:
+        agent.reset()
     path_length = 0
     if animated:
         env1=env
@@ -26,7 +30,7 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1, save_
             env1.viewer_setup()
         env.render()
     while path_length < max_path_length:
-        if not use_maml:
+        if not use_maml and not use_rl2:
             a, agent_info = agent.get_action(observation=o)
         else:
             a, agent_info = agent.get_action_single_env(observation=o, idx=maml_task_index, num_tasks=maml_num_tasks)

@@ -43,6 +43,11 @@ def make_dense_layer(input_shape, num_units, name='fc', W=L.XavierUniformInitial
         b = add_param(b, (num_units,), layer_name=name, name='b', regularizable=False, weight_norm=weight_norm)
     output_shape = (input_shape[0], num_units)
     return W,b, output_shape
+    
+def make_gru_layer(num_units, name='gru', h0=tf.zeros_initializer, trainable=True, weight_norm=False, **kwargs):
+    h0 = add_param(h0, (num_units,), layer_name=name, name='h0', trainable=trainable, weight_norm=weight_norm)
+    hprev = make_input((num_units,), name='hidden_prev')
+    return h0, hprev
 
 def forward_dense_layer(input, W, b, nonlinearity=tf.identity, batch_norm=False, scope='', reuse=True, is_training=False):
     # compute output tensor
@@ -58,7 +63,7 @@ def forward_dense_layer(input, W, b, nonlinearity=tf.identity, batch_norm=False,
         raise NotImplementedError('not supported')
     else:
         return nonlinearity(activation)
-
+        
 def make_param_layer(num_units, name='', param=tf.zeros_initializer(), trainable=True):
     param = add_param(param, (num_units,), layer_name=name, name='param', trainable=trainable)
     return param
