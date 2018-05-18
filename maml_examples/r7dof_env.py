@@ -19,6 +19,9 @@ class Reacher7DofMultitaskEnv(
             seed = kwargs['envseed']
         else:
             seed=0
+        self.onehot=True
+        self.onehot_dim = 5
+        self.onehot_position = 0 # if dim is 5, options are 0 through 4 for onehot, and -1 for zeroed out one-hot vector
         super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 
@@ -38,11 +41,28 @@ class Reacher7DofMultitaskEnv(
         self.viewer.cam.azimuth = -30
 
     def get_current_obs(self):
-        return np.concatenate([
-            self.model.data.qpos.flat[:7],
-            self.model.data.qvel.flat[:7],
-            self.get_body_com("tips_arm"),
-        ])
+        if not self.onehot:
+            return np.concatenate([
+                self.model.data.qpos.flat[:7],
+                self.model.data.qvel.flat[:7],
+                self.get_body_com("tips_arm"),
+            ])
+        else:
+            extra = np.zeros(self.onehot_dim)
+            if self.onehot_position == -1:
+                pass # we keep the vector zeroed out
+            elif self.onehot_position in range(self.onehot_dim):
+                extra[self.onehot_position]=1.0
+            else:
+                assert False, "invalid value of self.onehot_position"
+            return np.concatenate([
+                self.model.data.qpos.flat[:7],
+                self.model.data.qvel.flat[:7],
+                self.get_body_com("tips_arm"),
+                extra
+            ])
+
+
 
     def get_current_image_obs(self):
         image = self.viewer.get_image()
