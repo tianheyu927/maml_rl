@@ -35,11 +35,11 @@ beta_adam_steps_list = [(1,50)]
 # adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
 adam_curve = None
 
-fast_learning_rates = [1.0,0.0]
+fast_learning_rates = [0.0]
 baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
 # extra_input = None
 extra_input_dim = 5
@@ -66,7 +66,7 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1,2,3,4,5,6,7,8] #, 2,3,4,5,6,7,8]
+seeds = [1]  #,2,3,4,5,6,7,8] #, 2,3,4,5,6,7,8]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
