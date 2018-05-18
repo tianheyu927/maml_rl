@@ -32,14 +32,14 @@ import time
 beta_adam_steps_list = [(1,50)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
-adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
-# adam_curve = None
+# adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
+adam_curve = None
 
-fast_learning_rates = [1.0]
+fast_learning_rates = [1.0,0.0]
 baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-# mode = "ec2"
-mode = "local"
+mode = "ec2"
+# mode = "local"
 extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
 # extra_input = None
 extra_input_dim = 5
@@ -57,7 +57,7 @@ post_std_modifier_train_list = [0.00001]
 post_std_modifier_test_list = [0.00001]
 l2loss_std_mult_list = [1.0]
 importance_sampling_modifier_list = ['']  #'', 'clip0.5_'
-limit_demos_num_list = [1]  # 40
+limit_demos_num_list = [40]  # 40
 test_goals_mult = 1
 bas_lr = 0.01 # baseline learning rate
 momentum=0.5
@@ -66,12 +66,10 @@ baslayers_list = [(32,32), ]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1] #,2,3,4,5]
-envseeds = [6]
+seeds = [1,2,3,4,5,6,7,8] #, 2,3,4,5,6,7,8]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
-    for envseed in envseeds:
         for seed in seeds:
             for baslayers in baslayers_list:
                 for fast_batch_size in fast_batch_size_list:
@@ -89,7 +87,7 @@ for goals_suffix in goals_suffixes:
                                                             tf.set_random_seed(seed)
                                                             np.random.seed(seed)
                                                             rd.seed(seed)
-                                                            env = TfEnv(normalize(Reacher7DofMultitaskEnv(envseed=envseed)))
+                                                            env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
                                                             exp_name = str(
                                                                 'R7_IL'
                                                                 # +time.strftime("%D").replace("/", "")[0:4]
@@ -199,7 +197,7 @@ for goals_suffix in goals_suffixes:
                                                                 max_path_length=max_path_length,
                                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                                n_itr=800, #100
+                                                                n_itr=200, #100
                                                                 make_video=True,
                                                                 use_maml=use_maml,
                                                                 use_pooled_goals=True,

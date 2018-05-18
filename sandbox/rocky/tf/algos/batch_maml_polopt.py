@@ -356,10 +356,10 @@ class BatchMAMLPolopt(RLAlgorithm):
                     self.beta_steps = min(self.beta_steps, self.beta_curve[min(itr,len(self.beta_curve)-1)])
                     beta_steps_range = range(self.beta_steps) if itr not in self.testing_itrs else range(self.test_goals_mult)
                     beta0_step0_paths = None
+                    num_inner_updates = 3 if itr in self.testing_itrs else self.num_grad_updates
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
                             assert False, "deprecated"
-                            expert_traj_for_metaitr = joblib.load(self.demos_path+str(itr)+self.expert_trajs_suffix+".pkl")
                         else:
                             expert_traj_for_metaitr = {}
                             for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
@@ -369,13 +369,15 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     converted_demos = []
                                     for i,demoU in enumerate(demos['demoU']):
                                         converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
+                                    print("debug, using xml for demos", demos['xml'])
+                                    # if int(demos['xml'][-5]) % 2 == 0:
+
                                     expert_traj_for_metaitr[t] = converted_demos
                                 else:
                                     expert_traj_for_metaitr[t] = demos
                             # expert_traj_for_metaitr = {t : joblib.load(self.demos_path+str(taskidx)+self.expert_trajs_suffix+".pkl") for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr])}
                         expert_traj_for_metaitr = {t: expert_traj_for_metaitr[t] for t in range(self.meta_batch_size)}
 
-                        # TODO: need to have a middle step for places where demos are saved in demoU and demoX format
                         if self.limit_demos_num is not None:
                             print(self.limit_demos_num)
                             expert_traj_for_metaitr = {t:expert_traj_for_metaitr[t][:self.limit_demos_num] for t in expert_traj_for_metaitr.keys()}
@@ -398,39 +400,33 @@ class BatchMAMLPolopt(RLAlgorithm):
                             else:
                                 goals_to_use = env.sample_goals(self.meta_batch_size)
                             self.goals_to_use_dict[itr] = goals_to_use if beta_step==0 else np.concatenate((self.goals_to_use_dict[itr],goals_to_use))
-                        for step in range(self.num_grad_updates+1): # inner loop
+                        for step in range(num_inner_updates+1): # inner loop
                             logger.log('** Betastep %s ** Step %s **' % (str(beta_step), str(step)))
                             logger.log("Obtaining samples...")
 
                             if itr in self.testing_itrs:
-                                if step < self.num_grad_updates:
+                                if step < num_inner_updates:
                                     print('debug12.0.0, test-time sampling step=', step)
                                     paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
                                                                     log_prefix=str(beta_step) + "_" + str(step),testitr=True,preupdate=True)
                                     paths = store_agent_infos(paths)  # agent_infos_orig is populated here
-                                elif step == self.num_grad_updates:
+                                elif step == num_inner_updates:
                                     print('debug12.0.1, test-time sampling step=', step)
                                     paths = self.obtain_samples(itr=itr, reset_args=goals_to_use,
                                                                     log_prefix=str(beta_step) + "_" + str(step),testitr=True,preupdate=False)
                                     all_postupdate_paths.extend(paths.values())
-                            elif self.expert_trajs_dir is None or (beta_step == 0 and step < self.num_grad_updates):
+                            elif self.expert_trajs_dir is None or (beta_step == 0 and step < num_inner_updates):
                                 print("debug12.1, regular sampling")
                                 paths = self.obtain_samples(itr=itr, reset_args=self.goals_to_use_dict[itr], log_prefix=str(beta_step)+"_"+str(step),preupdate=True)
                                 if beta_step == 0 and step == 0:
                                     paths = store_agent_infos(paths)  # agent_infos_orig is populated here
                                     beta0_step0_paths = deepcopy(paths)
-                            elif step == self.num_grad_updates:
+                            elif step == num_inner_updates:
                                 print("debug12.2, expert traj")
                                 paths = self.obtain_agent_info_offpolicy(itr=itr,
                                                                          offpol_trajs=expert_traj_for_metaitr,
                                                                          treat_as_expert_traj=True,
                                                                          log_prefix=str(beta_step)+"_"+str(step))
-                            elif beta_step > 0 and step < self.num_grad_updates:
-                                print("debug12.3, own samples")
-                                assert False, "deprecated"
-                                paths = self.obtain_agent_info_offpolicy(itr=itr,
-                                                                         offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0
-                                                                         log_prefix=str(beta_step) + "_" + str(step))
                             else:
                                 assert False, "we shouldn't be able to get here"
 
@@ -439,7 +435,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             samples_data = {}
                             for tasknum in paths.keys():  # the keys are the tasks
                                 # don't log because this will spam the console with every task.
-                                if self.use_maml_il and step == self.num_grad_updates:
+                                if self.use_maml_il and step == num_inner_updates:
                                     fast_process = True
                                 else:
                                     fast_process = False
@@ -452,19 +448,19 @@ class BatchMAMLPolopt(RLAlgorithm):
                             all_samples_data_for_betastep.append(samples_data)
                             # for logging purposes only
                             self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=True, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
-                            if step == self.num_grad_updates:
+                            if step == num_inner_updates:
                                 logger.record_tabular("AverageReturnLastTest", self.sampler.memory["AverageReturnLastTest"],front=True)
                                 logger.record_tabular("TestItr", ("1" if testitr else "0"),front=True)
                                 logger.record_tabular("MetaItr", self.metaitr,front=True)
                             # logger.log("Logging diagnostics...")
                             # self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
-                            if step < self.num_grad_updates:
+                            if step < num_inner_updates:
                                 if itr not in self.testing_itrs:
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
-                                if (itr in self.testing_itrs or not self.use_maml_il or step<self.num_grad_updates-1) and step < self.num_grad_updates:
+                                if (itr in self.testing_itrs or not self.use_maml_il or step<num_inner_updates-1) and step < num_inner_updates:
                                     # do not update on last grad step, and do not update on second to last step when training MAMLIL
                                     logger.log("Computing policy updates...")
                                     self.policy.compute_updated_dists(samples=samples_data)

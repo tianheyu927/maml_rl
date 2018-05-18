@@ -171,6 +171,10 @@ class QuadDistExpertOptimizer(Serializable):
         # print("debug01, tf gradients", sess.run(self.new_gradients, feed_dict=feed_dict)[0][0][0][0:4])
         # numeric_grad = compute_numeric_grad(loss=self._loss, params=self._target.all_params, feed_dict=feed_dict)
         # print("debug02", numeric_grad)
+        # print("debug543", feed_dict.keys())
+        # for key in feed_dict.keys():
+        #     if 'obs' in key.name:
+                # print("debug567", key, np.shape(feed_dict[key]))
         init_loss = sess.run(self._loss, feed_dict=feed_dict)
         print("init_loss", init_loss)
         min_loss = init_loss

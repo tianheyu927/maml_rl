@@ -85,6 +85,13 @@ class PusherEnv(utils.EzPickle, Serializable):
                 demo_data = joblib.load(demo_path)
                 xml_file = demo_data["xml"]
                 xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/", self.xml_dir)
+                print("debug,xml_file", xml_file)
+                if int(xml_file[-5])%2==0:
+                    print("retaining order")
+                    self.shuffle_order=[0,1]
+                else:
+                    print("flipping order")
+                    self.shuffle_order=[1,0]
                 self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
         elif self.goal_num is None:  #if we already have a goal_num, we don't sample a new one, just reset the model
             self.goal_num, self.test = self.sample_goals(num_goals=1,test=False)[0]
@@ -92,6 +99,13 @@ class PusherEnv(utils.EzPickle, Serializable):
             demo_data = joblib.load(demo_path)
             xml_file = demo_data["xml"]
             xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/",self.xml_dir)
+
+            if int(xml_file[-5]) % 2 == 0:
+                print("retaining order")
+                self.shuffle_order = [0, 1]
+            else:
+                print("flipping order")
+                self.shuffle_order = [1, 0]
             self.mujoco =  mujoco_env.MujocoEnv(file_path=xml_file)
             self.viewer_setup()
         self.reset_model()
@@ -177,14 +191,24 @@ class PusherEnv(utils.EzPickle, Serializable):
 
     def _get_obs(self):
         if self.include_distractors:
-            return np.concatenate([
-                self.mujoco.model.data.qpos.flat[:7],
-                self.mujoco.model.data.qvel.flat[:7],
-                self.mujoco.get_body_com("tips_arm"),
-                self.mujoco.get_body_com("distractor"),
-                self.mujoco.get_body_com("object"),
-                self.mujoco.get_body_com("goal"),
-            ])
+            if self.shuffle_order[0] == 0:
+                return np.concatenate([
+                    self.mujoco.model.data.qpos.flat[:7],
+                    self.mujoco.model.data.qvel.flat[:7],
+                    self.mujoco.get_body_com("tips_arm"),
+                    self.mujoco.get_body_com("distractor"),
+                    self.mujoco.get_body_com("object"),
+                    self.mujoco.get_body_com("goal"),
+                ])
+            else:
+                return np.concatenate([
+                    self.mujoco.model.data.qpos.flat[:7],
+                    self.mujoco.model.data.qvel.flat[:7],
+                    self.mujoco.get_body_com("tips_arm"),
+                    self.mujoco.get_body_com("object"),
+                    self.mujoco.get_body_com("distractor"),
+                    self.mujoco.get_body_com("goal"),
+                ])
         else:
             return np.concatenate([
                 self.mujoco.model.data.qpos.flat[:7],

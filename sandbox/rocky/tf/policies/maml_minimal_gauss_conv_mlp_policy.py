@@ -87,6 +87,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
         self.input_img_shape = input_img_shape
         self.input_shape = (None, obs_dim + extra_input_dim + conv_output_dim,)
         self.input_total_shape = (None, np.prod(self.input_img_shape) + obs_dim + extra_input_dim,)
+        # self.input_shape = self.input_total_shape
         print("debug432", self.input_img_shape,self.input_shape,self.input_total_shape)
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
@@ -214,13 +215,13 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                 assert False, "agent_infos_orig is missing--this should have been handled by process_samples"
             else:
                 agent_infos_orig = samples[i]['agent_infos_orig']
-            theta0_dist_info_list += [agent_infos_orig[k] for k in agent_infos_orig.keys()]
+            theta0_dist_info_list += [agent_infos_orig[k] for k in self.distribution.dist_info_keys]
 
 
         theta_l_dist_info_list = []
         for i in range(num_tasks):
             agent_infos = samples[i]['agent_infos']
-            theta_l_dist_info_list += [agent_infos[k] for k in agent_infos.keys()]
+            theta_l_dist_info_list += [agent_infos[k] for k in self.distribution.dist_info_keys]
 
         obs_list, action_list, adv_list, rewards_list, returns_list = [], [], [], [], []
         for i in range(num_tasks):
@@ -483,14 +484,23 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
             l_state_in = tf.slice(l_in,[0,np.prod(self.input_img_shape)],[-1,-1])
             # print("Debug212",l_img_in, l_state_in)
             l_normalized_img_in = tf.cast(l_img_in,tf.float32)/255
-            if self.cnn is None:
-                self.cnn = ConvNetwork(name=name+"cnn",input_shape=self.input_img_shape,output_dim=conv_output_dim,
-                              conv_filters=conv_filters,conv_filter_sizes=conv_filter_sizes,conv_strides=conv_strides,
-                              conv_pads=conv_pads, hidden_sizes=conv_hidden_sizes,hidden_nonlinearity=tf.nn.relu,output_nonlinearity=L.spatial_expected_softmax, input_var=l_normalized_img_in)
+            # if self.cnn is None:
+            self.cnn = ConvNetwork(name=name+"cnn",input_shape=self.input_img_shape,output_dim=conv_output_dim,
+                          conv_filters=conv_filters,conv_filter_sizes=conv_filter_sizes,conv_strides=conv_strides,
+                          conv_pads=conv_pads, hidden_sizes=conv_hidden_sizes,hidden_nonlinearity=tf.nn.relu,output_nonlinearity=L.spatial_expected_softmax, input_var=l_normalized_img_in)
+            #     cnn = self.cnn
+            # else:
+            #     self.cnn2 = ConvNetwork(name=name+"cnn2",input_shape=self.input_img_shape,output_dim=conv_output_dim,
+            #               conv_filters=conv_filters,conv_filter_sizes=conv_filter_sizes,conv_strides=conv_strides,
+            #               conv_pads=conv_pads, hidden_sizes=conv_hidden_sizes,hidden_nonlinearity=tf.nn.relu,output_nonlinearity=L.spatial_expected_softmax, input_var=l_normalized_img_in)
+            #     cnn = self.cnn2
 
             # print("debug234, cnn output layer", L.get_output(self.cnn._l_out))
-            l_hid = tf.concat([l_state_in,L.get_output(self.cnn._l_out)],-1,'post_conv_input')
+            l_hid = tf.concat([l_state_in,L.get_output(self.cnn.output_layer)],-1,'post_conv_input')
+            # l_hid = tf.concat([l_state_in,l_normalized_img_in],-1,'post_conv_input')
 
+
+            # l_hid=l_in
             for idx in range(self.n_hidden):
                 l_hid = forward_dense_layer(l_hid, all_params['W'+str(idx)], all_params['b'+str(idx)],
                                             batch_norm=batch_normalization,
