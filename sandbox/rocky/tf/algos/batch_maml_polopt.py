@@ -22,7 +22,7 @@ from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_li
 # from maml_examples.reacher_env import fingertip
 from rllab.sampler.utils import rollout, joblib_dump_safe
 from maml_examples.maml_experiment_vars import TESTING_ITRS, PLOT_ITRS, VIDEO_ITRS, BASELINE_TRAINING_ITRS
-
+from maml_examples import pusher_env
 
 class BatchMAMLPolopt(RLAlgorithm):
     """
@@ -368,9 +368,16 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 if type(demos) is dict and 'demoU' in demos.keys():
                                     converted_demos = []
                                     for i,demoU in enumerate(demos['demoU']):
-                                        converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
+                                        if int(demos['xml'][-5]) % 2 == 0:
+                                            #flips the object and the distractor
+                                            print("debug432, switching demoX order of object and distractor")
+                                            shuffled_demoX = pusher_env.shuffle_demo(demos['demoX'][i])
+                                            converted_demos.append({'observations': shuffled_demoX, 'actions': demoU})
+                                        else:
+                                            print("debug432, not switching order")
+                                            converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
                                     print("debug, using xml for demos", demos['xml'])
-                                    # if int(demos['xml'][-5]) % 2 == 0:
+
 
                                     expert_traj_for_metaitr[t] = converted_demos
                                 else:

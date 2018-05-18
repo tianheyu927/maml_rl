@@ -87,11 +87,11 @@ class PusherEnv(utils.EzPickle, Serializable):
                 xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/", self.xml_dir)
                 print("debug,xml_file", xml_file)
                 if int(xml_file[-5])%2==0:
-                    print("retaining order")
-                    self.shuffle_order=[0,1]
-                else:
                     print("flipping order")
                     self.shuffle_order=[1,0]
+                else:
+                    print("retaining order")
+                    self.shuffle_order=[0,1]
                 self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
         elif self.goal_num is None:  #if we already have a goal_num, we don't sample a new one, just reset the model
             self.goal_num, self.test = self.sample_goals(num_goals=1,test=False)[0]
@@ -230,3 +230,12 @@ class PusherEnv(utils.EzPickle, Serializable):
 
     def get_viewer(self):
         return self.mujoco.get_viewer()
+
+
+def shuffle_demo(demoX):
+    assert np.shape(demoX)[1] == 26, np.shape(demoX)
+    slice1 = demoX[:,:17]  # qpos, qvel, tips arm
+    slice2 = demoX[:,17:20] #object
+    slice3 = demoX[:,20:23] #distractor
+    slice4 = demoX[:,23:26] #goal
+    return np.concatenate((slice1,slice3,slice2, slice4),-1)
