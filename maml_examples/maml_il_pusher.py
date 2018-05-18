@@ -14,9 +14,6 @@ from sandbox.rocky.tf.envs.base import TfEnv
 # import lasagne.nonlinearities as NL
 import sandbox.rocky.tf.core.layers as L
 
-from rllab.envs.gym_env import GymEnv
-from maml_examples.reacher_env import ReacherEnv
-from rllab.envs.mujoco.pusher_env import PusherEnv
 from maml_examples.pusher_env import PusherEnv
 from maml_examples.pusher_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, default_pusher_env_option
 from maml_examples.maml_experiment_vars import MOD_FUNC
@@ -199,7 +196,7 @@ for goals_suffix in goals_suffixes:
                                                                 max_path_length=max_path_length,
                                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                                n_itr=800, #100
+                                                                n_itr=200, #100
                                                                 make_video=True,
                                                                 use_maml=use_maml,
                                                                 use_pooled_goals=True,

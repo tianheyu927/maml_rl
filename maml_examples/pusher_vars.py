@@ -3,7 +3,7 @@
 # PUSHER_GOALS_LOCATION = '/home/rosen/maml_rl/saved_goals/PUSHER/goals_pool1_100_40.pkl'
 # PUSHER_GOALS_LOCATION_EC2 = '/root/code/rllab/saved_goals/PUSHER/goals_pool1.pkl'
 
-PUSHER_GOALS_LOCATION = '/home/rosen/maml_rl/saved_goals/PUSHER/goals_pool1_200_40.pkl'
+PUSHER_GOALS_LOCATION = '/home/rosen/maml_rl/saved_expert_traj/PUSHER/main_1/goals_pool.pkl'
 
 
 ENV_OPTIONS = {

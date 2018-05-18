@@ -370,11 +370,9 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     for i,demoU in enumerate(demos['demoU']):
                                         if int(demos['xml'][-5]) % 2 == 0:
                                             #flips the object and the distractor
-                                            print("debug432, switching demoX order of object and distractor")
                                             shuffled_demoX = pusher_env.shuffle_demo(demos['demoX'][i])
                                             converted_demos.append({'observations': shuffled_demoX, 'actions': demoU})
                                         else:
-                                            print("debug432, not switching order")
                                             converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
                                     print("debug, using xml for demos", demos['xml'])
 
