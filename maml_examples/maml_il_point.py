@@ -98,7 +98,7 @@ for seed in seeds:
                                         importance_sampling_modifier=MOD_FUNC[""],
                                         post_std_modifier_train=post_std_modifier_train,
                                         post_std_modifier_test=post_std_modifier_test,
-                                        expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
+                                        expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".ec2"],
                                     )
 
                                     run_experiment_lite(
@@ -124,7 +124,7 @@ for seed in seeds:
                                                  # +"_l2m" + str(l2loss_std_mult)
                                                  #+"_env" + str(env_option)
                                                  +"_"+time.strftime("%D_%H_%M").replace("/","."),
-                                        plot=False,
+                                        plot=False,mode='ec2',
                                     )
 
 
