@@ -267,15 +267,37 @@ class RL2GaussianGRUPolicy(StochasticPolicy, Serializable):
         
     @overrides
     def get_action_single_env(self, observation, idx=0, num_tasks=40):
-        # this function takes a numpy array observations and outputs randomly sampled actions.
-        # idx: index corresponding to the task/updated policy.
-        flat_obs = self.observation_space.flatten(observation)
-        f_dist = self._cur_f_dist
-        output = f_dist([flat_obs for _ in range(num_tasks)])
-        mean, log_std = output[idx]
-        rnd = np.random.normal(size=np.shape(mean))
-        action = rnd * np.exp(log_std) + mean
-        return action, dict(mean=mean, log_std=log_std)
+        flat_obs = self.observation_space.flatten_n(observations)
+        if self.state_include_action:
+            assert self.prev_actions is not None
+            all_input = np.concatenate([
+                flat_obs,
+                self.prev_actions
+            ], axis=-1)
+            if self.state_include_reward_done:
+                all_input = np.concatenate([
+                    all_input,
+                    self.prev_reward,
+                    self.prev_done
+                ], axis=-1)
+        else:
+            all_input = flat_obs
+        means, log_stds, hidden_vec = self._cur_f_dist([all_input for _ in range(num_tasks)], self.prev_hiddens)
+        means, log_stds = means[idx], log_stds[idx]
+        rnd = np.random.normal(size=means.shape)
+        actions = rnd * np.exp(log_stds) + means
+        prev_actions = self.prev_actions
+        self.prev_actions = self.action_space.flatten_n(actions)
+        self.prev_hiddens = hidden_vec
+        self.prev_reward = reward
+        self.prev_done = done
+        agent_info = dict(mean=means, log_std=log_stds)
+        if self.state_include_action:
+            agent_info["prev_action"] = np.copy(prev_actions)
+            if self.state_include_reward_done:
+                agent_info["prev_reward"] = np.copy(prev_reward)
+                agent_info["prev_done"] = np.copy(prev_done)
+        return actions, agent_info
 
     @overrides
     def get_actions(self, observations, reward, done):
@@ -305,10 +327,10 @@ class RL2GaussianGRUPolicy(StochasticPolicy, Serializable):
         agent_info = dict(mean=means, log_std=log_stds)
         if self.state_include_action:
             agent_info["prev_action"] = np.copy(prev_actions)
+            if self.state_include_reward_done:
+                agent_info["prev_reward"] = np.copy(prev_reward)
+                agent_info["prev_done"] = np.copy(prev_done)
         return actions, agent_info
-        
-    def get_actions_final(self, observations, rewards, dones):
-        assert observations.shape
 
     @property
     @overrides
