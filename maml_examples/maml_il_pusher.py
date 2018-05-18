@@ -37,10 +37,10 @@ baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
-# extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
-extra_input = None
-# extra_input_dim = 5
-extra_input_dim = None
+extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
+# extra_input = None
+extra_input_dim = 5
+# extra_input_dim = None
 goals_suffixes = [""] #["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
