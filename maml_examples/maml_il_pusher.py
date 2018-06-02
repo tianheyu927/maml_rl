@@ -29,17 +29,17 @@ import time
 beta_adam_steps_list = [(1,50)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
-# adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
-adam_curve = None
+adam_curve = [250,249,248,247,245,50,50,50] # make sure to check maml_experiment_vars
+# adam_curve = None
 
-fast_learning_rates = [1.0]
+fast_learning_rates = [0.01]
 baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
 extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
 # extra_input = None
-extra_input_dim = 5
+extra_input_dim = 2
 # extra_input_dim = None
 goals_suffixes = [""] #["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
@@ -127,7 +127,7 @@ for goals_suffix in goals_suffixes:
                                                                 + "_" + time.strftime("%d%m_%H_%M"))
 
 
-
+                                                            # policy=None,
                                                             policy = MAMLGaussianMLPPolicy(
                                                                 name="policy",
                                                                 env_spec=env.spec,
@@ -191,6 +191,7 @@ for goals_suffix in goals_suffixes:
                                                             algo = MAMLIL(
                                                                 env=env,
                                                                 policy=policy,
+                                                                # load_policy="/home/rosen/paper_ready_experiments/pusher/best/PU_IL_1_flr0.01_dem24_ei5_as10_basl_1805_09_14/params.pkl",
                                                                 baseline=baseline,
                                                                 batch_size=fast_batch_size,  # number of trajs for alpha grad update
                                                                 max_path_length=max_path_length,

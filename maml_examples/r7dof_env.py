@@ -19,7 +19,7 @@ class Reacher7DofMultitaskEnv(
             seed = kwargs['envseed']
         else:
             seed=0
-        self.onehot=True
+        self.onehot=False
         self.onehot_dim = 5
         self.onehot_position = 0 # if dim is 5, options are 0 through 4 for onehot, and -1 for zeroed out one-hot vector
         super().__init__(envseed=seed)
