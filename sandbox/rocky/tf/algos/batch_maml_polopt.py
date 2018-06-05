@@ -152,6 +152,8 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.extra_input_dim = extra_input_dim
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
+        print("debug1", tf.__version__)
+
         assert goals_to_load is None, "deprecated"
         if self.use_pooled_goals:
             if expert_trajs_dir is not None:

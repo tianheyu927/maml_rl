@@ -323,7 +323,7 @@ class MAMLIL(BatchMAMLPolopt):
         else:
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
             target = [self.policy.get_params_internal()]
-            print("debug456", target)
+            # print("debug456", target)
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
