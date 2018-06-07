@@ -320,15 +320,15 @@ class MAMLIL(BatchMAMLPolopt):
             target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']]
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
-        # else:
+        else:
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
-            # target = [self.policy.get_params_internal()]
+            target = [self.policy.get_params_internal()]
             # print("debug456", target)
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
             # dummy_loss = outer_surr_obj_slow,
-            # target=target,
+            target=target,
             leq_constraint=(mean_kl, self.step_size),
             inputs=input_vars_list,
             constraint_name="mean_kl",
