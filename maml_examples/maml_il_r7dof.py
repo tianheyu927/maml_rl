@@ -39,8 +39,8 @@ adam_curve = None
 fast_learning_rates = [0.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
-mode = "ec2"
-# mode = "local"
+# mode = "ec2"
+mode = "local"
 extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
 # extra_input = None
 extra_input_dim = 5
@@ -230,7 +230,7 @@ for goals_suffix in goals_suffixes:
                                                             run_experiment_lite(
                                                                 algo.train(),
                                                                 n_parallel=1,
-                                                                snapshot_mode="last",
+                                                                snapshot_mode="all",
                                                                 python_command='python3',
                                                                 seed=seed,
                                                                 exp_prefix=str('R7_IL_'

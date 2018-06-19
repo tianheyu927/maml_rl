@@ -47,7 +47,8 @@ class BaseSampler(Sampler):
         """
         self.algo = algo
         self.memory = {}
-        self.memory["AverageReturnLastTest"] = 0
+        self.memory["AverageReturnLastTest"] = 0.0
+        self.memory["AverageReturnBestTest"] = 0.0
 
     def process_samples(self, itr, paths, prefix='', log=True, fast_process=False, testitr=False, metalearn_baseline=False):
         baselines = []
@@ -251,8 +252,11 @@ class BaseSampler(Sampler):
             # logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
             logger.record_tabular(prefix + 'AverageReturn------>', np.mean(undiscounted_returns))
-            if testitr and prefix == "1":
+            if testitr and prefix == "1": # TODO make this functional for more than 1 iteration
                 self.memory["AverageReturnLastTest"]=np.mean(undiscounted_returns)
+                self.memory["AverageReturnBestTest"]=max(self.memory["AverageReturnLastTest"],self.memory["AverageReturnBestTest"])
+                if self.memory["AverageReturnBestTest"] == 0.0:
+                    self.memory["AverageReturnBestTest"] = self.memory["AverageReturnLastTest"]
             if not fast_process and not metalearn_baseline:
                 logger.record_tabular(prefix + 'ExplainedVariance', ev)
                 logger.record_tabular(prefix + 'BaselinePredLoss', l2)

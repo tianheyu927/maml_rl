@@ -23,7 +23,7 @@ assert set(BASELINE_TRAINING_ITRS).issubset(set(TESTING_ITRS))
 
 PLOT_ITRS = [0,2,4,6,8,10] + [100*x for x in range(80)] + [1,3,5,7,9,11,13,] + [8*x-1 for x in range(500)]
 
-VIDEO_ITRS = []
+VIDEO_ITRS = TESTING_ITRS
 # VIDEO_ITRS = TESTING_ITRS
 # VIDEO_ITRS = [1,3,5,7,9,11,13,15,17] # [11,13,15,17,19] + [8*x-1 for x in range(2,1000)]
 # VIDEO_ITRS = [1,3] + [200*x-1 for x in range(40)]

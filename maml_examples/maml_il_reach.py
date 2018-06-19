@@ -87,7 +87,7 @@ for l2loss_std_mult in l2loss_std_mult_list:
                             run_experiment_lite(
                                 algo.train(),
                                 n_parallel=1,
-                                snapshot_mode="last",
+                                snapshot_mode="all",
                                 python_command='python3',
                                 seed=seed,
                                 exp_prefix='maml_il_reach100',

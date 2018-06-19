@@ -21,6 +21,7 @@ class VectorizedSampler(BaseSampler):
         #     self.batch_size = batch_size
         # else:
         self.batch_size = self.algo.batch_size
+        print("vectorized sampler initiated")
     def start_worker(self):
         n_envs = self.n_envs
         if n_envs is None:

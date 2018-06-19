@@ -232,7 +232,7 @@ for goals_suffix in goals_suffixes:
                                                         run_experiment_lite(
                                                             algo.train(),
                                                             n_parallel=1,
-                                                            snapshot_mode="last",
+                                                            snapshot_mode="all",
                                                             python_command='python3',
                                                             seed=seed,
                                                             exp_prefix=str('R7_IL_'

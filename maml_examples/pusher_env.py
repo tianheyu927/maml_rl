@@ -33,7 +33,7 @@ class PusherEnv(utils.EzPickle, Serializable):
 
         self.onehot = False
         self.onehot_dim = 5
-        self.onehot_position = 0  # if dim is 5, options are 0 through 4 for onehot, and -1 for zeroed out one-hot vector
+        self.onehot_position = 0  # if dim is 5, options are 0 through 4 for onehot, and -1 for vector of zeroes
         # self.reset_xml_on_reset=False
         # self.xml_file=xml_file
         # self.observation_space = self.mujoco.observation_space

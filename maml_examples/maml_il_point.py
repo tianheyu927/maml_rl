@@ -104,7 +104,7 @@ for seed in seeds:
                                     run_experiment_lite(
                                         algo.train(),
                                         n_parallel=1,
-                                        snapshot_mode="last",
+                                        snapshot_mode="all",
                                         python_command='python3',
                                         seed=1,
                                         exp_prefix='PR_IL_',

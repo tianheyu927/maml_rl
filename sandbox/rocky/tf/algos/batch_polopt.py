@@ -55,6 +55,8 @@ class BatchPolopt(RLAlgorithm):
             save_img_obs=False,
             goals_to_load=None,
             goals_pool_to_load=None,
+            extra_input=None,
+            extra_input_dim=0,
             **kwargs
     ):
         """
@@ -112,6 +114,8 @@ class BatchPolopt(RLAlgorithm):
         self.make_video = make_video
         self.save_expert_traj_dir = save_expert_traj_dir
         self.save_img_obs = save_img_obs
+        self.extra_input = extra_input
+        self.extra_input_dim = extra_input_dim
         assert goals_to_load is None, "deprecated"
         assert len(expert_traj_itrs_to_pickle) == 0, "deprecated"
         if goals_pool_to_load is not None:
@@ -139,10 +143,12 @@ class BatchPolopt(RLAlgorithm):
     def shutdown_worker(self):
         self.sampler.shutdown_worker()
 
-    def obtain_samples(self, itr, reset_args=None):
+    def obtain_samples(self, itr, reset_args=None, preupdate=True):
         if reset_args is None:
             reset_args = self.reset_arg
-        return self.sampler.obtain_samples(itr, reset_args=reset_args, save_img_obs=self.save_img_obs)
+        # return self.sampler.obtain_samples(itr, reset_args=reset_args, save_img_obs=self.save_img_obs) # not going to save_img_obs RK 6/19
+        print("debug, obtaining samples")
+        return self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, extra_input=self.extra_input, extra_input_dim=(self.extra_input_dim if self.extra_input is not None else 0), preupdate=preupdate)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
