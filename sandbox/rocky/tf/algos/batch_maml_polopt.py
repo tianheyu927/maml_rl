@@ -492,6 +492,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         self.metaitr += 1
                     logger.log("Saving snapshot...")
                     params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
+                    print("debug123, params", params)
                     if self.store_paths:
                         params["paths"] = all_samples_data_for_betastep[-1]["paths"]
                     logger.save_itr_params(itr, params)
@@ -577,7 +578,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             if self.make_video and itr in VIDEO_ITRS:
                                 logger.log("Saving videos...")
                                 self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
-                                video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                                video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.gif' % (ind, itr))
                                 rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                         animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                         reset_arg=self.goals_to_use_dict[itr][ind],
@@ -587,7 +588,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         for ind in range(min(5, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
-                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.gif' % (ind, itr))
                             rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                     animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                     reset_arg=self.goals_to_use_dict[itr][ind],
@@ -597,7 +598,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         for ind in range(min(5, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
-                            video_filename = osp.join(logger.get_snapshot_dir(), 'pre_path_%s_%s.mp4' % (ind, itr))
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'pre_path_%s_%s.gif' % (ind, itr))
                             rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                     animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                     reset_arg=self.goals_to_use_dict[itr][ind],

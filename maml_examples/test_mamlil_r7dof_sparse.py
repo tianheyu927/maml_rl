@@ -3,7 +3,7 @@ from sandbox.rocky.tf.algos.trpo import TRPO
 from sandbox.rocky.tf.policies.minimal_gauss_mlp_policy import GaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
-from maml_examples.r7dof_env import Reacher7DofMultitaskEnv
+from maml_examples.r7dof_sparse_env import Reacher7DofMultitaskEnvSparse
 from rllab.envs.normalized_env import normalize
 from rllab.misc.instrument import stub, run_experiment_lite
 from sandbox.rocky.tf.samplers.vectorized_sampler import VectorizedSampler
@@ -17,14 +17,16 @@ import random as rd
 import pickle
 import tensorflow as tf
 
-# file1 = '/home/rosen/maml_rl/data/local/R7-IL-0624/R7_IL_200_40_1_1_dem40_ei5_as50_basl_2406_04_42/itr_22.pkl' # out algorithm
-# file1 = '/home/rosen/maml_rl/data/local/R7-IL-0624/R7_IL_200_40_1_1_flr0.0_dem40_ei5_as50_basl_2406_04_41/itr_0.pkl'  # randomly initialized baseline
-# file1 = '/home/rosen/maml_rl/data/local/R7-IL-0624/R7_IL_200_40_1_1_flr0.0_dem40_ei5_as50_basl_2406_04_41/itr_21.pkl'  # 0 flr baseline
-file1 = '/home/rosen/paper_ready_experiments/r7dof/mamltrpo/R7_TR_relu2x100.f1.0_051718_16_18/params.pkl'  # MAML TRPO
+# file1 = 'data/local/R7-IL-SPARSE-0619/R7_IL_SPARSE_200_40_1_1_dem40_ei5_as10_basl_1906_11_55/itr_88.pkl'  # our algo
+# file1 = 'data/local/R7-IL-SPARSE-0619/R7_IL_SPARSE_200_40_1_1_dem40_ei5_as10_basl_1906_11_55/itr_0.pkl'  # non-initialized baseline
+
+# file1 ='data/local/R7-IL-SPARSE-0622/R7_IL_SPARSE_200_40_1_1_flr0.0_dem40_ei5_as10_basl_2206_03_30/itr_16.pkl' # 0 flr baseline
+file1 ='data/local/R7-TR-SPARSE/R7_TR_SPARSErelu2x100.f1.0_062318_15_00/itr_42.pkl' # maml+trpo baseline
+
 make_video = False  # generate results if False, run code to make video if True
 run_id = 1  # for if you want to run this script in multiple terminals (need to have different ids)
 
-temp_env = TfEnv(normalize(Reacher7DofMultitaskEnv(envseed=0)))
+temp_env = TfEnv(normalize(Reacher7DofMultitaskEnvSparse(envseed=0)))
 
 if not make_video:
     np.random.seed(1)
@@ -41,10 +43,10 @@ else:
     file_ext = 'gif'  # can be mp4 or gif
 
 stub(globals())
-env = TfEnv(normalize(Reacher7DofMultitaskEnv(envseed=0)))
+env = TfEnv(normalize(Reacher7DofMultitaskEnvSparse(envseed=0)))
 
 
-gen_name = 'r7dof_eval_'
+gen_name = 'r7dof_sparse_eval_'
 names = ['mamlil'] #,'pretrain','random', 'oracle']
 exp_names = [gen_name + name for name in names]
 
@@ -85,7 +87,7 @@ for step_i, initial_params_file in zip(range(len(step_sizes)), initial_params_fi
             optimizer=None,
             optimizer_args={'init_learning_rate': step_sizes[step_i], 'tf_optimizer_args': {'learning_rate': 0.5*step_sizes[step_i]}, 'tf_optimizer_cls': tf.train.GradientDescentOptimizer},
             # extra_input="onehot_exploration", # added by RK 6/19
-            # extra_input_dim=5, # added by RK 6/19
+            # extra_input_dim=0, # added by RK 6/19
             make_video=make_video1
         )
 
@@ -99,13 +101,13 @@ for step_i, initial_params_file in zip(range(len(step_sizes)), initial_params_fi
             # Specifies the seed for the experiment. If this is not provided, a random seed
             # will be used
             seed=1, # don't set the seed for oracle, since it's already deterministic.
-            exp_prefix='R7DOF_EVAL',
+            exp_prefix='R7DOF_SPARSE_EVAL',
             exp_name='mamlil' + str(run_id),
             plot=True,
         )
         # get return from the experiment
         import csv
-        with open('data/local/R7DOF-EVAL/mamlil'+str(run_id)+'/progress.csv', 'r') as f:
+        with open('data/local/R7DOF-SPARSE-EVAL/mamlil'+str(run_id)+'/progress.csv', 'r') as f:
             reader = csv.reader(f, delimiter=',')
             i = 0
             row = None
@@ -119,8 +121,8 @@ for step_i, initial_params_file in zip(range(len(step_sizes)), initial_params_fi
             avg_returns.append(returns)
 
         if make_video:
-            data_loc = 'data/local/R7DOF-EVAL/mamlil'+str(run_id)+'/'
-            save_loc = 'data/local/R7DOF-EVAL//videos/'
+            data_loc = 'data/local/R7DOF-SPARSE-EVAL/mamlil'+str(run_id)+'/'
+            save_loc = 'data/local/R7DOF-SPARSE-EVAL//videos/'
             param_file = initial_params_file
             save_prefix = save_loc + names[step_i] + '_goal_' + str(goalnum)
             video_filename = save_prefix + 'prestep.' + file_ext

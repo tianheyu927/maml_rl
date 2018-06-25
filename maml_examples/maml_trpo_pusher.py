@@ -81,7 +81,7 @@ for post_std_modifier_train in post_std_modifier_train_list:
                     run_experiment_lite(
                         algo.train(),
                         n_parallel=1, #10, If you use more than 1, your std modifiers may not work
-                        snapshot_mode="last",
+                        snapshot_mode="all",
                         python_command='python3',
                         seed=seed,
                         exp_prefix='PU_TR',

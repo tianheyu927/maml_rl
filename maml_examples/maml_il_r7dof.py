@@ -29,14 +29,14 @@ import random as rd
 import tensorflow as tf
 import time
 
-beta_adam_steps_list = [(1,50),(1,40),(1,60)]
+beta_adam_steps_list = [(1,50)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
 # adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
 adam_curve = None
 
 # fast_learning_rates = [0.0,0.1,1.0,0.9,1.1,1.2,]
-fast_learning_rates = [0.0]
+fast_learning_rates = [1.0]
 baselines = ['linear']  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
@@ -200,8 +200,8 @@ for goals_suffix in goals_suffixes:
                                                                 max_path_length=max_path_length,
                                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                                n_itr=200, #100
-                                                                make_video=True,
+                                                                n_itr=50, #100
+                                                                make_video=False,
                                                                 use_maml=use_maml,
                                                                 use_pooled_goals=True,
                                                                 use_corr_term=use_corr_term,

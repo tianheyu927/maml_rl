@@ -443,6 +443,8 @@ class MAMLIL(BatchMAMLPolopt):
 
     @overrides
     def get_itr_snapshot(self, itr, samples_data):
+        debug_params = self.policy.get_params_internal()
+
         return dict(
             itr=itr,
             policy=self.policy,

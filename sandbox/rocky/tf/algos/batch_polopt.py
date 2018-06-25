@@ -148,7 +148,7 @@ class BatchPolopt(RLAlgorithm):
             reset_args = self.reset_arg
         # return self.sampler.obtain_samples(itr, reset_args=reset_args, save_img_obs=self.save_img_obs) # not going to save_img_obs RK 6/19
         print("debug, obtaining samples")
-        return self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=True, extra_input=self.extra_input, extra_input_dim=(self.extra_input_dim if self.extra_input is not None else 0), preupdate=preupdate)
+        return self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=False, extra_input=self.extra_input, extra_input_dim=(self.extra_input_dim if self.extra_input is not None else 0), preupdate=preupdate)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
@@ -170,12 +170,18 @@ class BatchPolopt(RLAlgorithm):
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
+                if itr == self.n_itr-1:
+                    self.policy.std_modifier = 0.0001
+                    self.policy.recompute_dist_for_adjusted_std()
                 if itr in self.goals_for_ET_dict.keys():
                     goals = self.goals_for_ET_dict[itr]
                     noise = self.action_noise_test
                     self.batch_size = self.batch_size_expert_traj
                 else:
-                    goals = [None]
+                    if self.reset_arg is None:
+                        goals = [None]
+                    else:
+                        goals = [self.reset_arg]
                     noise = self.action_noise_train
                     self.batch_size = self.batch_size_train
                 paths_to_save = {}
@@ -185,7 +191,9 @@ class BatchPolopt(RLAlgorithm):
                     logger.log("Obtaining samples...")
                     paths = []
                     for goalnum, goal in enumerate(goals):
-                        paths_for_goal = self.obtain_samples(itr=itr, reset_args=[{'goal': goal, 'noise': noise}])
+                        # paths_for_goal = self.obtain_samples(itr=itr, reset_args=[{'goal': goal, 'noise': noise}])  # when using oracle environments with changing noise, use this line!
+                        paths_for_goal = self.obtain_samples(itr=itr, reset_args=[goal])
+                        print("debug, goal 1", goal)
                         paths.extend(paths_for_goal)  # we need this to be flat because we process all of them together
                         # TODO: there's a bunch of sample processing happening below that we should abstract away
                         if itr in self.expert_traj_itrs_to_pickle:
@@ -252,20 +260,26 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                    if self.make_video and itr % 2 == 0 and itr in [0,2,4,6,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
+                    if self.make_video and itr % 2 == 0 or itr in [0,1,2,3,4,5,6,7,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
                         logger.log("Saving videos...")
-                        self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
-                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_0.mp4' % itr)
+                        self.env.reset(reset_args=goals[0])
+                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_0_%s.gif' % (itr,time.strftime("%H%M%S")))
                         rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                 animated=True, speedup=2, save_video=True, video_filename=video_filename,
-                                reset_arg=self.goals_for_ET_dict[itr][0],
+                                reset_arg=goals[0],
                                 use_maml=False,)
-                        self.env.reset(reset_args=self.goals_for_ET_dict[itr][0])
-                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_1.mp4' % itr)
-                        rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
-                                animated=True, speedup=2, save_video=True, video_filename=video_filename,
-                                reset_arg=self.goals_for_ET_dict[itr][0],
-                                use_maml=False, )
+                        # self.env.reset(reset_args=goals[0])
+                        # video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_1_%s.gif' % (itr,time.strftime("%H%M%S")))
+                        # rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                        #         animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                        #         reset_arg=goals[0],
+                        #         use_maml=False, )
+                        # self.env.reset(reset_args=goals[0])
+                        # video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_2_%s.gif' % (itr,time.strftime("%H%M%S")))
+                        # rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                        #         animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                        #         reset_arg=goals[0],
+                        #         use_maml=False, )
 
                     # debugging
                     """

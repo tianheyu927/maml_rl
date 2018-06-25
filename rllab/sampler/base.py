@@ -251,7 +251,7 @@ class BaseSampler(Sampler):
             # logger.record_tabular('Iteration', itr)
             # logger.record_tabular('AverageDiscountedReturn',
             #                      average_discounted_return)
-            logger.record_tabular(prefix + 'AverageReturn------>', np.mean(undiscounted_returns))
+            logger.record_tabular(prefix + 'AverageReturn', np.mean(undiscounted_returns))
             if testitr and prefix == "1": # TODO make this functional for more than 1 iteration
                 self.memory["AverageReturnLastTest"]=np.mean(undiscounted_returns)
                 self.memory["AverageReturnBestTest"]=max(self.memory["AverageReturnLastTest"],self.memory["AverageReturnBestTest"])
