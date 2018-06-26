@@ -45,6 +45,7 @@ class PusherEnv(utils.EzPickle, Serializable):
         # mujoco_env.MujocoEnv.__init__(self, file_path=xml_file)
 
     def viewer_setup(self):
+        print("debug, starting viewer")
         if self.mujoco.viewer is None:
             self.mujoco.start_viewer()
         self.mujoco.viewer.cam.trackbodyid = -1
@@ -77,35 +78,37 @@ class PusherEnv(utils.EzPickle, Serializable):
 
     @overrides
     def reset(self, reset_args=None, **kwargs):
-        if True: #self.reset_xml_on_reset:
-            goal = reset_args
-            if goal is not None:
-                assert len(goal)==2, "wrong size goal"
-                goal_num, test = goal
-                if (goal_num != self.goal_num) or (test != self.test):
-                    if self.mujoco.viewer is not None:
-                        self.mujoco.stop_viewer()
-                    self.mujoco.terminate()
-                    self.goal_num, self.test = goal
-                    demo_path = (self.train_dir + str(self.goal_num) + ".pkl") if not self.test else (
-                    self.test_dir + str(self.goal_num) + ".pkl")
-                    demo_data = joblib.load(demo_path)
-                    xml_file = demo_data["xml"]
-                    xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/", self.xml_dir)
-                    # print("debug,xml_file", xml_file)
-                    if int(xml_file[-5])%2==0:
-                        # print("flipping order")
-                        self.shuffle_order=[1,0]
-                    else:
-                        # print("retaining order")
-                        self.shuffle_order=[0,1]
-                    self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
-            elif self.goal_num is None:  #if we already have a goal_num, we don't sample a new one, just reset the model
-                self.goal_num, self.test = self.sample_goals(num_goals=1,test=False)[0]
-                demo_path = (self.train_dir+str(self.goal_num)+".pkl") if not self.test else (self.test_dir+str(self.goal_num)+".pkl")
+        # if True: #self.reset_xml_on_reset:
+        if reset_args is None:
+            print("Debug, warning, reset_args for env is None")
+        goal = reset_args
+        if goal is not None:
+            assert len(goal)==2, "wrong size goal"
+            goal_num, test = goal
+            if (goal_num != self.goal_num) or (test != self.test):
+                if self.mujoco.viewer is not None:
+                    self.mujoco.stop_viewer()
+                self.mujoco.terminate()
+                self.goal_num, self.test = goal
+                demo_path = (self.train_dir + str(self.goal_num) + ".pkl") if not self.test else (
+                self.test_dir + str(self.goal_num) + ".pkl")
                 demo_data = joblib.load(demo_path)
                 xml_file = demo_data["xml"]
-                xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/",self.xml_dir)
+                xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/", self.xml_dir)
+                # print("debug,xml_file", xml_file)
+                if int(xml_file[-5])%2==0:
+                    # print("flipping order")
+                    self.shuffle_order=[1,0]
+                else:
+                    # print("retaining order")
+                    self.shuffle_order=[0,1]
+                self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
+        elif self.goal_num is None:  #if we already have a goal_num, we don't sample a new one, just reset the model
+            self.goal_num, self.test = self.sample_goals(num_goals=1,test=False)[0]
+            demo_path = (self.train_dir+str(self.goal_num)+".pkl") if not self.test else (self.test_dir+str(self.goal_num)+".pkl")
+            demo_data = joblib.load(demo_path)
+            xml_file = demo_data["xml"]
+            xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/",self.xml_dir)
 
             if int(xml_file[-5]) % 2 == 0:
                 print("retaining order")
@@ -113,7 +116,7 @@ class PusherEnv(utils.EzPickle, Serializable):
             else:
                 print("flipping order")
                 self.shuffle_order = [1, 0]
-            self.mujoco =  mujoco_env.MujocoEnv(file_path=xml_file)
+            self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
             self.viewer_setup()
         self.reset_model()
         return self.get_current_obs()
@@ -254,6 +257,13 @@ class PusherEnv(utils.EzPickle, Serializable):
 
     def get_viewer(self):
         return self.mujoco.get_viewer()
+
+
+    def log_diagnostics(self, paths, prefix=''):
+        """
+        Log extra information per iteration based on the collected paths
+        """
+        return self.mujoco.log_diagnostics(paths=paths,prefix=prefix)
 
 
 def shuffle_demo(demoX):
