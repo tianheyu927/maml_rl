@@ -57,7 +57,6 @@ exp_names = [gen_name + name for name in names]
 
 initial_params_files = files
 n_itrs_list = [2,3,4,5,6]  # 1 through 5 grad steps
-print("debug, goals", goals)
 # all_avg_returns = []
 for step_size, initial_params_file, desc in zip(step_sizes, initial_params_files, descriptions):
     ret_means_for_algo = []
@@ -150,7 +149,7 @@ for step_size, initial_params_file, desc in zip(step_sizes, initial_params_files
     print("stds", ret_stds_for_algo)
     if not os.path.exists('data/local/PUSHER-EVAL/mamlil'+desc):
         os.makedirs('data/local/PUSHER-EVAL/mamlil'+desc)
-    with open('data/local/PUSHER-EVAL/mamlil'+desc+"/summary.csv", "w") as f:
+    with open('data/local/PUSHER-EVAL/summary_'+desc+'.csv', "w") as f:
         writer = csv.writer(f, delimiter=",")
         writer.writerow(["n_itr","AverageReturn","ReturnStd"])
         print("debug", ret_means_for_algo)

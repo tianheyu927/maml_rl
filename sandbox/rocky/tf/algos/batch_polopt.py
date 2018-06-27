@@ -261,7 +261,8 @@ class BatchPolopt(RLAlgorithm):
                         print(osp.join(logger.get_snapshot_dir(),
                                        'path' + str(0) + '_' + str(itr) + '.png'))
 
-                    if self.make_video and itr % 2 == 0 or itr in [0,1,2,3,4,5,6,7,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
+                    # if self.make_video and itr % 2 == 0 or itr in [0,1,2,3,4,5,6,7,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
+                    if self.make_video and (itr == 0 or itr == self.n_itr-1): # and itr in self.goals_for_ET_dict.keys() == 0:
                         logger.log("Saving videos...")
                         self.env.reset(reset_args=goals[0])
                         video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_0_%s.gif' % (itr,time.strftime("%H%M%S")))
