@@ -29,7 +29,7 @@ import time
 beta_adam_steps_list = [(1,10)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
-adam_curve = [50,50,50,50,50,50,50,10] # make sure to check maml_experiment_vars
+adam_curve = [50,50,50,50,50,50,50,10] # m
 # adam_curve = None
 
 fast_learning_rates = [1.0,0.1]
