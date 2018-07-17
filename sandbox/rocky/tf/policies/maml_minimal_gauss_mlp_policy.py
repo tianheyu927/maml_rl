@@ -137,6 +137,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             self.min_std_param = min_std_param  # TODO: change these to min_std_param_raw
             self.max_std_param = max_std_param
             self.std_modifier = np.float64(std_modifier)
+            # print(self.std_modifier)
+            # self.std_modifier = 0.00001 #np.float64(std_modifier)
             #print("initializing max_std debug4", self.min_std_param, self.max_std_param)
 
 
@@ -511,6 +513,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
     def set_param_values(self, flattened_params, all_params=False, **tags):
         debug = tags.pop("debug", False)
+        # import pdb; pdb.set_trace()
         param_values = unflatten_tensors(
             flattened_params, self.get_param_shapes(all_params, **tags))
         ops = []
@@ -545,6 +548,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         global load_params
         if load_params:
             tf.get_default_session().run(tf.variables_initializer(self.get_params(all_params=True)))
-            self.set_param_values(d["params"], all_params=True)
-
+            # self.set_param_values(d["params"], all_params=True)
+            # import pdb; pdb.set_trace()
+            # self.set_param_values(d["params"][:13514], all_params=True)
+            self.set_param_values(d["params"][:13114], all_params=True)
 

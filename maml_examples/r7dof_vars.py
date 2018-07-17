@@ -38,11 +38,7 @@ EXPERT_TRAJ_LOCATION_DICT = {
 # 200 goals, 40 goals per itr, 40 et per goal
     ".ec2_200_40_1dist_1": "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40/",
 # 200 goals, 40 goals per itr, 40 et per goal
-<<<<<<< HEAD
-    ".ec2_200_40_1_5": "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40/",
-=======
     ".ec2_200_40_1_5": "/root/code/rllab/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40-1_5/",
->>>>>>> c4dbfb2747c1ae862b5f8979ae2932e9e7a07e47
 # 200 goals, 40 goals per itr, 40 et per goal
     ".ec2_200_40_1dist_5": "/home/kevin/maml_rl/saved_expert_traj/R7DOF/R7-ET-noise0.1-200-40/",
 # 200 goals, 40 goals per itr, 40 et per goal

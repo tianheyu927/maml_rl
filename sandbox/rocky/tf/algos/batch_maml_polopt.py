@@ -356,7 +356,8 @@ class BatchMAMLPolopt(RLAlgorithm):
                     self.beta_steps = min(self.beta_steps, self.beta_curve[min(itr,len(self.beta_curve)-1)])
                     beta_steps_range = range(self.beta_steps) if itr not in self.testing_itrs else range(self.test_goals_mult)
                     beta0_step0_paths = None
-                    num_inner_updates = 3 if itr in self.testing_itrs else self.num_grad_updates
+                    # change here to take more than 1 gradient steps at test time
+                    num_inner_updates = 1 if itr in self.testing_itrs else self.num_grad_updates
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
                             assert False, "deprecated"
@@ -459,25 +460,19 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 if itr not in self.testing_itrs:
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
+                                    # this is incorrect
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
                                 if (itr in self.testing_itrs or not self.use_maml_il or step<num_inner_updates-1) and step < num_inner_updates:
                                     # do not update on last grad step, and do not update on second to last step when training MAMLIL
                                     logger.log("Computing policy updates...")
+                                    if step > 0:
+                                        self.policy.step_size *= 0.5
                                     self.policy.compute_updated_dists(samples=samples_data)
 
                         logger.log("Optimizing policy...")
                         # This needs to take all samples_data so that it can construct graph for meta-optimization.
                         start_loss = self.optimize_policy(itr, all_samples_data_for_betastep)
-                        if beta_step == 0 and itr not in self.testing_itrs:
-                            print("start loss", start_loss)
-                            if self.old_il_loss is not None:
-                                if self.old_il_loss < start_loss - 1e-6:
-                                    print("reducing betasteps from", self.beta_steps, "to",
-                                          int(np.ceil(self.beta_steps / 2)))
-                                    self.beta_steps = int(np.ceil(self.beta_steps / 2))
-                                self.old_il_loss = min(self.old_il_loss, start_loss)
-                            else:
-                                self.old_il_loss = start_loss
+
 
 
 
@@ -654,4 +649,3 @@ def store_agent_infos(paths):
         for path in paths[t]:
             path['agent_infos_orig'] = deepcopy(path['agent_infos'])
     return paths
-

@@ -12,13 +12,16 @@ from rllab.core.serializable import Serializable
 class Reacher7DofMultitaskEnv(
     mujoco_env.MujocoEnv, Serializable
 ):
-    def __init__(self, distance_metric_order=None, *args, **kwargs):
-        self.goal = None
+    def __init__(self, onehot=True, goal=None, distance_metric_order=None, *args, **kwargs):
+        self.goal = goal
         self.__class__.FILE = 'r7dof_versions/reacher_7dof.xml'
         if "envseed" in kwargs.keys():
             seed = kwargs['envseed']
         else:
             seed=0
+        self.onehot=onehot
+        self.onehot_dim = 5
+        self.onehot_position = 0 # if dim is 5, options are 0 through 4 for onehot, and -1 for zeroed out one-hot vector
         super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 
@@ -38,11 +41,28 @@ class Reacher7DofMultitaskEnv(
         self.viewer.cam.azimuth = -30
 
     def get_current_obs(self):
-        return np.concatenate([
-            self.model.data.qpos.flat[:7],
-            self.model.data.qvel.flat[:7],
-            self.get_body_com("tips_arm"),
-        ])
+        if not self.onehot:
+            return np.concatenate([
+                self.model.data.qpos.flat[:7],
+                self.model.data.qvel.flat[:7],
+                self.get_body_com("tips_arm"),
+            ])
+        else:
+            extra = np.zeros(self.onehot_dim)
+            if self.onehot_position == -1:
+                pass # we keep the vector zeroed out
+            elif self.onehot_position in range(self.onehot_dim):
+                extra[self.onehot_position]=1.0
+            else:
+                assert False, "invalid value of self.onehot_position"
+            return np.concatenate([
+                self.model.data.qpos.flat[:7],
+                self.model.data.qvel.flat[:7],
+                self.get_body_com("tips_arm"),
+                extra
+            ])
+
+
 
     def get_current_image_obs(self):
         image = self.viewer.get_image()
@@ -79,9 +99,6 @@ class Reacher7DofMultitaskEnv(
 
     @overrides
     def reset(self, reset_args=None, **kwargs):
-
-
-
         qpos = np.copy(self.init_qpos)
         qvel = np.copy(self.init_qvel) + 0.0*self.np_random.uniform(
             low=-0.005, high=0.005, size=self.model.nv
@@ -92,6 +109,8 @@ class Reacher7DofMultitaskEnv(
             self.goal = goal_pos
         elif self.goal is None: # do not change goal between resets
             self.goal =np.random.uniform(low=[-0.4,-0.4,-0.3],high=[0.4,0.0,-0.3]).reshape(3,1)
+        self.goal = np.array(self.goal).reshape(3, 1)
+        self.onehot_position = np.random.choice(range(self.onehot_dim))
 
         qpos[-7:-4] = self.goal
         qvel[-7:] = 0
