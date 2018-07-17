@@ -77,6 +77,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         self.hidden_nonlinearity = hidden_nonlinearity
         self.output_nonlinearity = output_nonlinearity
         self.input_shape = (None, obs_dim + extra_input_dim,)
+        self.extra_input_dim = extra_input_dim
         self.step_size = grad_step_size
         self.stop_grad = stop_grad
         # self.metalearn_baseline = metalearn_baseline
@@ -169,6 +170,17 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         """
         self.input_list_for_grad = input_list
         self.surr_objs = surr_objs_tensor
+
+
+    def recompute_dist_for_adjusted_std(self):
+        dist_info_sym = self.dist_info_sym(self.input_tensor, dict(), is_training=False)
+        mean_var = dist_info_sym["mean"]
+        log_std_var = dist_info_sym["log_std"]
+
+        self._cur_f_dist = tensor_utils.compile_function(
+            inputs=[self.input_tensor],
+            outputs=[mean_var, log_std_var],
+        )
 
     def compute_updated_dists(self, samples):
         """ Compute fast gradients once per iteration and pull them out of tensorflow for sampling with the post-update policy.
@@ -347,6 +359,9 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
     def get_action(self, observation, idx=None):
         # this function takes a numpy array observations and outputs randomly sampled actions.
         # idx: index corresponding to the task/updated policy.
+        # print("debug, shape of observation", np.shape(observation))
+        if self.extra_input_dim > 0:
+            observation = np.concatenate((observation, np.zeros(np.shape(observation)[:-1]+(self.extra_input_dim,))), axis=-1)
         flat_obs = self.observation_space.flatten(observation)
         f_dist = self._cur_f_dist
         mean, log_std = [x[0] for x in f_dist([flat_obs])]
@@ -392,10 +407,13 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
             params = tf.trainable_variables()
         else:
             params = tf.global_variables()
-
-        params = [p for p in params if p.name.startswith('mean_network') or p.name.startswith('output_std_param')]
+        print("debug, all params", params)
+        # RK: this is hacky, use when unpickling
+        # params = [p for p in params if p.name.startswith('mean_network') or p.name.startswith('output_std_param')]
+        params = [p for p in params if p.name.startswith('mean_network')] # or p.name.startswith('output_std_param')]
         params = [p for p in params if 'Adam' not in p.name]
-
+        params = [p for p in params if 'main_optimizer' not in p.name]
+        print("debug, perams internal", params)
         return params
 
 
@@ -513,7 +531,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
 
     def set_param_values(self, flattened_params, all_params=False, **tags):
         debug = tags.pop("debug", False)
-        # import pdb; pdb.set_trace()
+        # print("debug, all params", all_params) True
+        print("debug, param shapes", self.get_param_shapes(all_params, **tags))
         param_values = unflatten_tensors(
             flattened_params, self.get_param_shapes(all_params, **tags))
         ops = []
@@ -540,7 +559,9 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         d = Serializable.__getstate__(self)
         global load_params
         if load_params:
+            print("debug, using load params")
             d["params"] = self.get_param_values(all_params=True)
+        print("debug, shape of d params", np.shape(d['params']))
         return d
 
     def __setstate__(self, d):
@@ -548,8 +569,8 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         global load_params
         if load_params:
             tf.get_default_session().run(tf.variables_initializer(self.get_params(all_params=True)))
-            # self.set_param_values(d["params"], all_params=True)
-            # import pdb; pdb.set_trace()
-            # self.set_param_values(d["params"][:13514], all_params=True)
-            self.set_param_values(d["params"][:13114], all_params=True)
+            print("debug, setstate using", d, np.shape(d['params']))
+            self.set_param_values(d["params"][:], all_params=True)
+            # self.set_param_values(d["params"][:12607], all_params=True)
+
 

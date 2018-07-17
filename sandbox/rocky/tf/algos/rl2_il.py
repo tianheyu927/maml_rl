@@ -52,7 +52,7 @@ class RL2IL(BatchMAMLPolopt):
         else:
             self.extra_input_dim = 0
 
-        super(MAMLIL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, metalearn_baseline=metalearn_baseline, **kwargs)
+        super(RL2IL, self).__init__(optimizer=optimizer, beta_steps=beta_steps, use_maml_il=True, metalearn_baseline=metalearn_baseline, **kwargs)
 
 
     def make_vars(self, stepnum='0'):
@@ -268,13 +268,6 @@ class RL2IL(BatchMAMLPolopt):
             outer_surr_objs.append(outer_surr_obj)
 
 
-            # s_slow = dist_info_sym_i_slow["log_std"]
-            # m_slow = dist_info_sym_i_slow["mean"]
-            # outer_surr_obj_slow = tf.reduce_mean(tf.square(m_slow)-2*tf.multiply(m_slow,a_star)+self.l2loss_std_multiplier*(tf.square(tf.exp(s_slow))))
-            # outer_surr_objs_slow.append(outer_surr_obj_slow)
-            # old_outer_surr_objs.append(outer_surr_obj)
-
-
 
         outer_surr_obj = tf.reduce_mean(tf.stack(outer_surr_objs, 0))  # mean over all the different tasks
         # outer_surr_obj_slow = tf.reduce_mean(tf.stack(outer_surr_objs_slow, 0))  # mean over all the different tasks
@@ -282,47 +275,42 @@ class RL2IL(BatchMAMLPolopt):
         mean_kl = tf.cast(tf.reduce_mean(tf.concat(kls, 0)),tf.float32)
 
         # CORRECTION TERM ATTEMPT 2
-        if self.use_corr_term:
-            term1_list = []
-            keys = self.policy.all_params.keys()
-            theta_triangle = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
-            theta_box = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
-            for i in range(self.meta_batch_size):
+        # if self.use_corr_term:
+        #     term1_list = []
+        #     keys = self.policy.all_params.keys()
+        #     theta_triangle = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
+        #     theta_box = OrderedDict({key: self.policy.all_params[key] * 1.0 for key in keys})
+        #     for i in range(self.meta_batch_size):
+        #
+        #         def grads_dotprod(A, B):
+        #             return tf.reduce_sum([tf.reduce_sum(a * b) for a, b in zip(A, B)])
+        #
+        #         # def mult_grad_by_number(num, grad_list):
+        #         #     return [num * grad for grad in grad_list]
+        #         #
+        #         # def unpack_adam_grads(grad_list):
+        #         #     output = []
+        #         #     for grad, var in grad_list:
+        #         #         output.append(grad)
+        #         #     return output
+        #
+        #         print("debug, constructing corr term for task", i)
+        #
+        #         term0_i = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in keys])
+        #         dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_triangle)
+        #         dist_info_sym_i_box, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_box)
+        #         logli_i_triangle = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_triangle)
+        #         logli_i_box = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_box)
+        #         L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * old_lr[0][i] * logli_i_box)
+        #         term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
+        #         term1_list.append(term1_i)
+        #
+        #     corr_term = OrderedDict(zip([self.policy.all_params[key] for key in keys],tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys])))  #TODO: need to test it with the step size
+        # else:
+        corr_term = None
 
-                def grads_dotprod(A, B):
-                    return tf.reduce_sum([tf.reduce_sum(a * b) for a, b in zip(A, B)])
 
-                # def mult_grad_by_number(num, grad_list):
-                #     return [num * grad for grad in grad_list]
-                #
-                # def unpack_adam_grads(grad_list):
-                #     output = []
-                #     for grad, var in grad_list:
-                #         output.append(grad)
-                #     return output
-
-                print("debug, constructing corr term for task", i)
-
-                term0_i = tf.gradients(outer_surr_objs[i],[updated_params[i][key] for key in keys])
-                dist_info_sym_i_triangle, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_triangle)
-                dist_info_sym_i_box, _ = self.policy.dist_info_sym(old_obs_vars[0][i], state_info_vars,all_params=theta_box)
-                logli_i_triangle = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_triangle)
-                logli_i_box = dist.log_likelihood_sym(old_action_vars[0][i], dist_info_sym_i_box)
-                L = tf.reduce_mean(logli_i_triangle * old_adv[0][i] * old_lr[0][i] * logli_i_box)
-                term1_i = grads_dotprod(term0_i, tf.gradients(L, [theta_triangle[key] for key in keys]))
-                term1_list.append(term1_i)
-
-            corr_term = OrderedDict(zip([self.policy.all_params[key] for key in keys],tf.gradients(tf.reduce_mean(term1_list) * self.policy.step_size, [theta_box[key] for key in keys])))  #TODO: need to test it with the step size
-        else:
-            corr_term = None
-
-        if self.metalearn_baseline:
-            target=[self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params['meta_constant']]
-            # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
-            # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
-        else:
-            # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
-            target = [self.policy.get_params_internal()]
+        target = [self.policy.get_params_internal()]
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
@@ -446,10 +434,4 @@ class RL2IL(BatchMAMLPolopt):
             policy=self.policy,
             baseline=self.baseline,
             env=self.env,
-        )
-
-
-
-
-
-
+)

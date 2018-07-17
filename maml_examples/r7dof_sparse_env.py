@@ -14,7 +14,11 @@ class Reacher7DofMultitaskEnvSparse(
     def __init__(self, distance_metric_order=None, *args, **kwargs):
         self.goal = None
         self.__class__.FILE = 'r7dof_versions/reacher_7dof_sparse0.2.xml'
-        super().__init__()
+        if "envseed" in kwargs.keys():
+            seed = kwargs['envseed']
+        else:
+            seed=0
+        super().__init__(envseed=seed)
         Serializable.__init__(self, *args, **kwargs)
 
         # Serializable.quick_init(self, locals())

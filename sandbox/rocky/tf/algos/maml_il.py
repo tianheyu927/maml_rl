@@ -321,9 +321,9 @@ class MAMLIL(BatchMAMLPolopt):
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
         else:
-            # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
-            target = [self.policy.get_params_internal()]
-            print("debug456", target)
+            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
+            # target = [self.policy.get_params_internal()]
+            # print("debug456", target)
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
@@ -443,6 +443,8 @@ class MAMLIL(BatchMAMLPolopt):
 
     @overrides
     def get_itr_snapshot(self, itr, samples_data):
+        debug_params = self.policy.get_params_internal()
+
         return dict(
             itr=itr,
             policy=self.policy,

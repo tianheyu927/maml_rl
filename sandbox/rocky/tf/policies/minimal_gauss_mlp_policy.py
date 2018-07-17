@@ -44,7 +44,9 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
             output_nonlinearity=tf.identity,
             mean_network=None,
             std_network=None,
-            std_parametrization='exp'
+            std_parametrization='exp',
+            std_modifier = 1.0,
+            extra_input_dim=0,
     ):
         """
         :param env_spec:
@@ -75,11 +77,11 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
         if mean_network is None:
             self.mean_params = mean_params = self.create_MLP(
                 name="mean_network",
-                input_shape=(None, obs_dim,),
+                input_shape=(None, obs_dim + extra_input_dim,),
                 output_dim=action_dim,
                 hidden_sizes=hidden_sizes,
             )
-            input_tensor, mean_tensor = self.forward_MLP('mean_network', mean_params, n_hidden=len(hidden_sizes),
+            self.input_tensor, mean_tensor = self.forward_MLP('mean_network', mean_params, n_hidden=len(hidden_sizes),
                 input_shape=(obs_dim,),
                 hidden_nonlinearity=hidden_nonlinearity,
                 output_nonlinearity=output_nonlinearity,
@@ -133,6 +135,7 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
             raise NotImplementedError
 
         self.min_std_param = min_std_param
+        self.std_modifier = std_modifier
 
         self._dist = DiagonalGaussian(action_dim)
 
@@ -140,15 +143,15 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
 
         super(GaussianMLPPolicy, self).__init__(env_spec)
 
-        dist_info_sym = self.dist_info_sym(input_tensor, dict(), is_training=False)
+        dist_info_sym = self.dist_info_sym(self.input_tensor, dict(), is_training=False)
         mean_var = dist_info_sym["mean"]
         log_std_var = dist_info_sym["log_std"]
 
-        self._f_dist = tensor_utils.compile_function(
-            inputs=[input_tensor],
+        self._init_f_dist = tensor_utils.compile_function(
+            inputs=[self.input_tensor],
             outputs=[mean_var, log_std_var],
         )
-
+        self._cur_f_dist = self._init_f_dist
     @property
     def vectorized(self):
         return True
@@ -163,9 +166,9 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
         if self.min_std_param is not None:
             std_param_var = tf.maximum(std_param_var, self.min_std_param)
         if self.std_parametrization == 'exp':
-            log_std_var = std_param_var
+            log_std_var = std_param_var + np.log(self.std_modifier)
         elif self.std_parametrization == 'softplus':
-            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var)))
+            log_std_var = tf.log(tf.log(1. + tf.exp(std_param_var))) + np.log(self.std_modifier)
         else:
             raise NotImplementedError
         return dict(mean=mean_var, log_std=log_std_var)
@@ -174,17 +177,31 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
     @overrides
     def get_action(self, observation):
         flat_obs = self.observation_space.flatten(observation)
-        mean, log_std = [x[0] for x in self._f_dist([flat_obs])]
+        mean, log_std = [x[0] for x in self._cur_f_dist([flat_obs])]
         rnd = np.random.normal(size=mean.shape)
-        action = rnd * np.exp(log_std) + mean
+        action = rnd * np.exp(log_std) * self.std_modifier + mean
         return action, dict(mean=mean, log_std=log_std)
 
     def get_actions(self, observations):
         flat_obs = self.observation_space.flatten_n(observations)
-        means, log_stds = self._f_dist(flat_obs) # _f_dist runs the network forward.
+        means, log_stds = self._cur_f_dist(flat_obs) # _f_dist runs the network forward.
         rnd = np.random.normal(size=means.shape)
-        actions = rnd * np.exp(log_stds) + means
+        actions = rnd * np.exp(log_stds) * self.std_modifier + means
         return actions, dict(mean=means, log_std=log_stds)
+    #
+    # def compute_updated_dists(self):
+    #     dist_info_sym = self.dist_info_sym(self.input_tensor, dict(), is_training=False)
+    #     mean_var = dist_info_sym["mean"]
+    #     log_std_var = dist_info_sym["log_std"]
+    #
+    #     self._cur_f_dist = tensor_utils.compile_function(
+    #         inputs=[self.input_tensor],
+    #         outputs=[mean_var, log_std_var],
+    #     )
+
+    # def switch_to_init_dist(self):
+    #     self._cur_f_dist = self._init_f_dist
+    #     assert False, "not tested, you may want to add self.all_param_vals = None"
 
     @property
     def distribution(self):
@@ -197,7 +214,8 @@ class GaussianMLPPolicy(StochasticPolicy, Serializable):
             params = tf.all_variables()
 
         # TODO - this is hacky...
-        params = [p for p in params if p.name.startswith('mean_network') or p.name.startswith('output_std_param')]
+        # params = [p for p in params if p.name.startswith('mean_network') or p.name.startswith('output_std_param')]
+        params = [p for p in params if p.name.startswith('mean_network')]# or p.name.startswith('output_std_param')]
         params = [p for p in params if 'Adam' not in p.name]
         return params
 

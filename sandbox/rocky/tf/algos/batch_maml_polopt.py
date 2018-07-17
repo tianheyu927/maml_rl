@@ -22,7 +22,7 @@ from rllab.misc.tensor_utils import split_tensor_dict_list, stack_tensor_dict_li
 # from maml_examples.reacher_env import fingertip
 from rllab.sampler.utils import rollout, joblib_dump_safe
 from maml_examples.maml_experiment_vars import TESTING_ITRS, PLOT_ITRS, VIDEO_ITRS, BASELINE_TRAINING_ITRS
-
+from maml_examples import pusher_env
 
 class BatchMAMLPolopt(RLAlgorithm):
     """
@@ -39,13 +39,11 @@ class BatchMAMLPolopt(RLAlgorithm):
             scope=None,
             n_itr=500,
             start_itr=0,
-            # Note that the number of trajectories for grad update = batch_size
-            # Defaults are 10 trajectories of length 500 for gradient update
-            # If default is 10 traj-s, why batch_size=100?
             batch_size=100,
             max_path_length=500,
             meta_batch_size=100,
             num_grad_updates=1,
+            num_grad_updates_for_testing=1,
             discount=0.99,
             gae_lambda=1,
             beta_steps=1,
@@ -133,6 +131,7 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.fixed_horizon = fixed_horizon
         self.meta_batch_size = meta_batch_size  # number of tasks
         self.num_grad_updates = num_grad_updates  # number of gradient steps during training
+        self.num_grad_updates_for_testing = num_grad_updates_for_testing  # number of gradient steps during training
         self.use_maml_il = use_maml_il
         self.test_on_training_goals= test_on_training_goals
         self.testing_itrs = TESTING_ITRS
@@ -152,6 +151,8 @@ class BatchMAMLPolopt(RLAlgorithm):
         self.extra_input_dim = extra_input_dim
         # Next, we will set up the goals and potentially trajectories that we plan to use.
         # If we use trajectorie
+        print("debug1", tf.__version__)
+
         assert goals_to_load is None, "deprecated"
         if self.use_pooled_goals:
             if expert_trajs_dir is not None:
@@ -356,8 +357,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                     self.beta_steps = min(self.beta_steps, self.beta_curve[min(itr,len(self.beta_curve)-1)])
                     beta_steps_range = range(self.beta_steps) if itr not in self.testing_itrs else range(self.test_goals_mult)
                     beta0_step0_paths = None
-                    # change here to take more than 1 gradient steps at test time
-                    num_inner_updates = 1 if itr in self.testing_itrs else self.num_grad_updates
+                    num_inner_updates = self.num_grad_updates_for_testing if itr in self.testing_itrs else self.num_grad_updates
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
                             assert False, "deprecated"
@@ -367,11 +367,21 @@ class BatchMAMLPolopt(RLAlgorithm):
                                 demos = joblib.load(self.demos_path+str(taskidx)+self.expert_trajs_suffix+".pkl")
                                 # conversion code from Chelsea's format
                                 if type(demos) is dict and 'demoU' in demos.keys():
+                                    print("debug, using demoU/demoX format")
                                     converted_demos = []
                                     for i,demoU in enumerate(demos['demoU']):
-                                        converted_demos.append({'observations':demos['demoX'][i],'actions':demoU})
-                                    print("debug, using xml for demos", demos['xml'])
-                                    # if int(demos['xml'][-5]) % 2 == 0:
+                                        if int(demos['xml'][-5]) % 2 == 0:
+                                            #flips the object and the distractor
+                                            demoX = pusher_env.shuffle_demo(demos['demoX'][i])
+                                        else:
+                                            demoX = demos['demoX'][i]
+                                        if self.extra_input is not None:
+                                            extra = np.zeros((np.shape(demoX)[0], self.extra_input_dim))
+                                            demoX = np.concatenate((demoX, extra), -1)
+
+                                        converted_demos.append({'observations': demoX, 'actions': demoU})
+                                    # print("debug, using xml for demos", demos['xml'])
+
 
                                     expert_traj_for_metaitr[t] = converted_demos
                                 else:
@@ -389,6 +399,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                                     path['expert_actions'] = np.clip(deepcopy(path['actions']), -1.0, 1.0)
                     for beta_step in beta_steps_range:
                         all_samples_data_for_betastep = []
+                        print("debug, pre-update std modifier")
                         self.policy.std_modifier = self.pre_std_modifier
                         self.policy.switch_to_init_dist()  # Switch to pre-update policy
                         if itr in self.testing_itrs:
@@ -450,17 +461,18 @@ class BatchMAMLPolopt(RLAlgorithm):
                             # for logging purposes only
                             self.process_samples(itr, flatten_list(paths.values()), prefix=str(step), log=True, fast_process=True, testitr=testitr, metalearn_baseline=self.metalearn_baseline)
                             if step == num_inner_updates:
-                                logger.record_tabular("AverageReturnLastTest", self.sampler.memory["AverageReturnLastTest"],front=True)
+                                logger.record_tabular("AverageReturnLastTest", self.sampler.memory["AverageReturnLastTest"],front=True)  #TODO: add functionality for multiple grad steps
                                 logger.record_tabular("TestItr", ("1" if testitr else "0"),front=True)
                                 logger.record_tabular("MetaItr", self.metaitr,front=True)
                             # logger.log("Logging diagnostics...")
                             # self.log_diagnostics(flatten_list(paths.values()), prefix=str(step))
 
-                            if step < num_inner_updates:
+                            if step == num_inner_updates-1:
                                 if itr not in self.testing_itrs:
+                                    print("debug, post update train std modifier")
                                     self.policy.std_modifier = self.post_std_modifier_train*self.policy.std_modifier
                                 else:
-                                    # this is incorrect
+                                    print("debug, post update test std modifier")
                                     self.policy.std_modifier = self.post_std_modifier_test*self.policy.std_modifier
                                 if (itr in self.testing_itrs or not self.use_maml_il or step<num_inner_updates-1) and step < num_inner_updates:
                                     # do not update on last grad step, and do not update on second to last step when training MAMLIL
@@ -482,6 +494,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         self.metaitr += 1
                     logger.log("Saving snapshot...")
                     params = self.get_itr_snapshot(itr, all_samples_data_for_betastep[-1])  # , **kwargs)
+                    print("debug123, params", params)
                     if self.store_paths:
                         params["paths"] = all_samples_data_for_betastep[-1]["paths"]
                     logger.save_itr_params(itr, params)
@@ -524,7 +537,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             plt.legend(['goal', 'preupdate path', 'postupdate path'])
                             plt.savefig(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
                             print(osp.join(logger.get_snapshot_dir(), 'prepost_path' + str(ind) + '_' + str(itr) + '.png'))
-                    elif True and itr in PLOT_ITRS and self.env.observation_space.shape[0] == 8:  # reacher
+                    elif True and itr in PLOT_ITRS and self.env.observation_space.shape[0] == 8:  # 2D reacher
                         logger.log("Saving visualization of paths")
 
                         # def fingertip(env):
@@ -567,7 +580,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                             if self.make_video and itr in VIDEO_ITRS:
                                 logger.log("Saving videos...")
                                 self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
-                                video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                                video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.gif' % (ind, itr))
                                 rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                         animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                         reset_arg=self.goals_to_use_dict[itr][ind],
@@ -577,7 +590,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         for ind in range(min(5, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
-                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.mp4' % (ind, itr))
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_%s.gif' % (ind, itr))
                             rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                     animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                     reset_arg=self.goals_to_use_dict[itr][ind],
@@ -587,7 +600,7 @@ class BatchMAMLPolopt(RLAlgorithm):
                         for ind in range(min(5, self.meta_batch_size)):
                             logger.log("Saving videos...")
                             self.env.reset(reset_args=self.goals_to_use_dict[itr][ind])
-                            video_filename = osp.join(logger.get_snapshot_dir(), 'pre_path_%s_%s.mp4' % (ind, itr))
+                            video_filename = osp.join(logger.get_snapshot_dir(), 'pre_path_%s_%s.gif' % (ind, itr))
                             rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
                                     animated=True, speedup=2, save_video=True, video_filename=video_filename,
                                     reset_arg=self.goals_to_use_dict[itr][ind],

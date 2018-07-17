@@ -9,7 +9,7 @@ from rllab.misc.instrument import stub, run_experiment_lite
 from sandbox.rocky.tf.policies.maml_minimal_gauss_mlp_policy import MAMLGaussianMLPPolicy
 from sandbox.rocky.tf.envs.base import TfEnv
 from rllab.envs.gym_env import GymEnv
-from maml_examples.r7dof_env import Reacher7DofMultitaskEnv
+from maml_examples.r7dof_sparse_env import Reacher7DofMultitaskEnvSparse
 from rllab.envs.mujoco.pusher_env import PusherEnv
 # from gym.wrappers.monitoring import Monitor
 from maml_examples.maml_experiment_vars import HIDDEN_NONLINEARITY, OUTPUT_NONLINEARITY
@@ -43,8 +43,8 @@ for post_std_modifier_train in post_std_modifier_train_list:
 
                     seed = 4
                     #env = TfEnv(normalize(GymEnv("Pusher-v0", force_reset=True, record_video=False)))  #TODO: force_reset was True
-                    #xml_filepath ='home/kevin/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
-                    env = TfEnv(normalize(Reacher7DofMultitaskEnv()))
+                    #xml_filepath ='home/rosen/rllab_copy/vendor/local_mujoco_models/ensure_woodtable_distractor_pusher%s.xml' % seed
+                    env = TfEnv(normalize(Reacher7DofMultitaskEnvSparse()))
 
                     policy = MAMLGaussianMLPPolicy(
                         name="policy",
@@ -88,8 +88,8 @@ for post_std_modifier_train in post_std_modifier_train_list:
                         snapshot_mode="all",
                         python_command='python3',
                         seed=seed,
-                        exp_prefix='R7_TR_',
-                        exp_name='R7_TR_'
+                        exp_prefix='R7_TR_SPARSE',
+                        exp_name='R7_TR_SPARSE'
                                  # + ".itr." + str(n_itr)
                                  # + str(int(use_maml))
                                  #     +'_fbs'+str(fast_batch_size)

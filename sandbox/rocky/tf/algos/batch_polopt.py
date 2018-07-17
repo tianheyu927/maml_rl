@@ -38,6 +38,16 @@ class BatchPolopt(RLAlgorithm):
             force_batch_sampler=False,
             load_policy=None,
             reset_arg=None,
+<<<<<<< HEAD
+=======
+            save_expert_traj_dir=None,
+            expert_traj_itrs_to_pickle=[],
+            save_img_obs=False,
+            goals_to_load=None,
+            goals_pool_to_load=None,
+            extra_input=None,
+            extra_input_dim=0,
+>>>>>>> 1a9a52d8bfacbc5c7bfb4b86ac6a92cf536891d9
             **kwargs
     ):
         """
@@ -88,6 +98,31 @@ class BatchPolopt(RLAlgorithm):
             sampler_args = dict()
         self.sampler = sampler_cls(self, **sampler_args)
         self.reset_arg = reset_arg
+        self.action_noise_train = action_noise_train
+        self.action_noise_test = action_noise_test
+        self.make_video = make_video
+        self.save_expert_traj_dir = save_expert_traj_dir
+        self.save_img_obs = save_img_obs
+        self.extra_input = extra_input
+        self.extra_input_dim = extra_input_dim
+        assert goals_to_load is None, "deprecated"
+        assert len(expert_traj_itrs_to_pickle) == 0, "deprecated"
+        if goals_pool_to_load is not None:
+            self.goals_pool = joblib.load(goals_pool_to_load)['goals_pool']
+            self.goals_idxs_for_itr_dict = joblib.load(goals_pool_to_load)['idxs_dict']  # not used for anything except passing through to expert_traj along with goals pool
+            self.goals_for_ET_dict = {t:[goal] for t, goal in enumerate(self.goals_pool)}
+            self.expert_traj_itrs_to_pickle = list(range(len(self.goals_pool)))  # we go through
+        else:
+            self.goals_for_ET_dict = {}
+            self.expert_traj_itrs_to_pickle = []
+            assert save_expert_traj_dir is None, "can't save ETs without goals provided"
+        if len(self.expert_traj_itrs_to_pickle) > 0:
+            assert save_expert_traj_dir is not None, "please provide a filename to save expert trajectories"
+            assert set(self.expert_traj_itrs_to_pickle).issubset(set(range(self.start_itr,self.n_itr))), "Will not go through all itrs that need to be pickled, widen the start_itr and n_itr range"
+            Path(self.save_expert_traj_dir).mkdir(parents=True, exist_ok=False)
+            logger.log("Pickling goals pool...")
+            joblib_dump_safe(dict(goals_pool=self.goals_pool, idxs_dict=self.goals_idxs_for_itr_dict), self.save_expert_traj_dir+"goals_pool.pkl")
+            # We making sure the goals stay with the expert trajs
 
     def start_worker(self):
         self.sampler.start_worker()
@@ -97,8 +132,12 @@ class BatchPolopt(RLAlgorithm):
     def shutdown_worker(self):
         self.sampler.shutdown_worker()
 
-    def obtain_samples(self, itr):
-        return self.sampler.obtain_samples(itr, reset_args=self.reset_arg)
+    def obtain_samples(self, itr, reset_args=None, preupdate=True):
+        if reset_args is None:
+            reset_args = self.reset_arg
+        # return self.sampler.obtain_samples(itr, reset_args=reset_args, save_img_obs=self.save_img_obs) # not going to save_img_obs RK 6/19
+        print("debug, obtaining samples")
+        return self.sampler.obtain_samples(itr=itr, reset_args=reset_args, return_dict=False, extra_input=self.extra_input, extra_input_dim=(self.extra_input_dim if self.extra_input is not None else 0), preupdate=preupdate)
 
     def process_samples(self, itr, paths):
         return self.sampler.process_samples(itr, paths)
@@ -121,31 +160,118 @@ class BatchPolopt(RLAlgorithm):
             self.start_worker()
             start_time = time.time()
             for itr in range(self.start_itr, self.n_itr):
+                if itr == self.n_itr-1:
+                    self.policy.std_modifier = 0.0001
+                    self.policy.recompute_dist_for_adjusted_std()
+                if itr in self.goals_for_ET_dict.keys():
+                    goals = self.goals_for_ET_dict[itr]
+                    noise = self.action_noise_test
+                    self.batch_size = self.batch_size_expert_traj
+                else:
+                    if self.reset_arg is None:
+                        goals = [None]
+                    else:
+                        goals = [self.reset_arg]
+                    noise = self.action_noise_train
+                    self.batch_size = self.batch_size_train
+                paths_to_save = {}
                 itr_start_time = time.time()
                 with logger.prefix('itr #%d | ' % itr):
 
                     logger.log("Obtaining samples...")
-                    paths = self.obtain_samples(itr)
-                    logger.log("Processing samples...")
-                    samples_data = self.process_samples(itr, paths)
-                    logger.log("Logging diagnostics...")
-                    self.log_diagnostics(paths)
-                    logger.log("Optimizing policy...")
-                    self.optimize_policy(itr, samples_data)
-                    #new_param_values = self.policy.get_variable_values(self.policy.all_params)
+                    paths = []
+                    for goalnum, goal in enumerate(goals):
+                        # paths_for_goal = self.obtain_samples(itr=itr, reset_args=[{'goal': goal, 'noise': noise}])  # when using oracle environments with changing noise, use this line!
+                        preupdate = True if itr < self.n_itr-1 else False
+                        paths_for_goal = self.obtain_samples(itr=itr, reset_args=[goal],preupdate=preupdate)
+                        print("debug, goal 1", goal)
+                        paths.extend(paths_for_goal)  # we need this to be flat because we process all of them together
+                        # TODO: there's a bunch of sample processing happening below that we should abstract away
+                        if itr in self.expert_traj_itrs_to_pickle:
+                            logger.log("Saving trajectories...")
+                            paths_no_goalobs = self.clip_goal_from_obs(paths_for_goal)
+                            [path.pop('agent_infos') for path in paths_no_goalobs]
+                            paths_to_save[goalnum] = paths_no_goalobs
+                    if itr in self.expert_traj_itrs_to_pickle:
+                        logger.log("Pickling trajectories...")
+                        assert len(paths_to_save.keys()) == 1, "we're going through ET goals one at a time now 10/24/17"
+                        joblib_dump_safe(paths_to_save[0], self.save_expert_traj_dir+str(itr)+".pkl")
+                        logger.log("Fast-processing returns...")
+                        undiscounted_returns = [sum(path['rewards']) for path in paths]
+                        print("debug", undiscounted_returns)
+                        logger.record_tabular('AverageReturn', np.mean(undiscounted_returns))
 
-                    logger.log("Saving snapshot...")
-                    params = self.get_itr_snapshot(itr, samples_data)  # , **kwargs)
-                    if self.store_paths:
-                        params["paths"] = samples_data["paths"]
+                    else:
+                        logger.log("Processing samples...")
+                        samples_data = self.process_samples(itr, paths)
+                        logger.log("Logging diagnostics...")
+                        self.log_diagnostics(paths)
+                        logger.log("Optimizing policy...")
+                        self.optimize_policy(itr, samples_data)
+                        #new_param_values = self.policy.get_variable_values(self.policy.all_params)
+                        logger.log("Saving snapshot...")
+                        params = self.get_itr_snapshot(itr, samples_data)  # , **kwargs)
+                        if self.store_paths:
+                            params["paths"] = samples_data["paths"]
+
                     logger.save_itr_params(itr, params)
                     logger.log("Saved")
                     logger.record_tabular('Time', time.time() - start_time)
                     logger.record_tabular('ItrTime', time.time() - itr_start_time)
 
-                    #import pickle
-                    #with open('paths_itr'+str(itr)+'.pkl', 'wb') as f:
-                    #    pickle.dump(paths, f)
+                    if True and (itr % 16 == 0) and 7 < self.env.observation_space.shape[0] < 12:  # ReacherEnvOracleNoise
+                        logger.log("Saving visualization of paths")
+                        plt.clf()
+                        plt.hold(True)
+
+                        goal = paths[0]['observations'][0][-2:]
+                        plt.plot(goal[0], goal[1], 'k*', markersize=10)
+
+                        goal = paths[1]['observations'][0][-2:]
+                        plt.plot(goal[0], goal[1], 'k*', markersize=10)
+
+                        goal = paths[2]['observations'][0][-2:]
+                        plt.plot(goal[0], goal[1], 'k*', markersize=10)
+
+                        points = np.array([obs[6:8] for obs in paths[0]['observations']])
+                        plt.plot(points[:, 0], points[:, 1], '-r', linewidth=2)
+
+                        points = np.array([obs[6:8] for obs in paths[1]['observations']])
+                        plt.plot(points[:, 0], points[:, 1], '--r', linewidth=2)
+
+                        points = np.array([obs[6:8] for obs in paths[2]['observations']])
+                        plt.plot(points[:, 0], points[:, 1], '-.r', linewidth=2)
+
+                        plt.plot(0, 0, 'k.', markersize=5)
+                        plt.xlim([-0.25, 0.25])
+                        plt.ylim([-0.25, 0.25])
+                        plt.legend(['path'])
+                        plt.savefig(osp.join(logger.get_snapshot_dir(),
+                                             'path' + str(0) + '_' + str(itr) + '.png'))
+                        print(osp.join(logger.get_snapshot_dir(),
+                                       'path' + str(0) + '_' + str(itr) + '.png'))
+
+                    # if self.make_video and itr % 2 == 0 or itr in [0,1,2,3,4,5,6,7,8]: # and itr in self.goals_for_ET_dict.keys() == 0:
+                    if self.make_video and (itr == 0 or itr == self.n_itr-1): # and itr in self.goals_for_ET_dict.keys() == 0:
+                        logger.log("Saving videos...")
+                        self.env.reset(reset_args=goals[0])
+                        video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_0_%s.gif' % (itr,time.strftime("%H%M%S")))
+                        rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                                animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                                reset_arg=goals[0],
+                                use_maml=False,)
+                        # self.env.reset(reset_args=goals[0])
+                        # video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_1_%s.gif' % (itr,time.strftime("%H%M%S")))
+                        # rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                        #         animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                        #         reset_arg=goals[0],
+                        #         use_maml=False, )
+                        # self.env.reset(reset_args=goals[0])
+                        # video_filename = osp.join(logger.get_snapshot_dir(), 'post_path_%s_2_%s.gif' % (itr,time.strftime("%H%M%S")))
+                        # rollout(env=self.env, agent=self.policy, max_path_length=self.max_path_length,
+                        #         animated=True, speedup=2, save_video=True, video_filename=video_filename,
+                        #         reset_arg=goals[0],
+                        #         use_maml=False, )
 
                     # debugging
                     """

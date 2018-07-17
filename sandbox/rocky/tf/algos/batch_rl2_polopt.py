@@ -359,7 +359,10 @@ class BatchRL2Polopt(RLAlgorithm):
                     if self.use_maml_il and itr not in self.testing_itrs:
                         if not self.use_pooled_goals:
                             assert False, "deprecated"
+<<<<<<< HEAD
                             expert_traj_for_metaitr = joblib.load(self.demos_path+str(itr)+self.expert_trajs_suffix+".pkl")
+=======
+>>>>>>> 1a9a52d8bfacbc5c7bfb4b86ac6a92cf536891d9
                         else:
                             expert_traj_for_metaitr = {}
                             for t, taskidx in enumerate(self.goals_idxs_for_itr_dict[itr]):
@@ -425,12 +428,7 @@ class BatchRL2Polopt(RLAlgorithm):
                                                                          offpol_trajs=expert_traj_for_metaitr,
                                                                          treat_as_expert_traj=True,
                                                                          log_prefix=str(beta_step)+"_"+str(step))
-                            elif beta_step > 0 and step < self.num_grad_updates:
-                                print("debug12.3, own samples")
-                                assert False, "deprecated"
-                                paths = self.obtain_agent_info_offpolicy(itr=itr,
-                                                                         offpol_trajs=beta0_step0_paths, # these are the paths obtained at betastep 0, step 0
-                                                                         log_prefix=str(beta_step) + "_" + str(step))
+
                             else:
                                 assert False, "we shouldn't be able to get here"
 
@@ -658,4 +656,3 @@ def store_agent_infos(paths):
         for path in paths[t]:
             path['agent_infos_orig'] = deepcopy(path['agent_infos'])
     return paths
-

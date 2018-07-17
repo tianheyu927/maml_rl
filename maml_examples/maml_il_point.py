@@ -18,7 +18,7 @@ import numpy as np
 import random as rd
 beta_adam_steps_list = [(1,3)] #,(1,100)]  # , ## maybe try 1 and 10 to compare, we know that 1 is only slightly worse than 5
 
-fast_learning_rates = [0.0]  #1.0 seems to work best
+fast_learning_rates = [1.0]  #1.0 seems to work best
 baselines = ['linear']
 
 fast_batch_size = 20  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
@@ -98,13 +98,13 @@ for seed in seeds:
                                         importance_sampling_modifier=MOD_FUNC[""],
                                         post_std_modifier_train=post_std_modifier_train,
                                         post_std_modifier_test=post_std_modifier_test,
-                                        expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".local"],
+                                        expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[".ec2"],
                                     )
 
                                     run_experiment_lite(
                                         algo.train(),
                                         n_parallel=1,
-                                        snapshot_mode="last",
+                                        snapshot_mode="all",
                                         python_command='python3',
                                         seed=1,
                                         exp_prefix='PR_IL_',
@@ -124,7 +124,7 @@ for seed in seeds:
                                                  # +"_l2m" + str(l2loss_std_mult)
                                                  #+"_env" + str(env_option)
                                                  +"_"+time.strftime("%D_%H_%M").replace("/","."),
-                                        plot=False,
+                                        plot=False,mode='ec2',
                                     )
 
 

@@ -14,9 +14,6 @@ from sandbox.rocky.tf.envs.base import TfEnv
 # import lasagne.nonlinearities as NL
 import sandbox.rocky.tf.core.layers as L
 
-from rllab.envs.gym_env import GymEnv
-from maml_examples.reacher_env import ReacherEnv
-from rllab.envs.mujoco.pusher_env import PusherEnv
 from maml_examples.pusher_env import PusherEnv
 from maml_examples.pusher_vars import EXPERT_TRAJ_LOCATION_DICT, ENV_OPTIONS, default_pusher_env_option
 from maml_examples.maml_experiment_vars import MOD_FUNC
@@ -32,22 +29,22 @@ import time
 beta_adam_steps_list = [(1,10)]
 # beta_curve = [250,250,250,250,250,5,5,5,5,1,1,1,1,] # make sure to check maml_experiment_vars
 # beta_curve = [1000] # make sure to check maml_experiment_vars
-# adam_curve = [250,249,248,247,245,50,50,10] # make sure to check maml_experiment_vars
-adam_curve = None
+adam_curve = [50,50,50,50,50,50,50,10] # m
+# adam_curve = None
 
-fast_learning_rates = [0.1]
+fast_learning_rates = [1.0,0.1]
 baselines = ['linear',]  # linear GaussianMLP MAMLGaussianMLP zero
 env_option = ''
 # mode = "ec2"
 mode = "local"
-# extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
-extra_input = None
-# extra_input_dim = 5
-extra_input_dim = None
+extra_input = "onehot_exploration" # "onehot_exploration" "gaussian_exploration"
+# extra_input = None
+extra_input_dim = 5
+# extra_input_dim = None
 goals_suffixes = [""] #["_200_40_1"] #,"_200_40_2", "_200_40_3","_200_40_4"]
 # goals_suffixes = ["_1000_40"]
 
-fast_batch_size_list = [40]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
+fast_batch_size_list = [60]  # 20 # 10 works for [0.1, 0.2], 20 doesn't improve much for [0,0.2]  #inner grad update size
 meta_batch_size_list = [40] # 40 @ 10 also works, but much less stable, 20 is fairly stable, 40 is more stable
 max_path_length = 100  # 100
 num_grad_updates = 1
@@ -66,23 +63,23 @@ baslayers_list = [(32,32)]
 
 basas = 60 # baseline adam steps
 use_corr_term = True
-seeds = [1] #,2,3,4,5]
+seeds = [1]
 envseeds = [6]
 use_maml = True
 test_on_training_goals = False
 for goals_suffix in goals_suffixes:
-    for envseed in envseeds:
-        for seed in seeds:
-            for baslayers in baslayers_list:
-                for fast_batch_size in fast_batch_size_list:
-                    for meta_batch_size in meta_batch_size_list:
-                        for ism in importance_sampling_modifier_list:
-                            for limit_demos_num in limit_demos_num_list:
-                                for l2loss_std_mult in l2loss_std_mult_list:
-                                    for post_std_modifier_train in post_std_modifier_train_list:
-                                        for post_std_modifier_test in post_std_modifier_test_list:
-                                            for pre_std_modifier in pre_std_modifier_list:
-                                                for fast_learning_rate in fast_learning_rates:
+    for fast_learning_rate in fast_learning_rates:
+        for envseed in envseeds:
+            for seed in seeds:
+                for baslayers in baslayers_list:
+                    for fast_batch_size in fast_batch_size_list:
+                        for meta_batch_size in meta_batch_size_list:
+                            for ism in importance_sampling_modifier_list:
+                                for limit_demos_num in limit_demos_num_list:
+                                    for l2loss_std_mult in l2loss_std_mult_list:
+                                        for post_std_modifier_train in post_std_modifier_train_list:
+                                            for post_std_modifier_test in post_std_modifier_test_list:
+                                                for pre_std_modifier in pre_std_modifier_list:
                                                     for beta_steps, adam_steps in beta_adam_steps_list:
                                                         for bas in baselines:
                                                             stub(globals())
@@ -130,13 +127,13 @@ for goals_suffix in goals_suffixes:
                                                                 + "_" + time.strftime("%d%m_%H_%M"))
 
 
-
+                                                            # policy=None,
                                                             policy = MAMLGaussianMLPPolicy(
                                                                 name="policy",
                                                                 env_spec=env.spec,
                                                                 grad_step_size=fast_learning_rate,
                                                                 hidden_nonlinearity=tf.nn.relu,
-                                                                hidden_sizes=(100, 100),
+                                                                hidden_sizes=(100, 100, 100),
                                                                 std_modifier=pre_std_modifier,
                                                                 # metalearn_baseline=(bas == "MAMLGaussianMLP"),
                                                                 extra_input_dim=(0 if extra_input is None else extra_input_dim),
@@ -194,13 +191,14 @@ for goals_suffix in goals_suffixes:
                                                             algo = MAMLIL(
                                                                 env=env,
                                                                 policy=policy,
+                                                                # load_policy="/home/rosen/paper_ready_experiments/pusher/best/PU_IL_1_flr0.01_dem24_ei5_as10_basl_1805_09_14/params.pkl",
                                                                 baseline=baseline,
                                                                 batch_size=fast_batch_size,  # number of trajs for alpha grad update
                                                                 max_path_length=max_path_length,
                                                                 meta_batch_size=meta_batch_size,  # number of tasks sampled for beta grad update
                                                                 num_grad_updates=num_grad_updates,  # number of alpha grad updates
-                                                                n_itr=800, #100
-                                                                make_video=True,
+                                                                n_itr=200, #100
+                                                                make_video=False,
                                                                 use_maml=use_maml,
                                                                 use_pooled_goals=True,
                                                                 use_corr_term=use_corr_term,
@@ -220,7 +218,8 @@ for goals_suffix in goals_suffixes:
                                                                 post_std_modifier_train=post_std_modifier_train,
                                                                 post_std_modifier_test=post_std_modifier_test,
                                                                 expert_trajs_dir=EXPERT_TRAJ_LOCATION_DICT[env_option+"."+mode+goals_suffix+("_"+str(extra_input_dim) if type(extra_input_dim) == int else "")],
-                                                                expert_trajs_suffix=("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
+                                                                # expert_trajs_suffix=("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
+                                                                expert_trajs_suffix="", #"("_"+str(extra_input_dim) if type(extra_input_dim) == int else ""),
                                                                 seed=seed,
                                                                 extra_input=extra_input,
                                                                 extra_input_dim=(0 if extra_input is None else extra_input_dim),
@@ -230,7 +229,7 @@ for goals_suffix in goals_suffixes:
                                                             run_experiment_lite(
                                                                 algo.train(),
                                                                 n_parallel=1,
-                                                                snapshot_mode="last",
+                                                                snapshot_mode="all",
                                                                 python_command='python3',
                                                                 seed=seed,
                                                                 exp_prefix=str('PU_IL_'

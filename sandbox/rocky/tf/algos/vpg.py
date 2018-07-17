@@ -37,6 +37,15 @@ class VPG(BatchPolopt, Serializable):
             optimizer = FirstOrderOptimizer(**optimizer_args)
         self.optimizer = optimizer
         self.opt_info = None
+        if "extra_input" in kwargs.keys():
+            self.extra_input = kwargs["extra_input"]
+        else:
+            self.extra_input = ""
+        if "extra_input_dim" in kwargs.keys():
+            self.extra_input_dim = kwargs["extra_input_dim"]
+        else:
+            self.extra_input_dim = 0
+
         super(VPG, self).__init__(env=env, policy=policy, baseline=baseline, **kwargs)
 
     @overrides
@@ -46,6 +55,7 @@ class VPG(BatchPolopt, Serializable):
         obs_var = self.env.observation_space.new_tensor_variable(
             'obs',
             extra_dims=1 + is_recurrent,
+            add_to_flat_dim=(0 if self.extra_input is None else self.extra_input_dim),
         )
         action_var = self.env.action_space.new_tensor_variable(
             'action',

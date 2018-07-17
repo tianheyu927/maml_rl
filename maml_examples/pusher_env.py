@@ -29,25 +29,25 @@ class PusherEnv(mujoco_env.MujocoEnv, Serializable):
         self.xml_dir = "/home/kevin/gym/gym/envs/mujoco/assets/sim_push_xmls/"
         self.goal_num = 1
         self.test = False
-        self.onehot=onehot
+        self.reset()
+
+        self.onehot = False
         self.onehot_dim = 5
-        self.onehot_position = 0
-        super(PusherEnv, self).__init__(*args, **kwargs)
-        # import pdb; pdb.set_trace()
-        # self = mujoco_env.MujocoEnv(file_path=xml_file)
-        # self.viewer_setup()
-        # self.reset()
-        # self.observation_space = self.observation_space
-        # self.action_space = self.action_space
+        self.onehot_position = 0  # if dim is 5, options are 0 through 4 for onehot, and -1 for vector of zeroes
+        # self.reset_xml_on_reset=False
+        # self.xml_file=xml_file
+        # self.observation_space = self.mujoco.observation_space
+        self.action_space = self.mujoco.action_space
         # self.goal_num, self.test = self.sample_goals(num_goals=1, test=False)[0]
         Serializable.__init__(self, *args, **kwargs)
         # self.__init__(self, file_path=xml_file)
 
     def viewer_setup(self):
-        if self.viewer is None:
-            self.start_viewer()
-        self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = 4.0
+        print("debug, starting viewer")
+        if self.mujoco.viewer is None:
+            self.mujoco.start_viewer()
+        self.mujoco.viewer.cam.trackbodyid = -1
+        self.mujoco.viewer.cam.distance = 4.0
 
     def get_current_obs(self):
         return self._get_obs()
@@ -76,6 +76,9 @@ class PusherEnv(mujoco_env.MujocoEnv, Serializable):
 
     @overrides
     def reset(self, reset_args=None, **kwargs):
+        # if True: #self.reset_xml_on_reset:
+        if reset_args is None:
+            print("Debug, warning, reset_args for env is None")
         goal = reset_args
         if goal is not None:
             assert len(goal)==2, "wrong size goal"
@@ -90,14 +93,14 @@ class PusherEnv(mujoco_env.MujocoEnv, Serializable):
                 demo_data = joblib.load(demo_path)
                 xml_file = demo_data["xml"]
                 xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/", self.xml_dir)
-                print("debug,xml_file", xml_file)
+                # print("debug,xml_file", xml_file)
                 if int(xml_file[-5])%2==0:
-                    print("retaining order")
-                    self.shuffle_order=[0,1]
-                else:
                     print("flipping order")
                     self.shuffle_order=[1,0]
-                self = mujoco_env.MujocoEnv(file_path=xml_file)
+                else:
+                    print("retaining order")
+                    self.shuffle_order=[0,1]
+                self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
         elif self.goal_num is None:  #if we already have a goal_num, we don't sample a new one, just reset the model
             self.goal_num, self.test = self.sample_goals(num_goals=1,test=False)[0]
             demo_path = (self.train_dir+str(self.goal_num)+".pkl") if not self.test else (self.test_dir+str(self.goal_num)+".pkl")
@@ -111,7 +114,7 @@ class PusherEnv(mujoco_env.MujocoEnv, Serializable):
             else:
                 print("flipping order")
                 self.shuffle_order = [1, 0]
-            self =  mujoco_env.MujocoEnv(file_path=xml_file)
+            self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
             self.viewer_setup()
         self.reset_model()
         return self.get_current_obs()
@@ -233,13 +236,30 @@ class PusherEnv(mujoco_env.MujocoEnv, Serializable):
                 self.get_body_com("goal"),
             ])
         else:
-            return np.concatenate([
-                self.model.data.qpos.flat[:7],
-                self.model.data.qvel.flat[:7],
-                self.get_body_com("tips_arm"),
-                self.get_body_com("object"),
-                self.get_body_com("goal"),
-            ])
+            if not self.onehot:
+                return np.concatenate([
+                    self.mujoco.model.data.qpos.flat[:7],
+                    self.mujoco.model.data.qvel.flat[:7],
+                    self.mujoco.get_body_com("tips_arm"),
+                    self.mujoco.get_body_com("object"),
+                    self.mujoco.get_body_com("goal"),
+                ])
+            else:
+                extra = np.zeros(self.onehot_dim)
+                if self.onehot_position == -1:
+                    pass  # we keep the vector zeroed out
+                elif self.onehot_position in range(self.onehot_dim):
+                    extra[self.onehot_position] = 1.0
+                else:
+                    assert False, "invalid value of self.onehot_position"
+                return np.concatenate([
+                    self.mujoco.model.data.qpos.flat[:7],
+                    self.mujoco.model.data.qvel.flat[:7],
+                    self.mujoco.get_body_com("tips_arm"),
+                    self.mujoco.get_body_com("object"),
+                    self.mujoco.get_body_com("goal"),
+                    extra
+                ])
 
     def render(self):
         self.render()
@@ -252,4 +272,20 @@ class PusherEnv(mujoco_env.MujocoEnv, Serializable):
         return spaces.Box(ub * -1, ub)
 
     def get_viewer(self):
-        return self.get_viewer()
+        return self.mujoco.get_viewer()
+
+
+    def log_diagnostics(self, paths, prefix=''):
+        """
+        Log extra information per iteration based on the collected paths
+        """
+        return self.mujoco.log_diagnostics(paths=paths,prefix=prefix)
+
+
+def shuffle_demo(demoX):
+    assert np.shape(demoX)[1] == 26, np.shape(demoX)
+    slice1 = demoX[:,:17]  # qpos, qvel, tips arm
+    slice2 = demoX[:,17:20] #object
+    slice3 = demoX[:,20:23] #distractor
+    slice4 = demoX[:,23:26] #goal
+    return np.concatenate((slice1,slice3,slice2, slice4),-1)
