@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 import csv, os
 
 plt.figure()
@@ -11,6 +10,13 @@ plt.ylabel("Returns")
 algos = ["ours","0_flr","0_metaitr","trpo"]
 
 location_dir = "/home/rosen/maml_rl/data/local/R7DOF-SPARSE-EVAL/"
+
+dict1 = {
+    'ours':'MRI (ours)',
+    '0_flr': 'imitation',
+    '0_metaitr':'random',
+    'trpo':'MAML-RL'
+}
 
 results = {}
 
@@ -33,10 +39,16 @@ for algo in algos:
 
 algo = algos[0]
 
+
+from matplotlib.ticker import MaxNLocator
+
+ax = plt.figure().gca()
+ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
 for i, algo in enumerate(algos):
     color = ['red','green','blue', 'purple'][i]
     plt.fill_between(results[algo][0], results[algo][1]- results[algo][2],results[algo][1]+ results[algo][2], alpha=0.1, color=color)
-    plt.plot(results[algo][0], results[algo][1], 'o-', color=color, label=algo if algo != 'trpo' else 'maml+trpo')
+    plt.plot(results[algo][0], results[algo][1], 'o-', color=color, label=dict1[algo])
 
 
 plt.legend(loc="center right")

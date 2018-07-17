@@ -568,7 +568,7 @@ class MAMLGaussianMLPPolicy(StochasticPolicy, Serializable):
         if load_params:
             tf.get_default_session().run(tf.variables_initializer(self.get_params(all_params=True)))
             print("debug, setstate using", d, np.shape(d['params']))
-            # self.set_param_values(d["params"][:], all_params=True)
-            self.set_param_values(d["params"][:12607], all_params=True)
+            self.set_param_values(d["params"][:], all_params=True)
+            # self.set_param_values(d["params"][:12607], all_params=True)
 
 

@@ -56,7 +56,7 @@ names = ['mamlil'] #,'pretrain','random', 'oracle']
 exp_names = [gen_name + name for name in names]
 
 initial_params_files = files
-n_itrs_list = [2,3,4,5,6]  # 1 through 5 grad steps
+n_itrs_list = [1]  # 1 through 5 grad steps
 # all_avg_returns = []
 for step_size, initial_params_file, desc in zip(step_sizes, initial_params_files, descriptions):
     ret_means_for_algo = []

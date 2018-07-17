@@ -97,10 +97,10 @@ class PusherEnv(utils.EzPickle, Serializable):
                 xml_file = xml_file.replace("/root/code/rllab/vendor/mujoco_models/", self.xml_dir)
                 # print("debug,xml_file", xml_file)
                 if int(xml_file[-5])%2==0:
-                    # print("flipping order")
+                    print("flipping order")
                     self.shuffle_order=[1,0]
                 else:
-                    # print("retaining order")
+                    print("retaining order")
                     self.shuffle_order=[0,1]
                 self.mujoco = mujoco_env.MujocoEnv(file_path=xml_file)
         elif self.goal_num is None:  #if we already have a goal_num, we don't sample a new one, just reset the model
