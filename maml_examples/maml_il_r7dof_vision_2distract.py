@@ -137,7 +137,7 @@ for goals_suffix in goals_suffixes:
                                                             env_spec=env.spec,
                                                             grad_step_size=fast_learning_rate,
                                                             hidden_nonlinearity=tf.nn.relu,
-                                                            hidden_sizes=(100, 100, 100),
+                                                            hidden_sizes=(100, 100),
                                                             std_modifier=pre_std_modifier,
                                                             # metalearn_baseline=(bas == "MAMLGaussianMLP"),
                                                             extra_input_dim=(0 if extra_input is None else extra_input_dim),
