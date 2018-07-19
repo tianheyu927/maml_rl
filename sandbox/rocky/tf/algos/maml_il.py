@@ -255,6 +255,8 @@ class MAMLIL(BatchMAMLPolopt):
         updated_params = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             # old_dist_info_sym_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
+            params_dict = [p for p in new_params[i] if 'Adam' not in p.name]
+            params_dict = [p for p in params_dict ]
             dist_info_sym_i, updated_params_i = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             # dist_info_sym_i_slow, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs_slow[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall

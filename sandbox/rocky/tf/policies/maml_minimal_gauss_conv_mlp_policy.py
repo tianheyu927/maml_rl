@@ -102,6 +102,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                 output_dim=self.action_dim,
                 hidden_sizes=hidden_sizes,
             )
+
             self.input_tensor, _ = self.forward_CNN_MLP(name='mean_network', all_params=self.all_params,
                                                         conv_filters=conv_filters,
                                                         conv_filter_sizes=conv_filter_sizes,
@@ -112,6 +113,11 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                                                                                input_tensor=None,
                                                                                reuse=None # Need to run this for batch norm
             )
+            import pprint
+            pp = pprint.PrettyPrinter()
+            pp.pprint(("debug, all_params", self.all_params))
+            pp.pprint(("debug, get_params_internal", self.get_params_internal()))
+
             forward_mean = lambda x, params, is_train: self.forward_CNN_MLP(name='mean_network', all_params=params,
                                                                                  conv_filters=conv_filters,
                                                                                  conv_filter_sizes=conv_filter_sizes,
@@ -120,6 +126,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                                                                                  conv_output_dim=conv_output_dim,
                                                                                  conv_hidden_sizes=conv_hidden_sizes,
                 input_tensor=x, is_training=is_train)[1]
+
         else:
             raise NotImplementedError('Not supported.')
 
