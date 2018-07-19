@@ -17,10 +17,12 @@ class LinearFeatureBaseline(Baseline):
         self._coeffs = val
 
     def _features(self, path):
-        o = np.clip(path["observations"], -10, 10)
-        # o = np.clip(path['env_infos']['state'], -10, 10)
-        # v = np.clip(path['agent_infos']['cnn_out'], -10, 10)
-        # o = np.concatenate((o,v),-1)
+        if 'state' in path['env_infos'].keys() and 'cnn_out' in path['agent_infos'].keys():
+            o = np.clip(path['env_infos']['state'], -10, 10)
+            v = np.clip(path['agent_infos']['cnn_out'], -10, 10)
+            o = np.concatenate((o, v), -1)
+        else:
+            o = np.clip(path["observations"], -10, 10)
         l = len(path["rewards"])
         al = np.arange(l).reshape(-1, 1) / 100.0
         return np.concatenate([o, o ** 2, al, al ** 2, al ** 3, np.ones((l, 1))], axis=1)

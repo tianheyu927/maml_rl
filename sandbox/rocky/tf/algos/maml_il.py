@@ -21,6 +21,7 @@ class MAMLIL(BatchMAMLPolopt):
             optimizer_args=None,
             step_size=0.01,
             use_maml=True,
+            use_vision=False,
             use_corr_term=True,
             beta_steps=1,
             adam_steps=1,
@@ -37,6 +38,7 @@ class MAMLIL(BatchMAMLPolopt):
         self.step_size = step_size
         self.adam_curve = adam_curve if adam_curve is not None else [adam_steps]
         self.use_maml = use_maml
+        self.use_vision = use_vision
         self.use_corr_term=use_corr_term
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
@@ -321,9 +323,10 @@ class MAMLIL(BatchMAMLPolopt):
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
         else:
-            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
-            # target = [self.policy.get_params_internal()]
-            # print("debug456", target)
+            if not self.use_vision:
+                target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
+            else:
+                target = [self.policy.get_params_internal()]
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
