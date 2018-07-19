@@ -102,6 +102,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                 output_dim=self.action_dim,
                 hidden_sizes=hidden_sizes,
             )
+
             self.input_tensor, _ = self.forward_CNN_MLP(name='mean_network', all_params=self.all_params,
                                                         conv_filters=conv_filters,
                                                         conv_filter_sizes=conv_filter_sizes,
@@ -112,6 +113,11 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                                                                                input_tensor=None,
                                                                                reuse=None # Need to run this for batch norm
             )
+            import pprint
+            pp = pprint.PrettyPrinter()
+            pp.pprint(("debug, all_params", self.all_params))
+            pp.pprint(("debug, get_params_internal", self.get_params_internal()))
+
             forward_mean = lambda x, params, is_train: self.forward_CNN_MLP(name='mean_network', all_params=params,
                                                                                  conv_filters=conv_filters,
                                                                                  conv_filter_sizes=conv_filter_sizes,
@@ -120,6 +126,12 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                                                                                  conv_output_dim=conv_output_dim,
                                                                                  conv_hidden_sizes=conv_hidden_sizes,
                 input_tensor=x, is_training=is_train)[1]
+            # self.all_noncnn_params = OrderedDict(self.all_params)
+            # for p in self.get_params_internal():
+            #     if p not in self.all_params.values():
+            #         self.all_params.update({p.name:p})
+            # pp.pprint(("debug, all_params2", self.all_params))
+
         else:
             raise NotImplementedError('Not supported.')
 
@@ -141,8 +153,10 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
                     name="output_std_param",
                     trainable=learn_std,
                 )
+                # self.all_noncnn_params['std_param'] = self.all_params['std_param']
                 forward_std = lambda x, params: forward_param_layer(x, params['std_param'])
             self.all_param_vals = None
+            # self.all_noncnn_param_vals = None
 
             # unify forward mean and forward std into a single function
             self._forward = lambda obs, params, is_train: (
@@ -202,6 +216,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
         """
         start = time.time()
         num_tasks = len(samples)
+        # param_keys = self.all_noncnn_params.keys()
         param_keys = self.all_params.keys()
         update_param_keys = param_keys
         no_update_param_keys = []
@@ -245,21 +260,28 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
         # To do a second update, replace self.all_params below with the params that were used to collect the policy.
         init_param_values = None
+        # if self.all_noncnn_param_vals is not None:
         if self.all_param_vals is not None:
+            # init_param_values = self.get_variable_values(self.all_noncnn_params)
             init_param_values = self.get_variable_values(self.all_params)
 
         step_size = self.step_size
         for i in range(num_tasks):
+            # if self.all_noncnn_param_vals is not None:
             if self.all_param_vals is not None:
+                # self.assign_params(self.all_noncnn_params, self.all_noncnn_param_vals[i])
                 self.assign_params(self.all_params, self.all_param_vals[i])
 
         if 'all_fast_params_tensor' not in dir(self):
             # make computation graph once
             self.all_fast_params_tensor = []
             for i in range(num_tasks):
+                # gradients = dict(zip(update_param_keys, tf.gradients(self.surr_objs[i], [self.all_noncnn_params[key] for key in update_param_keys])))
                 gradients = dict(zip(update_param_keys, tf.gradients(self.surr_objs[i], [self.all_params[key] for key in update_param_keys])))
+                # fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_noncnn_params[key] - step_size*gradients[key] for key in update_param_keys]))
                 fast_params_tensor = OrderedDict(zip(update_param_keys, [self.all_params[key] - step_size*gradients[key] for key in update_param_keys]))
                 for k in no_update_param_keys:
+                    # fast_params_tensor[k] = self.all_noncnn_params[k]
                     fast_params_tensor[k] = self.all_params[k]
                 self.all_fast_params_tensor.append(fast_params_tensor)
 
@@ -271,6 +293,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
 
         if init_param_values is not None:
+            # self.assign_params(self.all_noncnn_params, init_param_values)
             self.assign_params(self.all_params, init_param_values)
 
         outputs = []
@@ -278,6 +301,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
         for i in range(num_tasks):
             # TODO - use a placeholder to feed in the params, so that we don't have to recompile every time.
             task_inp = inputs[i]
+            # info, _ = self.dist_info_sym(obs_var=task_inp, state_info_vars=dict(), all_params=self.all_noncnn_param_vals[i],
             info, _ = self.dist_info_sym(obs_var=task_inp, state_info_vars=dict(), all_params=self.all_param_vals[i],
                     is_training=False)
 
@@ -312,6 +336,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
     def switch_to_init_dist(self):
         # switch cur policy distribution to pre-update policy
         self._cur_f_dist = self._init_f_dist
+        # self.all_noncnn_param_vals = None
         self.all_param_vals = None
 
     def dist_info_sym(self, obs_var, state_info_vars=None, all_params=None, is_training=True):
@@ -352,9 +377,11 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
         if old_params_dict is None:
             old_params_dict = self.all_params
+        # param_keys = self.all_noncnn_params.keys()
         param_keys = self.all_params.keys()
         # print("debug1", self.all_params['std_param'])
         update_param_keys = param_keys
+        # no_update_param_keys = [key for key in old_params_dict.keys() if key not in update_param_keys]
         no_update_param_keys = []
 
         grads = tf.gradients(surr_obj, [old_params_dict[key] for key in update_param_keys])
@@ -422,6 +449,7 @@ class MAMLGaussianConvMLPPolicy(StochasticPolicy, Serializable):
 
         params = [p for p in params if p.name.startswith('mean_network') or p.name.startswith('output_std_param')]
         params = [p for p in params if 'Adam' not in p.name]
+        params = [p for p in params if 'main_optimizer' not in p.name]
 
         return params
 

@@ -21,6 +21,7 @@ class MAMLIL(BatchMAMLPolopt):
             optimizer_args=None,
             step_size=0.01,
             use_maml=True,
+            use_vision=False,
             use_corr_term=True,
             beta_steps=1,
             adam_steps=1,
@@ -37,6 +38,7 @@ class MAMLIL(BatchMAMLPolopt):
         self.step_size = step_size
         self.adam_curve = adam_curve if adam_curve is not None else [adam_steps]
         self.use_maml = use_maml
+        self.use_vision = use_vision
         self.use_corr_term=use_corr_term
         self.kl_constrain_step = -1
         self.l2loss_std_multiplier = l2loss_std_mult
@@ -253,7 +255,11 @@ class MAMLIL(BatchMAMLPolopt):
         updated_params = []
         for i in range(self.meta_batch_size):  # here we cycle through the last grad update but for validation tasks (i is the index of a task)
             # old_dist_info_sym_i, _ = self.policy.dist_info_sym(obs_vars[i], state_info_vars,all_params=self.policy.all_params)
+            import pprint
+            pp = pprint.PrettyPrinter()
+            pp.pprint(("debug, new_params[i]",new_params[i]))
             dist_info_sym_i, updated_params_i = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
+            pp.pprint(("debug, updated_params_i",updated_params_i))
             # dist_info_sym_i_slow, _ = self.policy.updated_dist_info_sym(task_id=i,surr_obj=all_surr_objs_slow[-1][i],new_obs_var=obs_vars[i], params_dict=new_params[i])
             if self.kl_constrain_step == -1:  # if we only care about the kl of the last step, the last item in kls will be the overall
                 kl = dist.kl_sym(old_dist_info_vars[i], dist_info_sym_i)
@@ -321,9 +327,10 @@ class MAMLIL(BatchMAMLPolopt):
             # target = [self.policy.all_params[key] for key in self.policy.all_params.keys()] + [self.baseline.all_params[key] for key in self.baseline.all_params.keys()]
             # target=[self.policy.all_params[key] for key in self.policy.all_params.keys()]
         else:
-            target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
-            # target = [self.policy.get_params_internal()]
-            # print("debug456", target)
+            if not self.use_vision:
+                target = [self.policy.all_params[key] for key in self.policy.all_params.keys()]
+            else:
+                target = [self.policy.get_params_internal()]
 
         self.optimizer.update_opt(
             loss=outer_surr_obj,
